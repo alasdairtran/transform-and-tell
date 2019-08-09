@@ -1,0 +1,37 @@
+.DS_Store
+.mypy_cache
+.pytest_cache
+.vscode
+
+# Python
+__pycache__
+*.ipynb_checkpoints
+*.pyc
+*.pylintrc
+*.pydocstylerc
+*.ipynb
+
+# Experimental files
+*.th
+
+# Packaging
+/dist
+/build
+*.egg-info
+
+# Latex
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*-blx.bib
+
+*.pdf
+/data
+/expt/**/*.th
