@@ -8,10 +8,10 @@ Options:
     -r --root-dir DIR   Root directory of data [default: data/nytimes].
 
 """
-
 import json
 import os
 import time
+from datetime import datetime
 from itertools import product
 from urllib.parse import urlparse
 from urllib.request import urlopen
@@ -21,7 +21,9 @@ import requests
 from bs4 import BeautifulSoup
 from docopt import docopt
 from goose3 import Goose
+from joblib import Parallel, delayed
 from posixpath import normpath
+from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
@@ -48,21 +50,12 @@ def resolve_url(url):
     return cleaned.geturl()
 
 
-def retrieve_articles(root_dir, year, month):
+def retrieve_articles(root_dir, year, month, db):
     in_path = os.path.join(root_dir, 'archive', f'{year}_{month:02}.json')
-    out_path = os.path.join(root_dir, 'data', f'{year}_{month:02}.json')
-    if os.path.exists(out_path):
-        return
-
-    month_data = {}
     with open(in_path) as f:
         content = json.load(f)
-        for article in tqdm(content['response']['docs']):
-            data = retrieve_article(article, root_dir)
-            month_data[article['_id']] = data
-
-    with open(out_path) as f:
-        json.dump(month_data, f)
+        for article in tqdm(content['response']['docs'], desc=f'{year}-{month:02}'):
+            retrieve_article(article, root_dir, db)
 
 
 def get_soup(url):
@@ -74,16 +67,24 @@ def get_soup(url):
     return soup, figcap
 
 
-def retrieve_article(article, root_dir):
+def retrieve_article(article, root_dir, db):
+    result = db.articles.find_one({'_id': article['_id']})
+    if result is not None:
+        return
+
+    if not article['web_url']:
+        return
+
     data = {}
     url = resolve_url(article['web_url'])
     g = Goose()
     extract = g.extract(url=url)
 
-    data['headline'] = article.get('headline', None)
-    data['article_url'] = url
+    data = article
+    data['web_url'] = url
     data['article'] = extract.cleaned_text
-    data['abstract'] = article.get('abstract', None)
+    data['pub_date'] = datetime.strptime(article['pub_date'],
+                                         '%Y-%m-%dT%H:%M:%S%z')
 
     if article['multimedia']:
         data['images'] = {}
@@ -101,8 +102,9 @@ def retrieve_article(article, root_dir):
 
                 text = cap.get_text().split('credit')[0]
                 text = text.split('Credit')[0]
-                data['images'].update({ix: text})
-    return data
+                data['images'].update({f'{ix}': text})
+
+    db.articles.insert_one(data)
 
 
 def validate(args):
@@ -127,17 +129,19 @@ def main():
         ptvsd.wait_for_attach()
 
     years = range(2018, 1979, -1)
-    months = range(1, 13)
+    months = range(12, 0, -1)
 
     root_dir = args['root_dir']
-    data_dir = os.path.join(root_dir, 'data')
     img_dir = os.path.join(root_dir, 'images')
-    os.makedirs(data_dir, exist_ok=True)
     os.makedirs(img_dir, exist_ok=True)
 
-    for year, month in product(years, months):
-        logger.info(f'Retrieve articles from {month}-{year}.')
-        retrieve_articles(root_dir, year, month)
+    # Get the nytimes database
+    client = MongoClient(host='localhost', port=27017)
+    db = client.nytimes
+
+    with Parallel(n_jobs=12, backend='threading') as parallel:
+        parallel(delayed(retrieve_articles)(root_dir, year, month, db)
+                 for year, month in product(years, months))
 
 
 if __name__ == '__main__':
