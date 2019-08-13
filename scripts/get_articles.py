@@ -51,11 +51,17 @@ def resolve_url(url):
 
 
 def retrieve_articles(root_dir, year, month, db):
+    result = db.scraping.find_one({'year': year, 'month': month})
+    if result is not None:
+        return
+
     in_path = os.path.join(root_dir, 'archive', f'{year}_{month:02}.json')
     with open(in_path) as f:
         content = json.load(f)
         for article in tqdm(content['response']['docs'], desc=f'{year}-{month:02}'):
             retrieve_article(article, root_dir, db)
+
+    db.scraping.insert_one({'year': year, 'month': month})
 
 
 def get_soup(url):
