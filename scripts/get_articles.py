@@ -77,9 +77,9 @@ def retrieve_article(article, root_dir, db):
 
     data = {}
     url = resolve_url(article['web_url'])
-    g = Goose()
     try:
-        extract = g.extract(url=url)
+        with Goose() as g:
+            extract = g.extract(url=url)
     except requests.exceptions.MissingSchema:
         return  # Ignore invalid URLs
 
