@@ -1,15 +1,22 @@
 import logging
+import os
 import random
 from datetime import datetime
 from typing import Dict
 
+import numpy as np
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import MetadataField, TextField
+from allennlp.data.fields import ArrayField, MetadataField, TextField
 from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer
 from overrides import overrides
+from PIL import Image
 from pymongo import MongoClient
+from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
+                                    ToTensor)
+
+from newser.data.fields import ImageField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -22,24 +29,28 @@ class NYTimesReader(DatasetReader):
 
     Parameters
     ----------
-    tokenizer : ``Tokenizer``, optional (default=``WordTokenizer()``)
+    tokenizer : ``Tokenizer``
         We use this ``Tokenizer`` for both the premise and the hypothesis.
         See :class:`Tokenizer`.
-    token_indexers : ``Dict[str, TokenIndexer]``, optional (default=``{'tokens': SingleIdTokenIndexer()}``)
+    token_indexers : ``Dict[str, TokenIndexer]``
         We similarly use this for both the premise and the hypothesis.
         See :class:`TokenIndexer`.
     """
 
     def __init__(self,
-                 tokenizer: Tokenizer = None,
-                 token_indexers: Dict[str, TokenIndexer] = None,
-                 lazy: bool = False) -> None:
+                 tokenizer: Tokenizer,
+                 token_indexers: Dict[str, TokenIndexer],
+                 image_dir: str,
+                 lazy: bool = True) -> None:
         super().__init__(lazy)
-        self._tokenizer = tokenizer or WordTokenizer()
-        self._token_indexers = token_indexers or \
-            {'tokens': SingleIdTokenIndexer()}
+        self._tokenizer = tokenizer
+        self._token_indexers = token_indexers
         self.client = MongoClient(host='localhost', port=27017)
         self.db = self.client.nytimes
+        self.image_dir = image_dir
+        self.preprocess = Compose([
+            Resize(256), CenterCrop(224), ToTensor(),
+            Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         random.seed(1234)
 
     @overrides
@@ -65,10 +76,20 @@ class NYTimesReader(DatasetReader):
         })
 
         for article in article_cursor:
-            self.article_to_instance(article)
+            # Get the top image of the article
+            image_name = f"{article['_id']}_0.jpg"
+            image_path = os.path.join(self.image_dir, image_name)
+            try:
+                with Image.open(image_path) as image:
+                    if image.size[0] < 256 or image.size[1] < 256:
+                        continue
+                    image = image.convert('RGB')
+            except (FileNotFoundError, OSError):
+                continue
 
-    @overrides
-    def article_to_instance(self, article) -> Instance:
+            yield self.article_to_instance(article, image)
+
+    def article_to_instance(self, article, image) -> Instance:
         context_text = f"<s> {article['article']} </s>"
         caption_text = f"<s> {article['images']['0']} </s>"
 
@@ -77,6 +98,7 @@ class NYTimesReader(DatasetReader):
 
         fields = {
             'context': TextField(context_tokens, self._token_indexers),
+            'image': ImageField(image, self.preprocess),
             'caption': TextField(caption_tokens, self._token_indexers),
         }
 
