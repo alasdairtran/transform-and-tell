@@ -102,7 +102,10 @@ def retrieve_article(article, root_dir, db):
         for ix, cap in enumerate(figcap):
             if cap.parent.attrs.get('itemid', 0):
                 img_url = resolve_url(cap.parent.attrs['itemid'])
-                img_data = requests.get(img_url, stream=True).content
+                try:
+                    img_data = requests.get(img_url, stream=True).content
+                except requests.exceptions.MissingSchema:
+                    continue
                 img_path = os.path.join(root_dir, 'images',
                                         f"{article['_id']}_{ix}.jpg")
 
