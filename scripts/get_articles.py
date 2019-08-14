@@ -93,6 +93,8 @@ def retrieve_article(article, root_dir, db):
         except requests.exceptions.ReadTimeout:
             time.sleep(60)
             continue
+        except requests.exceptions.TooManyRedirects:
+            continue
 
     data = article
     data['web_url'] = url
@@ -156,7 +158,7 @@ def main():
     client = MongoClient(host='localhost', port=27017)
     db = client.nytimes
 
-    with Parallel(n_jobs=4, backend='threading') as parallel:
+    with Parallel(n_jobs=12, backend='threading') as parallel:
         parallel(delayed(retrieve_articles)(root_dir, year, month, db)
                  for year, month in product(years, months))
 
