@@ -76,6 +76,10 @@ class NYTimesReader(DatasetReader):
         })
 
         for article in article_cursor:
+            # Ensure caption is non-empty
+            if not article['images']['0']:
+                continue
+
             # Get the top image of the article
             image_name = f"{article['_id']}_0.jpg"
             image_path = os.path.join(self.image_dir, image_name)
