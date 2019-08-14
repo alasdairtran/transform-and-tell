@@ -83,11 +83,16 @@ def retrieve_article(article, root_dir, db):
 
     data = {}
     url = resolve_url(article['web_url'])
-    try:
-        with Goose() as g:
-            extract = g.extract(url=url)
-    except requests.exceptions.MissingSchema:
-        return  # Ignore invalid URLs
+    while True:
+        try:
+            with Goose() as g:
+                extract = g.extract(url=url)
+                break
+        except requests.exceptions.MissingSchema:
+            return  # Ignore invalid URLs
+        except requests.exceptions.ReadTimeout:
+            time.sleep(60)
+            continue
 
     data = article
     data['web_url'] = url
