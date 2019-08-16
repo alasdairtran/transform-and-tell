@@ -10,6 +10,25 @@ from overrides import overrides
 from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 
 
+class RobertaTokenizer2(RobertaTokenizer):
+    @overrides
+    def convert_tokens_to_ids(self, tokens):
+        """Converts a single token, or a sequence of tokens, (str/unicode) in a single integer id
+        (resp. a sequence of ids), using the vocabulary.
+
+        We manually cut off long sequences at 512 pieces.
+        """
+        if isinstance(tokens, str):
+            return self._convert_token_to_id_with_added_voc(tokens)
+
+        ids = []
+        for token in tokens:
+            ids.append(self._convert_token_to_id_with_added_voc(token))
+        if len(ids) > self.max_len:
+            ids = ids[:self.max_len]
+        return ids
+
+
 @TokenIndexer.register("roberta")
 class RobertaTokenIndexer(TokenIndexer[int]):
     def __init__(self,
@@ -21,7 +40,9 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                  padding_on_right: bool = True,
                  padding_value: int = 1) -> None:
         super().__init__(token_min_padding_length)
-        self.tokenizer = RobertaTokenizer.from_pretrained(model_name)
+        roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
+        self.source_dictionary = roberta.task.source_dictionary
+        self.bpe = roberta.bpe
         self._added_to_vocabulary = False
         self._namespace = namespace
         self._padding_on_right = padding_on_right
@@ -33,8 +54,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         pass
 
     def _add_encoding_to_vocabulary(self, vocabulary: Vocabulary) -> None:
-        decoder = self.tokenizer.decoder
-        for idx, piece in decoder.items():
+        for piece, idx in self.source_dictionary.indices.items():
             vocabulary._token_to_index[self._namespace][piece] = idx
             vocabulary._index_to_token[self._namespace][idx] = piece
 
@@ -48,9 +68,15 @@ class RobertaTokenIndexer(TokenIndexer[int]):
             self._added_to_vocabulary = True
 
         text = ' '.join([token.text for token in tokens])
-        indices = self.tokenizer.encode(text)
+        indices = self.encode(text)
 
         return {index_name: indices}
+
+    def encode(self, sentence):
+        bpe_sentence = '<s> ' + self.bpe.encode(sentence) + ' </s>'
+        tokens = self.source_dictionary.encode_line(
+            bpe_sentence, append_eos=False)
+        return tokens.long().tolist()[:512]
 
     @overrides
     def get_padding_lengths(self, token: int) -> Dict[str, int]:  # pylint: disable=unused-argument
