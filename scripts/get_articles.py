@@ -16,6 +16,7 @@ from itertools import product
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
+import lxml
 import ptvsd
 import requests
 from bs4 import BeautifulSoup
@@ -90,11 +91,13 @@ def retrieve_article(article, root_dir, db):
                 break
         except requests.exceptions.MissingSchema:
             return  # Ignore invalid URLs
-        except requests.exceptions.ReadTimeout:
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
             time.sleep(60)
             continue
         except requests.exceptions.TooManyRedirects:
-            continue
+            return
+        except lxml.etree.ParserError:
+            return
 
     data = article
     data['web_url'] = url
