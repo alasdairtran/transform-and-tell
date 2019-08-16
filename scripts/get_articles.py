@@ -92,8 +92,7 @@ def retrieve_article(article, root_dir, db):
         except requests.exceptions.MissingSchema:
             return  # Ignore invalid URLs
         except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
-            time.sleep(60)
-            continue
+            return
         except requests.exceptions.TooManyRedirects:
             return
         except lxml.etree.ParserError:

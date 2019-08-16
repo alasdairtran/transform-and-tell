@@ -1,7 +1,7 @@
 """Train and run semantic diff models.
 
 Usage:
-    newser train [options] PARAM_PATH
+    newser (train|generate) [options] PARAM_PATH
     newser (-h | --help)
     newser (-v | --version)
 
@@ -25,6 +25,7 @@ Options:
                         Additional packages to include.
     -q --quiet          Print less info
     PARAM_PATH          Path to file describing the model parameters.
+    -m --model-path PATH Path the the best model.
 
 Examples:
     newser train -r -g expt/writing-prompts/lstm/config.yaml
@@ -40,6 +41,7 @@ from schema import And, Or, Schema, Use
 
 from newser.utils import setup_logger
 
+from .generate import generate
 from .train import train_model_from_file
 
 logger = setup_logger()
@@ -51,6 +53,7 @@ def validate(args):
             for k, v in args.items()}
     schema = Schema({
         'param_path': Or(None, os.path.exists),
+        'model_path': Or(None, os.path.exists),
         'ptvsd': Or(None, And(Use(int), lambda port: 1 <= port <= 65535)),
         object: object,
     })
@@ -88,6 +91,9 @@ def main():
             file_friendly_logging=args['file_friendly_logging'],
             recover=args['recover'],
             force=args['force'])
+
+    elif args['generate']:
+        generate(args['param_path'], args['model_path'], args['overrides'])
 
 
 if __name__ == '__main__':
