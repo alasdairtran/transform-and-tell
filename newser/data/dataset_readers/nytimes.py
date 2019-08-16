@@ -41,11 +41,13 @@ class NYTimesReader(DatasetReader):
                  tokenizer: Tokenizer,
                  token_indexers: Dict[str, TokenIndexer],
                  image_dir: str,
+                 mongo_host: str = 'localhost',
+                 mongo_port: int = 27017,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
         self._token_indexers = token_indexers
-        self.client = MongoClient(host='localhost', port=27017)
+        self.client = MongoClient(host=mongo_host, port=mongo_port)
         self.db = self.client.nytimes
         self.image_dir = image_dir
         self.preprocess = Compose([
@@ -69,15 +71,16 @@ class NYTimesReader(DatasetReader):
         else:
             raise ValueError(f'Unknown split: {split}')
 
+        # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
             'article': {'$ne': ''},  # non-empty article body
             'images': {'$exists': True, '$ne': {}},  # at least one image
             'pub_date': {'$gte': start, '$lt': end},
-        })
+        }).batch_size(1000)
 
         for article in article_cursor:
             # Ensure caption is non-empty
-            if not article['images']['0']:
+            if '0' not in article['images'] or not article['images']['0'].strip():
                 continue
 
             # Get the top image of the article
@@ -94,8 +97,12 @@ class NYTimesReader(DatasetReader):
             yield self.article_to_instance(article, image)
 
     def article_to_instance(self, article, image) -> Instance:
-        context_text = f"<s> {article['article']} </s>"
-        caption_text = f"<s> {article['images']['0']} </s>"
+        context_text = article['article']
+        caption_text = article['images']['0']
+
+        if not article['images']['0'].strip():
+            print(article['images']['0'])
+            raise ValueError
 
         context_tokens = self._tokenizer.tokenize(context_text)
         caption_tokens = self._tokenizer.tokenize(caption_text)
