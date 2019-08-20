@@ -525,5 +525,6 @@ class BaselineModel(Model):
         if reset:
             self.n_batches = 0
             self.n_samples = 0
+            self.sample_history: Dict[str, float] = defaultdict(float)
 
         return metrics
