@@ -198,8 +198,10 @@ class BaselineModel(Model):
         loss : torch.FloatTensor, optional
             A scalar loss to be optimized.
         """
-        caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens = self._forward(
+        caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens, sort_index = self._forward(
             context, image, caption, metadata)
+
+        metadata = list(np.array(metadata)[sort_index.cpu().numpy()])
         B, P, C = image_embeds.shape
 
         # We won't decode at the </s> position, since we've finished
@@ -316,9 +318,9 @@ class BaselineModel(Model):
                  caption: Dict[str, torch.LongTensor],
                  metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
-        caption_ids, image_embeds, caption_embeds, context_embeds, _ = self._forward(
+        caption_ids, image_embeds, caption_embeds, context_embeds, _, sort_index = self._forward(
             context, image, caption, metadata)
-
+        metadata = list(np.array(metadata)[sort_index.cpu().numpy()])
         output_dict = self._generate(caption_ids, image_embeds,
                                      caption_embeds, context_embeds)
         output_dict['captions'] = [m['caption'] for m in metadata]
@@ -398,7 +400,7 @@ class BaselineModel(Model):
         else:
             context_embeds = None
 
-        return caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens
+        return caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens, sort_index
 
     def _generate(self, caption_ids, image_embeds,
                   caption_embeds, context_embeds):
