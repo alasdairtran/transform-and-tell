@@ -76,7 +76,7 @@ class NYTimesReader(DatasetReader):
             'article': {'$ne': ''},  # non-empty article body
             'images': {'$exists': True, '$ne': {}},  # at least one image
             'pub_date': {'$gte': start, '$lt': end},
-        }).batch_size(1000)
+        }).batch_size(128)
 
         for article in article_cursor:
             # Ensure caption is non-empty
