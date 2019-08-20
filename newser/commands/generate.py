@@ -27,12 +27,16 @@ def generate(archive_path, model_path, overrides=None, device=0):
         serialization_dir = os.path.join(config_dir, 'serialization')
 
     all_datasets = datasets_from_params(config)
-    if os.path.exists(os.path.join(serialization_dir, "vocabulary")):
-        vocab_path = os.path.join(serialization_dir, "vocabulary")
-        vocab = Vocabulary.from_files(vocab_path)
 
-    if archive_path.endswith('yaml'):
-        model = Model.from_params(vocab=vocab, params=config.pop('model'))
+    # We want to create the vocab from scratch since it might be of a
+    # different type. Vocabulary.from_files will always create the base
+    # Vocabulary instance.
+    # if os.path.exists(os.path.join(serialization_dir, "vocabulary")):
+    #     vocab_path = os.path.join(serialization_dir, "vocabulary")
+    #     vocab = Vocabulary.from_files(vocab_path)
+
+    vocab = Vocabulary.from_params(config.pop('vocabulary'))
+    model = Model.from_params(vocab=vocab, params=config.pop('model'))
 
     if model_path:
         best_model_state = torch.load(model_path)
