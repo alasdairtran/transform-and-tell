@@ -76,13 +76,18 @@ def get_soup(url):
 
 def retrieve_article(article, root_dir, db):
     result = db.articles.find_one({'_id': article['_id']})
-    if result is not None:
+    if result is not None and result['scraped'] == True:
         return
+
+    data = article
+    data['scraped'] = False
+
+    if result is None:
+        db.articles.insert_one(data)
 
     if not article['web_url']:
         return
 
-    data = {}
     url = resolve_url(article['web_url'])
     while True:
         try:
@@ -98,7 +103,6 @@ def retrieve_article(article, root_dir, db):
         except lxml.etree.ParserError:
             return
 
-    data = article
     data['web_url'] = url
     data['article'] = extract.cleaned_text
     data['pub_date'] = datetime.strptime(article['pub_date'],
@@ -125,7 +129,8 @@ def retrieve_article(article, root_dir, db):
                 text = text.split('Credit')[0]
                 data['images'].update({f'{ix}': text})
 
-    db.articles.insert_one(data)
+    data['scraped'] = True
+    db.articles.find_one_and_update({'_id': article['_id']}, {'$set': data})
 
 
 def validate(args):
