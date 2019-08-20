@@ -480,11 +480,11 @@ class BaselineModel(Model):
         self.n_samples += B
 
         gen_indices = generated[:, :t].cpu()
-        generated_texts = [self.roberta.decode(x) for x in gen_indices]
+        gen_texts = [self.roberta.decode(x[x != 1]) for x in gen_indices]
 
         return {
             'generated_indices': gen_indices,
-            'generated_texts': generated_texts,
+            'generated_texts': gen_texts,
         }
 
     def init_hidden_state(self, image_embeds):
