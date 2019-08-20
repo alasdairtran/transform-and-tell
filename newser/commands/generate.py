@@ -45,7 +45,7 @@ def generate(archive_path, model_path, overrides=None, device=0):
     instances = all_datasets.get('validation')
     data_iterator = DataIterator.from_params(
         config.pop("validation_iterator"))
-    data_iterator._batch_size = 1
+    data_iterator._batch_size = 4
 
     data_iterator.index_with(model.vocab)
     model.eval().to(device)
@@ -55,10 +55,15 @@ def generate(archive_path, model_path, overrides=None, device=0):
         generator_tqdm = Tqdm.tqdm(
             iterator, total=data_iterator.get_num_batches(instances))
 
+        i = 1
         for batch in generator_tqdm:
             batch = move_to_device(batch, device)
             output_dict = model.generate(**batch)
-            generated_text = output_dict['generated_text']
-            print(generated_text)
-            print(output_dict['caption'])
-            print()
+            generated_texts = output_dict['generated_texts']
+
+            print(f'Batch {i}:\n')
+            for cap, gen in zip(output_dict['captions'], generated_texts):
+                print(cap)
+                print(gen)
+                print()
+            i += 1

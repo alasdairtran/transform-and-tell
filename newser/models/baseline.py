@@ -278,6 +278,11 @@ class BaselineModel(Model):
         self.n_batches += 1
         self.n_samples += B
 
+        # During evaluation, we will generate a caption and compute BLEU, etc.
+        if not self.training:
+            gen_dict = self._generate(caption_ids, image_embeds,
+                                      caption_embeds, context_embeds)
+
         output_dict = {'loss': loss}
         return output_dict
 
@@ -292,7 +297,7 @@ class BaselineModel(Model):
 
         output_dict = self._generate(caption_ids, image_embeds,
                                      caption_embeds, context_embeds)
-        output_dict['caption'] = metadata[0]['caption'],
+        output_dict['captions'] = [m['caption'] for m in metadata]
         return output_dict
 
     def _forward(self,  # type: ignore
@@ -381,7 +386,12 @@ class BaselineModel(Model):
         V = self.vocab.get_vocab_size(self.namespace)
         max_len = 32
         B = image_embeds.shape[0]
-        generated = caption_ids.new_zeros(B, max_len)
+
+        # Assume <s> is 0, <pad> is 1, and </s> is 2.
+        # We won't store the first <s> in generated
+        generated = caption_ids.new_ones(B, max_len)
+        eos = 2
+        is_end = generated == eos
 
         # At each time-step, decode by attention-weighing the encoder's output
         # based on the decoder's previous hidden state output then generate a
@@ -419,9 +429,11 @@ class BaselineModel(Model):
                 word_idx = word_idx.squeeze(-1)
                 # word_idx.shape == [batch_size]
 
-                generated[:, t] = word_idx
+                generated[is_end, t] = word_idx[is_end]
 
-                if word_idx.item() == 2:
+                # Once we've reached </s>, is_end will become and remain True
+                is_end |= word_idx == eos
+                if is_end.sum().item() == len(is_end):
                     break
 
                 prev_word = self.roberta.extract_features(
@@ -448,12 +460,12 @@ class BaselineModel(Model):
         self.n_batches += 1
         self.n_samples += B
 
-        generated_indices = generated[0, :t].cpu()
-        generated_text = self.roberta.decode(generated_indices)
+        gen_indices = generated[:, :t].cpu()
+        generated_texts = [self.roberta.decode(x) for x in gen_indices]
 
         return {
             'generated_indices': generated_indices,
-            'generated_text': generated_text,
+            'generated_texts': generated_texts,
         }
 
     def init_hidden_state(self, image_embeds):
