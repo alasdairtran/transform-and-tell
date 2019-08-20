@@ -117,6 +117,7 @@ class BaselineModel(Model):
                  index: str = 'roberta',
                  padding_value: int = 1,
                  use_context: bool = True,
+                 topk: int = 1,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
         n_channels = 2048
@@ -127,6 +128,7 @@ class BaselineModel(Model):
         self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
         self.attention = Attention(n_channels, hidden_size, attention_dim)
         self.use_context = use_context
+        self.topk = topk
 
         # Projection so that image and text embeds have same dimension
         # self.image_proj = nn.Linear(2048, 384)
@@ -403,8 +405,8 @@ class BaselineModel(Model):
                 probs_t = F.softmax(logits_t, dim=-1)
                 # probs_t.shape == [batch_size_t, vocab_size]
 
-                top_probs, top_indices = probs_t.topk(10, dim=-1)
-                # top_indices.shape == [batch_size_t, 10]
+                top_probs, top_indices = probs_t.topk(self.topk, dim=-1)
+                # top_indices.shape == [batch_size_t, k]
 
                 idx = torch.multinomial(top_probs, 1)
                 # idx.shape == [batch_size, 1]
