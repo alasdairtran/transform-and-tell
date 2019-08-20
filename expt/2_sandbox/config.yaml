@@ -19,7 +19,8 @@ vocabulary:
   type: roberta
   directory_path: ./expt/vocabulary
 model:
-  type: baseline_context
+  type: baseline
+  use_context: true
   vocab_size: 50265
   hidden_size: 1024
   attention_dim: 1024

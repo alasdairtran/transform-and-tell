@@ -116,6 +116,7 @@ class BaselineModel(Model):
                  namespace: str = 'bpe',
                  index: str = 'roberta',
                  padding_value: int = 1,
+                 use_context: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
         n_channels = 2048
@@ -125,6 +126,7 @@ class BaselineModel(Model):
         self.resnet = resnext101_32x16d_wsl()
         self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
         self.attention = Attention(n_channels, hidden_size, attention_dim)
+        self.use_context = use_context
 
         # Projection so that image and text embeds have same dimension
         # self.image_proj = nn.Linear(2048, 384)
@@ -142,7 +144,14 @@ class BaselineModel(Model):
         # Linear layer to find scores over vocabulary
         self.fc = nn.Linear(hidden_size, vocab_size)
 
-        input_size = n_channels + text_embed_size
+        if use_context:
+            self.article_attention = Attention(
+                text_embed_size, hidden_size, attention_dim)
+            self.f_beta_2 = nn.Linear(hidden_size, text_embed_size)
+            input_size = n_channels + text_embed_size * 2
+        else:
+            input_size = n_channels + text_embed_size
+
         self.rnn_cell = nn.LSTMCell(input_size, hidden_size, bias=True)
         self.dropout = nn.Dropout(p=dropout)
 
@@ -220,11 +229,12 @@ class BaselineModel(Model):
         # image_embeds.shape == [batch_size, 49, 1024]
 
         # STEP 3: Embed the first 512 words of the context
-        # context_ids = context[self.index][:, :512]
-        # # caption_ids.shape == [batch_size, seq_len]
+        if self.use_context:
+            context_ids = context[self.index][:, :512]
+            # caption_ids.shape == [batch_size, seq_len]
 
-        # context_embeds = self.roberta.extract_features(context_ids)
-        # context_embeds = context_embeds[sort_index]
+            context_embeds = self.roberta.extract_features(context_ids)
+            context_embeds = context_embeds[sort_index]
 
         # Initialize LSTM state
         h, c = self.init_hidden_state(image_embeds)
@@ -264,7 +274,17 @@ class BaselineModel(Model):
             #   1) The word from the previous step of the caption
             #   2) The attended image
             prev_word = caption_embeds_t[:, t, :]
-            rnn_input = torch.cat([prev_word, attended_image], dim=1)
+
+            if self.use_context:
+                context_embeds_t = context_embeds[:batch_size_t]
+                attended_article, _ = self.article_attention(
+                    context_embeds_t, h_t)
+                gate_2 = torch.sigmoid(self.f_beta_2(h_t))
+                attended_article = gate_2 * attended_article
+                rnn_input = torch.cat(
+                    [prev_word, attended_image, attended_article], dim=1)
+            else:
+                rnn_input = torch.cat([prev_word, attended_image], dim=1)
 
             # Feed through the RNN cell
             h, c = self.rnn_cell(rnn_input, (h_t, c_t))
@@ -339,11 +359,12 @@ class BaselineModel(Model):
         # image_embeds.shape == [batch_size, 49, 1024]
 
         # STEP 3: Embed the first 512 words of the context
-        # context_ids = context[self.index][:, :512]
-        # # caption_ids.shape == [batch_size, seq_len]
+        if self.use_context:
+            context_ids = context[self.index][:, :512]
+            # caption_ids.shape == [batch_size, seq_len]
 
-        # context_embeds = self.roberta.extract_features(context_ids)
-        # context_embeds = context_embeds[sort_index]
+            context_embeds = self.roberta.extract_features(context_ids)
+            context_embeds = context_embeds[sort_index]
 
         # Initialize LSTM state
         h, c = self.init_hidden_state(image_embeds)
@@ -402,7 +423,14 @@ class BaselineModel(Model):
                 prev_word = prev_word[0][:, -1]
                 # prev_word.shape == [batch_size, embed_size]
 
-            rnn_input = torch.cat([prev_word, attended_image], dim=1)
+            if self.use_context:
+                attended_article, _ = self.article_attention(context_embeds, h)
+                gate_2 = torch.sigmoid(self.f_beta_2(h))
+                attended_article = gate_2 * attended_article
+                rnn_input = torch.cat(
+                    [prev_word, attended_image, attended_article], dim=1)
+            else:
+                rnn_input = torch.cat([prev_word, attended_image], dim=1)
 
             # Feed through the RNN cell
             h, c = self.rnn_cell(rnn_input, (h, c))

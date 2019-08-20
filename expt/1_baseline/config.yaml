@@ -20,6 +20,7 @@ vocabulary:
   directory_path: ./expt/vocabulary
 model:
   type: baseline
+  use_context: false
   vocab_size: 50265
   hidden_size: 1024
   attention_dim: 1024
