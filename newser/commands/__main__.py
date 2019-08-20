@@ -1,7 +1,7 @@
 """Train and run semantic diff models.
 
 Usage:
-    newser (train|generate) [options] PARAM_PATH
+    newser (train|generate|evaluate) [options] PARAM_PATH
     newser (-h | --help)
     newser (-v | --version)
 
@@ -41,6 +41,7 @@ from schema import And, Or, Schema, Use
 
 from newser.utils import setup_logger
 
+from .evaluate import evaluate_from_file
 from .generate import generate
 from .train import train_model_from_file
 
@@ -94,6 +95,10 @@ def main():
 
     elif args['generate']:
         generate(args['param_path'], args['model_path'], args['overrides'])
+
+    elif args['evaluate']:
+        evaluate_from_file(args['param_path'],
+                           args['model_path'], args['overrides'])
 
 
 if __name__ == '__main__':
