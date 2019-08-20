@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -288,6 +289,10 @@ class BaselineModel(Model):
                                       caption_embeds, context_embeds)
             gen_texts = gen_dict['generated_texts']
             captions = [m['caption'] for m in metadata]
+
+            # Remove punctuation
+            gen_texts = [re.sub(r'[^\w\s]', '', t) for t in gen_texts]
+            captions = [re.sub(r'[^\w\s]', '', t) for t in captions]
 
             for gen, ref in zip(gen_texts, captions):
                 bleu_scorer = BleuScorer(n=4)
