@@ -2,6 +2,12 @@
 
 News captioning system
 
+## Requirements
+
+```sh
+pip install git+https://github.com/salaniz/pycocoevalcap
+```
+
 ## Getting Data
 
 ```sh

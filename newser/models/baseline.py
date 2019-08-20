@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -11,6 +12,8 @@ from allennlp.nn.initializers import InitializerApplicator
 from allennlp.nn.util import get_text_field_mask, sort_batch_by_length
 from allennlp.training.metrics import CategoricalAccuracy
 from overrides import overrides
+from pycocoevalcap.bleu.bleu_scorer import BleuScorer
+from pycocoevalcap.rouge.rouge import Rouge
 
 from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
@@ -159,6 +162,7 @@ class BaselineModel(Model):
 
         self.n_batches = 0
         self.n_samples = 0
+        self.sample_history: Dict[str, float] = defaultdict(float)
 
         initializer(self)
 
@@ -282,6 +286,21 @@ class BaselineModel(Model):
         if not self.training:
             gen_dict = self._generate(caption_ids, image_embeds,
                                       caption_embeds, context_embeds)
+            gen_texts = gen_dict['generated_texts']
+            captions = [m['caption'] for m in metadata]
+
+            for gen, ref in zip(gen_texts, captions):
+                bleu_scorer = BleuScorer(n=4)
+                bleu_scorer += (gen, [ref])
+                score, _ = bleu_scorer.compute_score(option='closest')
+                self.sample_history['bleu-1'] += score[0]
+                self.sample_history['bleu-2'] += score[1]
+                self.sample_history['bleu-3'] += score[2]
+                self.sample_history['bleu-4'] += score[3]
+
+                rogue_scorer = Rouge()
+                score = rogue_scorer.calc_score([gen], [ref])
+                self.sample_history['rogue'] += score
 
         output_dict = {'loss': loss}
         return output_dict
@@ -391,7 +410,7 @@ class BaselineModel(Model):
         # We won't store the first <s> in generated
         generated = caption_ids.new_ones(B, max_len)
         eos = 2
-        is_end = generated == eos
+        is_end = generated[:, 0] == eos
 
         # At each time-step, decode by attention-weighing the encoder's output
         # based on the decoder's previous hidden state output then generate a
@@ -429,7 +448,7 @@ class BaselineModel(Model):
                 word_idx = word_idx.squeeze(-1)
                 # word_idx.shape == [batch_size]
 
-                generated[is_end, t] = word_idx[is_end]
+                generated[~is_end, t] = word_idx[~is_end]
 
                 # Once we've reached </s>, is_end will become and remain True
                 is_end |= word_idx == eos
@@ -464,7 +483,7 @@ class BaselineModel(Model):
         generated_texts = [self.roberta.decode(x) for x in gen_indices]
 
         return {
-            'generated_indices': generated_indices,
+            'generated_indices': gen_indices,
             'generated_texts': generated_texts,
         }
 
@@ -494,6 +513,9 @@ class BaselineModel(Model):
         metrics: Dict[str, float] = {}
         metrics['_n_batches'] = self.n_batches
         metrics['_n_samples'] = self.n_samples
+
+        for key, value in self.sample_history.items():
+            metrics[key] = value / self.n_samples
 
         if reset:
             self.n_batches = 0
