@@ -76,7 +76,7 @@ class NYTimesReader(DatasetReader):
             'article': {'$ne': ''},  # non-empty article body
             'images': {'$exists': True, '$ne': {}},  # at least one image
             'pub_date': {'$gte': start, '$lt': end},
-        }).batch_size(128)
+        }, no_cursor_timeout=True).batch_size(128)
 
         for article in article_cursor:
             # Ensure caption is non-empty
@@ -95,6 +95,8 @@ class NYTimesReader(DatasetReader):
                 continue
 
             yield self.article_to_instance(article, image)
+
+        article_cursor.close()
 
     def article_to_instance(self, article, image) -> Instance:
         context_text = article['article']
