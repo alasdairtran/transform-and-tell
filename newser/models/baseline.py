@@ -324,6 +324,7 @@ class BaselineModel(Model):
         output_dict = self._generate(caption_ids, image_embeds,
                                      caption_embeds, context_embeds)
         output_dict['captions'] = [m['caption'] for m in metadata]
+        output_dict['web_url'] = [m['web_url'] for m in metadata]
         return output_dict
 
     def _forward(self,  # type: ignore

@@ -116,7 +116,8 @@ class NYTimesReader(DatasetReader):
         }
 
         metadata = {'context': context_text,
-                    'caption': caption_text}
+                    'caption': caption_text,
+                    'web_url': article['web_url']}
         fields['metadata'] = MetadataField(metadata)
 
         return Instance(fields)

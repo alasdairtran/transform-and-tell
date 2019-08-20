@@ -62,7 +62,8 @@ def generate(archive_path, model_path, overrides=None, device=0):
             generated_texts = output_dict['generated_texts']
 
             print(f'Batch {i}:\n')
-            for cap, gen in zip(output_dict['captions'], generated_texts):
+            for url, cap, gen in zip(output_dict['web_url'], output_dict['captions'], generated_texts):
+                print(url)
                 print(cap)
                 print(gen)
                 print()
