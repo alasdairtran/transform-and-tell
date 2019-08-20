@@ -73,7 +73,7 @@ class NYTimesReader(DatasetReader):
 
         # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
-            'article': {'$ne': ''},  # non-empty article body
+            'article': {'$exists': True, '$ne': ''},  # non-empty article body
             'images': {'$exists': True, '$ne': {}},  # at least one image
             'pub_date': {'$gte': start, '$lt': end},
         }, no_cursor_timeout=True).batch_size(128)

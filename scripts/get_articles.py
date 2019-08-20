@@ -81,6 +81,8 @@ def retrieve_article(article, root_dir, db):
 
     data = article
     data['scraped'] = False
+    data['pub_date'] = datetime.strptime(article['pub_date'],
+                                         '%Y-%m-%dT%H:%M:%S%z')
 
     if result is None:
         db.articles.insert_one(data)
@@ -105,8 +107,6 @@ def retrieve_article(article, root_dir, db):
 
     data['web_url'] = url
     data['article'] = extract.cleaned_text
-    data['pub_date'] = datetime.strptime(article['pub_date'],
-                                         '%Y-%m-%dT%H:%M:%S%z')
 
     if article['multimedia']:
         data['images'] = {}
