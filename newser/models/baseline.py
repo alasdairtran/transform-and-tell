@@ -298,14 +298,14 @@ class BaselineModel(Model):
                 bleu_scorer = BleuScorer(n=4)
                 bleu_scorer += (gen, [ref])
                 score, _ = bleu_scorer.compute_score(option='closest')
-                self.sample_history['bleu-1'] += score[0]
-                self.sample_history['bleu-2'] += score[1]
-                self.sample_history['bleu-3'] += score[2]
-                self.sample_history['bleu-4'] += score[3]
+                self.sample_history['bleu-1'] += score[0] * 100
+                self.sample_history['bleu-2'] += score[1] * 100
+                self.sample_history['bleu-3'] += score[2] * 100
+                self.sample_history['bleu-4'] += score[3] * 100
 
                 rogue_scorer = Rouge()
                 score = rogue_scorer.calc_score([gen], [ref])
-                self.sample_history['rogue'] += score
+                self.sample_history['rogue'] += score * 100
 
         output_dict = {'loss': loss}
         return output_dict
