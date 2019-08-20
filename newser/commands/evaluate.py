@@ -49,7 +49,6 @@ def evaluate_from_file(archive_path, model_path, overrides=None, device=0):
     instances = all_datasets.get('validation')
     iterator = DataIterator.from_params(
         config.pop("validation_iterator"))
-    iterator._batch_size = 1
 
     iterator.index_with(model.vocab)
     model.eval().to(device)
