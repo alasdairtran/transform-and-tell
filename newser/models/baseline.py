@@ -170,7 +170,7 @@ class BaselineModel(Model):
                 context: Dict[str, torch.LongTensor],
                 image: torch.Tensor,
                 caption: Dict[str, torch.LongTensor],
-                metadata: Optional[List[Dict[str, Any]]] = None) -> Dict[str, torch.Tensor]:
+                metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
         Parameters
@@ -193,50 +193,13 @@ class BaselineModel(Model):
         loss : torch.FloatTensor, optional
             A scalar loss to be optimized.
         """
-        # STEP 1: Embed the caption
-        # Sort the caption by decreasing lengths (save computation later on)
-        caption_ids = caption[self.index]
-        # caption_ids.shape == [batch_size, seq_len]
+        caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens = self._forward(
+            context, image, caption, metadata)
+        B, P, C = image_embeds.shape
 
-        # Assume the padding token ID is 1
-        caption_mask = caption_ids != 1
-        # caption_ids.shape == [batch_size, seq_len]
-
-        caption_lens = caption_mask.sum(dim=1)
-        # caption_len.shape == [batch_size]
-
-        caption_ids, caption_lens, _, sort_index = sort_batch_by_length(
-            caption_ids, caption_lens)
-
-        caption_embeds = self.roberta.extract_features(
-            caption_ids, return_all_hiddens=True)[0]
-        # caption_embeds.shape == [batch_size, seq_len, 1024]
-
-        # STEP 2: Embed the image
-        # image.shape == [batch_size, 3, 224, 224]
-        image = self.resnet(image)
-        # image.shape == [batch_size, 2048, 7, 7]
-
-        image_embeds = image.permute(0, 2, 3, 1)
-        # image_embeds.shape == [batch_size, 7, 7, 2048]
-
-        # Flatten out the image
-        B, H, W, C = image_embeds.shape
-        P = H * W  # number of pixels
-        image_embeds = image_embeds.view(B, P, C)
-        image_embeds = image_embeds[sort_index]
-        # image_embeds.shape == [batch_size, 49, 2048]
-
-        # image_embeds = self.image_proj(image_embeds)
-        # image_embeds.shape == [batch_size, 49, 1024]
-
-        # STEP 3: Embed the first 512 words of the context
-        if self.use_context:
-            context_ids = context[self.index][:, :512]
-            # caption_ids.shape == [batch_size, seq_len]
-
-            context_embeds = self.roberta.extract_features(context_ids)
-            context_embeds = context_embeds[sort_index]
+        # We won't decode at the </s> position, since we've finished
+        # generating as soon as we generate </s>.
+        decode_lens = (caption_lens - 1).tolist()
 
         # Initialize LSTM state
         h, c = self.init_hidden_state(image_embeds)
@@ -322,7 +285,43 @@ class BaselineModel(Model):
                  context: Dict[str, torch.LongTensor],
                  image: torch.Tensor,
                  caption: Dict[str, torch.LongTensor],
-                 metadata: Optional[List[Dict[str, Any]]] = None) -> Dict[str, torch.Tensor]:
+                 metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+
+        caption_ids, image_embeds, caption_embeds, context_embeds, _ = self._forward(
+            context, image, caption, metadata)
+
+        output_dict = self._generate(caption_ids, image_embeds,
+                                     caption_embeds, context_embeds)
+        output_dict['caption'] = metadata[0]['caption'],
+        return output_dict
+
+    def _forward(self,  # type: ignore
+                 context: Dict[str, torch.LongTensor],
+                 image: torch.Tensor,
+                 caption: Dict[str, torch.LongTensor],
+                 metadata: List[Dict[str, Any]]):
+        # pylint: disable=arguments-differ
+        """
+        Parameters
+        ----------
+        tokens : Dict[str, torch.LongTensor]
+            From a ``TextField`` (that has a bert-pretrained token indexer)
+        label : torch.IntTensor, optional (default = None)
+            From a ``LabelField``
+
+        Returns
+        -------
+        An output dictionary consisting of:
+
+        logits : torch.FloatTensor
+            A tensor of shape ``(batch_size, num_labels)`` representing
+            unnormalized log probabilities of the label.
+        probs : torch.FloatTensor
+            A tensor of shape ``(batch_size, num_labels)`` representing
+            probabilities of the label.
+        loss : torch.FloatTensor, optional
+            A scalar loss to be optimized.
+        """
         # STEP 1: Embed the caption
         # Sort the caption by decreasing lengths (save computation later on)
         caption_ids = caption[self.index]
@@ -367,23 +366,28 @@ class BaselineModel(Model):
 
             context_embeds = self.roberta.extract_features(context_ids)
             context_embeds = context_embeds[sort_index]
+        else:
+            context_embeds = None
+
+        return caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens
+
+    def _generate(self, caption_ids, image_embeds,
+                  caption_embeds, context_embeds):
 
         # Initialize LSTM state
         h, c = self.init_hidden_state(image_embeds)
 
-        # We won't decode at the </s> position, since we've finished
-        # generating as soon as we generate </s>.
-        decode_lens = (caption_lens - 1).tolist()
-
         # Create tensors to hold word prediction scores and alphas
         V = self.vocab.get_vocab_size(self.namespace)
-        generated = caption_ids.new_zeros(B, 100)
+        max_len = 32
+        B = image_embeds.shape[0]
+        generated = caption_ids.new_zeros(B, max_len)
 
         # At each time-step, decode by attention-weighing the encoder's output
         # based on the decoder's previous hidden state output then generate a
         # new word in the decoder with the previous word and the attention
         # weighted encoding.
-        for t in range(100):
+        for t in range(max_len):
             attended_image, alpha = self.attention(image_embeds, h)
             # attended_image.shape = [batch_size_t, n_channels]
             # alpha.shape == [batch_size_t, num_pixels]
@@ -450,7 +454,6 @@ class BaselineModel(Model):
         return {
             'generated_indices': generated_indices,
             'generated_text': generated_text,
-            'caption': metadata[0]['caption'],
         }
 
     def init_hidden_state(self, image_embeds):
