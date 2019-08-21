@@ -102,4 +102,4 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         We need to override this because the indexer generates multiple keys.
         """
         # pylint: disable=no-self-use
-        return [index_name, f'{index_name}-type-ids']
+        return [index_name]
