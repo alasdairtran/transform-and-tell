@@ -4,7 +4,7 @@ import random
 from typing import Dict
 
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import MetadataField, TextField
+from allennlp.data.fields import ListField, MetadataField, TextField
 from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer
 from allennlp.data.tokenizers import Tokenizer
@@ -84,19 +84,25 @@ class GoodNewsReader(DatasetReader):
         sample_cursor.close()
 
     def article_to_instance(self, article, image, caption) -> Instance:
-        context = article['article'].strip()
+        title = article['headline']['main'].strip()
+        content = article['article'].strip()
+        paragraphs = [par.strip() for par in content.splitlines() if par]
+        if title:
+            paragraphs.insert(0, title)
         caption = caption.strip()
 
-        context_tokens = self._tokenizer.tokenize(context)
+        context_tokens = [self._tokenizer.tokenize(par) for par in paragraphs]
         caption_tokens = self._tokenizer.tokenize(caption)
 
         fields = {
-            'context': TextField(context_tokens, self._token_indexers),
+            'context': ListField([TextField(par, self._token_indexers)
+                                  for par in context_tokens]),
             'image': ImageField(image, self.preprocess),
             'caption': TextField(caption_tokens, self._token_indexers),
         }
 
-        metadata = {'context': context,
+        metadata = {'title': title,
+                    'content': content,
                     'caption': caption,
                     'web_url': article['web_url']}
         fields['metadata'] = MetadataField(metadata)
