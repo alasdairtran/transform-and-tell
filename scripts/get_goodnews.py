@@ -6,6 +6,7 @@ Usage:
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
     -r --root-dir DIR   Root directory of data [default: data/goodnews].
+    --resume            Resume the image downloading.
 
 """
 import json
@@ -23,7 +24,7 @@ from newser.utils import setup_logger
 logger = setup_logger()
 
 
-def get_goodnews_articles(root_dir, db):
+def get_goodnews_articles(root_dir, db, resume):
     with open(os.path.join(root_dir, 'img_splits.json')) as f:
         img_splits = json.load(f)
     with open(os.path.join(root_dir, 'article_caption.json')) as f:
@@ -31,24 +32,26 @@ def get_goodnews_articles(root_dir, db):
     with open(os.path.join(root_dir, 'image_urls.json')) as f:
         img_urls = json.load(f)
 
-    logger.info('Inserting Good News articles.')
-    for id_, article in tqdm(article_captions.items()):
-        result = db.articles.find_one({'_id': id_})
-        if result is None:
-            article['_id'] = id_
-            article['web_url'] = article['article_url']
-            db.articles.insert_one(article)
+    if not resume:
+        logger.info('Inserting Good News articles.')
+        for id_, article in tqdm(article_captions.items()):
+            result = db.articles.find_one({'_id': id_})
+            if result is None:
+                article['_id'] = id_
+                article['web_url'] = article['article_url']
+                db.articles.insert_one(article)
 
-    logger.info('Storing splits.')
-    for id_, split in tqdm(img_splits.items()):
-        result = db.splits.find_one({'_id': id_})
-        if result is None:
-            db.splits.insert_one({
-                '_id': id_,
-                'article_id': id_.split('_')[0],
-                'image_index': id_.split('_')[1],
-                'split': split,
-            })
+    if not resume:
+        logger.info('Storing splits.')
+        for id_, split in tqdm(img_splits.items()):
+            result = db.splits.find_one({'_id': id_})
+            if result is None:
+                db.splits.insert_one({
+                    '_id': id_,
+                    'article_id': id_.split('_')[0],
+                    'image_index': id_.split('_')[1],
+                    'split': split,
+                })
 
     logger.info('Downloading images.')
     for id_, links in tqdm(img_urls.items()):
@@ -67,6 +70,7 @@ def validate(args):
     schema = Schema({
         'ptvsd': Or(None, And(Use(int), lambda port: 1 <= port <= 65535)),
         'root_dir': os.path.exists,
+        'resume': bool,
     })
     args = schema.validate(args)
     return args
@@ -89,7 +93,7 @@ def main():
     client = MongoClient(host='localhost', port=27017)
     db = client.goodnews
 
-    get_goodnews_articles(root_dir, db)
+    get_goodnews_articles(root_dir, db, args['resume'])
 
 
 if __name__ == '__main__':
