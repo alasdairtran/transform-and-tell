@@ -55,7 +55,7 @@ class Attention(nn.Module):
         # linear layer to transform decoder's output
         self.decoder_att = nn.Linear(hidden_size, attention_dim)
         # linear layer to calculate values to be softmax-ed
-        self.full_att = nn.Linear(attention_dim, 1)
+        self.full_att = nn.Linear(attention_dim * 2, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
 
@@ -69,7 +69,9 @@ class Attention(nn.Module):
         attn_2 = self.decoder_att(decoder_hidden).unsqueeze(1)
         # attn_2 = [batch_size, 1, attention_size]
 
-        attn = self.full_att(self.relu(attn_1 + attn_2)).squeeze(2)
+        attn = torch.cat([attn_1, attn_2.expand_as(attn_1)], dim=2)
+
+        attn = self.full_att(self.relu(attn)).squeeze(2)
         # attn.shape == [batch_size, num_pixels]
 
         alpha = self.softmax(attn)
@@ -99,7 +101,7 @@ class ArticleAttention(nn.Module):
         # linear layer to transform decoder's output
         self.decoder_att = nn.Linear(hidden_size, attention_dim)
         # linear layer to calculate values to be softmax-ed
-        self.full_att = nn.Linear(attention_dim, 1)
+        self.full_att = nn.Linear(attention_dim * 2, 1)
 
         self.section_attention = Attention(
             embed_size, hidden_size, attention_dim)
@@ -136,7 +138,9 @@ class ArticleAttention(nn.Module):
         attn_2 = self.decoder_att(decoder_hidden).unsqueeze(1)
         # attn_2 = [batch_size, 1, attention_size]
 
-        attn = self.full_att(self.relu(attn_1 + attn_2)).squeeze(2)
+        attn = torch.cat([attn_1, attn_2.expand_as(attn_1)], dim=2)
+
+        attn = self.full_att(self.relu(attn)).squeeze(2)
         # attn.shape == [batch_size, n_sections]
 
         alpha = self.softmax(attn)
