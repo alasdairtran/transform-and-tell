@@ -52,6 +52,7 @@ def evaluate_from_file(archive_path, model_path, overrides=None, device=0):
 
     iterator.index_with(model.vocab)
     model.eval().to(device)
+    model.evaluate_mode = True
 
     metrics = evaluate(model, instances, iterator,
                        device, batch_weight_key='')

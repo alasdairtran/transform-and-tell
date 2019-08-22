@@ -21,6 +21,7 @@ vocabulary:
 model:
   type: baseline
   use_context: true
+  evaluate_mode: false
   topk: 1
   vocab_size: 50265
   hidden_size: 1024
@@ -42,19 +43,18 @@ iterator:
   sorting_keys:
     - - caption
       - num_tokens
-  batch_size: 2
+  batch_size: 6
   max_instances_in_memory: 2048
   biggest_batch_first: false
-  instances_per_epoch: 4000
+  instances_per_epoch: 12288
 validation_iterator:
   type: bucket
   sorting_keys:
     - - caption
       - num_tokens
-  batch_size: 4
+  batch_size: 8
   max_instances_in_memory: 2048
   biggest_batch_first: false
-  instances_per_epoch: 1000
 trainer:
   type: callback_apex
   apex_opt_level: O1
@@ -78,7 +78,7 @@ trainer:
   no_grad:
     - ^resnet
     - ^roberta
-  num_epochs: 20
+  num_epochs: 40
   shuffle: true
   cuda_device: 0
   callbacks:
@@ -94,7 +94,7 @@ trainer:
       learning_rate_scheduler:
         type: slanted_triangular
         num_epochs: 40
-        num_steps_per_epoch: 2000
+        num_steps_per_epoch: 2048
         cut_frac: 0.1
         ratio: 32
         gradual_unfreezing: false

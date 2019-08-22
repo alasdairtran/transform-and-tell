@@ -205,6 +205,7 @@ class BaselineModel(Model):
 
     def __init__(self,
                  vocab: Vocabulary,
+                 evaluate_mode: bool = False,
                  attention_dim: int = 1024,
                  hidden_size: int = 1024,
                  dropout: float = 0.1,
@@ -227,6 +228,7 @@ class BaselineModel(Model):
         self.use_context = use_context
         self.topk = topk
         self.padding_idx = padding_value
+        self.evaluate_mode = evaluate_mode
 
         # Projection so that image and text embeds have same dimension
         # self.image_proj = nn.Linear(2048, 384)
@@ -386,9 +388,9 @@ class BaselineModel(Model):
         self.n_samples += B
 
         # During evaluation, we will generate a caption and compute BLEU, etc.
-        if not self.training:
+        if not self.training and self.evaluate_mode:
             gen_dict = self._generate(caption_ids, image_embeds,
-                                      caption_embeds, context_embeds)
+                                      caption_embeds, context_embeds, context_mask)
             gen_texts = gen_dict['generated_texts']
             captions = [m['caption'] for m in metadata]
 
@@ -422,7 +424,7 @@ class BaselineModel(Model):
             context, image, caption, metadata)
         metadata = list(np.array(metadata)[sort_index.cpu().numpy()])
         output_dict = self._generate(caption_ids, image_embeds,
-                                     caption_embeds, context_embeds)
+                                     caption_embeds, context_embeds, context_mask)
         output_dict['captions'] = [m['caption'] for m in metadata]
         output_dict['web_url'] = [m['web_url'] for m in metadata]
         return output_dict
@@ -514,7 +516,7 @@ class BaselineModel(Model):
         return caption_ids, image_embeds, caption_embeds, context_mask, context_embeds, caption_lens, sort_index
 
     def _generate(self, caption_ids, image_embeds,
-                  caption_embeds, context_embeds):
+                  caption_embeds, context_embeds, context_mask):
 
         # Initialize LSTM state
         h, c = self.init_hidden_state(image_embeds)
@@ -580,7 +582,7 @@ class BaselineModel(Model):
 
             if self.use_context:
                 attended_article, attended_section, _, _ = self.article_attention(
-                    context_embeds, h)
+                    context_embeds, context_mask, h)
 
                 gate_2 = torch.sigmoid(self.f_beta_2(h))
                 attended_article = gate_2 * attended_article

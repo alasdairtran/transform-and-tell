@@ -78,7 +78,7 @@ trainer:
   no_grad:
     - ^resnet
     - ^roberta
-  num_epochs: 20
+  num_epochs: 40
   shuffle: true
   cuda_device: 0
   callbacks:
