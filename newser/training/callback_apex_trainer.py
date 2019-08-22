@@ -297,7 +297,9 @@ class CallbackApexTrainer(TrainerBase):
     def from_params(cls,  # type: ignore
                     params: Params,
                     serialization_dir: str,
-                    recover: bool = False) -> 'CallbackTrainer':
+                    recover: bool = False,
+                    cache_directory: str = None,
+                    cache_prefix: str = None) -> 'CallbackTrainer':
         pieces = TrainerPieces.from_params(
             params, serialization_dir, recover)  # pylint: disable=no-member
         model = pieces.model
