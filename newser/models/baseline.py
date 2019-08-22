@@ -106,8 +106,8 @@ class ArticleAttention(nn.Module):
         self.section_attention = Attention(
             embed_size, hidden_size, attention_dim)
 
-        self.pooler = LSTM(input_size=embed_size, hidden_size=embed_size // 2,
-                           bidirectional=True, bias=False)
+        self.pooler = LSTM(input_size=embed_size, hidden_size=embed_size,
+                           bidirectional=False, bias=False)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
         warnings.filterwarnings(
