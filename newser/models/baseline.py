@@ -1,3 +1,4 @@
+import math
 import re
 import warnings
 from collections import defaultdict
@@ -24,6 +25,15 @@ from pytorch_transformers.modeling_utils import SequenceSummary
 from .resnet import resnext101_32x16d_wsl
 
 LSTM = _Seq2SeqWrapper(nn.LSTM)
+
+
+def gelu(x):
+    """Implementation of the gelu activation function.
+        For information: OpenAI GPT's gelu is slightly different (and gives slightly different results):
+        0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
+        Also see https://arxiv.org/abs/1606.08415
+    """
+    return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
 
 
 @dataclass
@@ -56,7 +66,6 @@ class Attention(nn.Module):
         self.decoder_att = nn.Linear(hidden_size, attention_dim)
         # linear layer to calculate values to be softmax-ed
         self.full_att = nn.Linear(attention_dim * 2, 1)
-        self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
 
     def forward(self, image, decoder_hidden):
@@ -71,7 +80,7 @@ class Attention(nn.Module):
 
         attn = torch.cat([attn_1, attn_2.expand_as(attn_1)], dim=2)
 
-        attn = self.full_att(self.relu(attn)).squeeze(2)
+        attn = self.full_att(gelu(attn)).squeeze(2)
         # attn.shape == [batch_size, num_pixels]
 
         alpha = self.softmax(attn)
@@ -108,7 +117,6 @@ class ArticleAttention(nn.Module):
 
         self.pooler = LSTM(input_size=embed_size, hidden_size=embed_size,
                            bidirectional=False, bias=False)
-        self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
         warnings.filterwarnings(
             "ignore", message="RNN module weights are not part of single contiguous chunk of memory. This means they need to be compacted at every call, possibly greatly increasing memory usage. To compact weights again call flatten_parameters().")
@@ -140,7 +148,7 @@ class ArticleAttention(nn.Module):
 
         attn = torch.cat([attn_1, attn_2.expand_as(attn_1)], dim=2)
 
-        attn = self.full_att(self.relu(attn)).squeeze(2)
+        attn = self.full_att(gelu(attn)).squeeze(2)
         # attn.shape == [batch_size, n_sections]
 
         alpha = self.softmax(attn)
