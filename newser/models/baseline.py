@@ -1,4 +1,5 @@
 import re
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -9,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
+from allennlp.modules.seq2seq_encoders import _Seq2SeqWrapper
 from allennlp.nn.initializers import InitializerApplicator
 from allennlp.nn.util import get_text_field_mask, sort_batch_by_length
 from allennlp.training.metrics import CategoricalAccuracy
@@ -20,6 +22,8 @@ from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
 
 from .resnet import resnext101_32x16d_wsl
+
+LSTM = _Seq2SeqWrapper(nn.LSTM)
 
 
 @dataclass
@@ -77,6 +81,83 @@ class Attention(nn.Module):
         return attended_image, alpha
 
 
+class ArticleAttention(nn.Module):
+    """Article Attention Network.
+
+    Adapted from https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning/blob/master/models.py
+    """
+
+    def __init__(self, embed_size, hidden_size, attention_dim):
+        """
+        :param embed_size: feature size of encoded images
+        :param hidden_size: size of decoder's RNN
+        :param attention_dim: size of the attention network
+        """
+        super().__init__()
+        # linear layer to transform encoded image
+        self.encoder_att = nn.Linear(embed_size, attention_dim)
+        # linear layer to transform decoder's output
+        self.decoder_att = nn.Linear(hidden_size, attention_dim)
+        # linear layer to calculate values to be softmax-ed
+        self.full_att = nn.Linear(attention_dim, 1)
+
+        self.section_attention = Attention(
+            embed_size, hidden_size, attention_dim)
+
+        self.pooler = LSTM(input_size=embed_size, hidden_size=embed_size // 2,
+                           bidirectional=True, bias=False)
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
+        warnings.filterwarnings(
+            "ignore", message="RNN module weights are not part of single contiguous chunk of memory. This means they need to be compacted at every call, possibly greatly increasing memory usage. To compact weights again call flatten_parameters().")
+
+    def forward(self, article, article_mask, decoder_hidden):
+        # article.shape == [batch_size, n_sections, seq_len, embed_size]
+        # article_mask.shape == [batch_size, n_sections, seq_len]
+        # decoder_hidden.shape == [batch_size, hidden_size]
+
+        B, G, S, E = article.shape
+        flattned_article = article.reshape(B * G, S, E)
+        flattened_mask = article_mask.view(B * G, S)
+
+        # Pool each section of the article
+        pooled_article = self.pooler(flattned_article, flattened_mask)
+        # pooled_article.shape == [batch_size * n_sections, seq_len, hidden_size]
+
+        pooled_article = pooled_article[:, -1]
+        # pooled_article.shape == [batch_size * n_sections, hidden_size]
+
+        pooled_article = pooled_article.view(B, G, E)
+        # pooled_article.shape == [batch_size, n_sections, hidden_size]
+
+        attn_1 = self.encoder_att(pooled_article)
+        # attn_1 = [batch_size, n_sections, attention_size]
+
+        attn_2 = self.decoder_att(decoder_hidden).unsqueeze(1)
+        # attn_2 = [batch_size, 1, attention_size]
+
+        attn = self.full_att(self.relu(attn_1 + attn_2)).squeeze(2)
+        # attn.shape == [batch_size, n_sections]
+
+        alpha = self.softmax(attn)
+        # alpha.shape == [batch_size, n_sections]
+
+        attended_article = (pooled_article * alpha.unsqueeze(2)).sum(dim=1)
+        # attended_article.shape = [batch_size, embed_size]
+
+        # Find the most attended section
+        best_idx = alpha.argmax(dim=1)
+        # best_idx.shape == [batch_size]
+
+        section = article[torch.arange(B), best_idx]
+        # section.shape == [batch_size, seq_len, embed_size]
+
+        attended_section, alpha_2 = self.section_attention(
+            section, decoder_hidden)
+
+        return attended_article, attended_section, alpha, alpha_2
+
+
 @Model.register("baseline")
 class BaselineModel(Model):
     """
@@ -112,8 +193,8 @@ class BaselineModel(Model):
 
     def __init__(self,
                  vocab: Vocabulary,
-                 attention_dim: int = 512,
-                 hidden_size: int = 512,
+                 attention_dim: int = 1024,
+                 hidden_size: int = 1024,
                  dropout: float = 0.1,
                  vocab_size: int = 50264,
                  model_name: str = 'roberta-base',
@@ -133,6 +214,7 @@ class BaselineModel(Model):
         self.attention = Attention(n_channels, hidden_size, attention_dim)
         self.use_context = use_context
         self.topk = topk
+        self.padding_idx = padding_value
 
         # Projection so that image and text embeds have same dimension
         # self.image_proj = nn.Linear(2048, 384)
@@ -151,10 +233,11 @@ class BaselineModel(Model):
         self.fc = nn.Linear(hidden_size, vocab_size)
 
         if use_context:
-            self.article_attention = Attention(
+            self.article_attention = ArticleAttention(
                 text_embed_size, hidden_size, attention_dim)
             self.f_beta_2 = nn.Linear(hidden_size, text_embed_size)
-            input_size = n_channels + text_embed_size * 2
+            self.f_beta_3 = nn.Linear(hidden_size, text_embed_size)
+            input_size = n_channels + text_embed_size * 3
         else:
             input_size = n_channels + text_embed_size
 
@@ -198,7 +281,7 @@ class BaselineModel(Model):
         loss : torch.FloatTensor, optional
             A scalar loss to be optimized.
         """
-        caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens, sort_index = self._forward(
+        caption_ids, image_embeds, caption_embeds, context_mask, context_embeds, caption_lens, sort_index = self._forward(
             context, image, caption, metadata)
 
         metadata = list(np.array(metadata)[sort_index.cpu().numpy()])
@@ -249,12 +332,18 @@ class BaselineModel(Model):
 
             if self.use_context:
                 context_embeds_t = context_embeds[:batch_size_t]
-                attended_article, _ = self.article_attention(
-                    context_embeds_t, h_t)
+                context_mask_t = context_mask[:batch_size_t]
+                attended_article, attended_section, _, _ = self.article_attention(
+                    context_embeds_t, context_mask_t, h_t)
+
                 gate_2 = torch.sigmoid(self.f_beta_2(h_t))
                 attended_article = gate_2 * attended_article
+
+                gate_3 = torch.sigmoid(self.f_beta_3(h_t))
+                attended_section = gate_3 * attended_section
+
                 rnn_input = torch.cat(
-                    [prev_word, attended_image, attended_article], dim=1)
+                    [prev_word, attended_image, attended_article, attended_section], dim=1)
             else:
                 rnn_input = torch.cat([prev_word, attended_image], dim=1)
 
@@ -275,8 +364,7 @@ class BaselineModel(Model):
         probs = probs.view(-1, V)
         targets = caption_ids[:, 1:]
 
-        padding_idx = 1
-        text_mask = targets.ne(padding_idx)
+        text_mask = targets.ne(self.padding_idx)
         targets = targets[text_mask].contiguous().view(-1)
         probs = probs[text_mask.view(-1)]
 
@@ -318,7 +406,7 @@ class BaselineModel(Model):
                  caption: Dict[str, torch.LongTensor],
                  metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
-        caption_ids, image_embeds, caption_embeds, context_embeds, _, sort_index = self._forward(
+        caption_ids, image_embeds, caption_embeds, context_mask, context_embeds, _, sort_index = self._forward(
             context, image, caption, metadata)
         metadata = list(np.array(metadata)[sort_index.cpu().numpy()])
         output_dict = self._generate(caption_ids, image_embeds,
@@ -360,7 +448,7 @@ class BaselineModel(Model):
         # caption_ids.shape == [batch_size, seq_len]
 
         # Assume the padding token ID is 1
-        caption_mask = caption_ids != 1
+        caption_mask = caption_ids != self.padding_idx
         # caption_ids.shape == [batch_size, seq_len]
 
         caption_lens = caption_mask.sum(dim=1)
@@ -394,14 +482,24 @@ class BaselineModel(Model):
         # STEP 3: Embed the first 512 words of the context
         if self.use_context:
             context_ids = context[self.index][:, :512]
-            # caption_ids.shape == [batch_size, seq_len]
+            # context_ids.shape == [batch_size, n_sections, seq_len]
+
+            context_mask = context_ids != self.padding_idx
+
+            B, G, S = context_ids.shape
+            context_ids = context_ids.view(B * G, S)
+            # context_ids.shape == [batch_size * n_sections, seq_len]
 
             context_embeds = self.roberta.extract_features(context_ids)
+            context_embeds = context_embeds.view(B, G, S, -1)
+            # context_embeds.shape == [batch_size, n_sections, seq_len, 1024]
+
             context_embeds = context_embeds[sort_index]
+            context_mask = context_mask[sort_index]
         else:
             context_embeds = None
 
-        return caption_ids, image_embeds, caption_embeds, context_embeds, caption_lens, sort_index
+        return caption_ids, image_embeds, caption_embeds, context_mask, context_embeds, caption_lens, sort_index
 
     def _generate(self, caption_ids, image_embeds,
                   caption_embeds, context_embeds):
@@ -469,11 +567,17 @@ class BaselineModel(Model):
                 # prev_word.shape == [batch_size, embed_size]
 
             if self.use_context:
-                attended_article, _ = self.article_attention(context_embeds, h)
+                attended_article, attended_section, _, _ = self.article_attention(
+                    context_embeds, h)
+
                 gate_2 = torch.sigmoid(self.f_beta_2(h))
                 attended_article = gate_2 * attended_article
+
+                gate_3 = torch.sigmoid(self.f_beta_3(h))
+                attended_section = gate_3 * attended_section
+
                 rnn_input = torch.cat(
-                    [prev_word, attended_image, attended_article], dim=1)
+                    [prev_word, attended_image, attended_article, attended_section], dim=1)
             else:
                 rnn_input = torch.cat([prev_word, attended_image], dim=1)
 
