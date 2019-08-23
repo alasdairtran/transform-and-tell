@@ -43,21 +43,21 @@ iterator:
   sorting_keys:
     - - caption
       - num_tokens
-  batch_size: 6
+  batch_size: 12
   max_instances_in_memory: 2048
   biggest_batch_first: false
-  instances_per_epoch: 12288
+  instances_per_epoch: 24576
 validation_iterator:
   type: bucket
   sorting_keys:
     - - caption
       - num_tokens
-  batch_size: 8
+  batch_size: 16
   max_instances_in_memory: 2048
   biggest_batch_first: false
 trainer:
   type: callback_apex
-  apex_opt_level: O1
+  apex_opt_level: O2
   keep_batchnorm_fp32: None
   optimizer:
     type: adam_w
