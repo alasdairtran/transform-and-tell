@@ -4,7 +4,7 @@ import random
 from typing import Dict
 
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import ListField, MetadataField, TextField
+from allennlp.data.fields import MetadataField, TextField
 from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer
 from allennlp.data.tokenizers import Tokenizer
@@ -14,7 +14,7 @@ from pymongo import MongoClient
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 
-from newser.data.fields import ImageField
+from newser.data.fields import ImageField, ListTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -95,8 +95,8 @@ class GoodNewsReader(DatasetReader):
         caption_tokens = self._tokenizer.tokenize(caption)
 
         fields = {
-            'context': ListField([TextField(par, self._token_indexers)
-                                  for par in context_tokens]),
+            'context': ListTextField([TextField(par, self._token_indexers)
+                                      for par in context_tokens]),
             'image': ImageField(image, self.preprocess),
             'caption': TextField(caption_tokens, self._token_indexers),
         }

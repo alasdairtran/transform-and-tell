@@ -41,19 +41,29 @@ model:
 iterator:
   type: bucket
   sorting_keys:
+    - - context
+      - num_fields
+    - - context
+      - list_num_tokens
     - - caption
       - num_tokens
-  batch_size: 12
-  max_instances_in_memory: 2048
+  batch_size: 32
+  max_instances_in_memory: 4096
   biggest_batch_first: false
-  instances_per_epoch: 24576
+  instances_per_epoch: 32768 # 8192
+  maximum_samples_per_batch: ["total_num_tokens", 8192]
 validation_iterator:
   type: bucket
   sorting_keys:
+    - - context
+      - num_fields
+    - - context
+      - list_num_tokens
     - - caption
       - num_tokens
-  batch_size: 16
-  max_instances_in_memory: 2048
+  batch_size: 32
+  max_instances_in_memory: 4096
+  maximum_samples_per_batch: ["total_num_tokens", 8192]
   biggest_batch_first: false
 trainer:
   type: callback_apex
