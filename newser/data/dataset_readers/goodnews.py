@@ -60,9 +60,11 @@ class GoodNewsReader(DatasetReader):
             raise ValueError(f'Unknown split: {split}')
 
         # Setting the batch size is needed to avoid cursor timing out
+        # We limit the validation set to 1000
+        limit = 1000 if split == 'val' else 0
         sample_cursor = self.db.splits.find({
             'split': {'$eq': split},
-        }, no_cursor_timeout=True).batch_size(128)
+        }, no_cursor_timeout=True, limit=limit).batch_size(128)
 
         for sample in sample_cursor:
             # Find the corresponding article

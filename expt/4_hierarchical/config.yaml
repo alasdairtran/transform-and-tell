@@ -1,5 +1,5 @@
 dataset_reader:
-  type: nytimes
+  type: goodnews
   tokenizer:
     type: word
     word_splitter: just_spaces
@@ -10,7 +10,7 @@ dataset_reader:
       namespace: bpe
       padding_on_right: true
       padding_value: 1
-  image_dir: data/nytimes/images
+  image_dir: data/goodnews/images
   lazy: true
 train_data_path: train
 validation_data_path: valid
@@ -47,10 +47,10 @@ iterator:
       - list_num_tokens
     - - caption
       - num_tokens
-  batch_size: 32
+  batch_size: 8
   max_instances_in_memory: 4096
   biggest_batch_first: false
-  instances_per_epoch: 32768 # 8192
+  instances_per_epoch: 16384 # 8192
   maximum_samples_per_batch: ["total_num_tokens", 8192]
 validation_iterator:
   type: bucket
