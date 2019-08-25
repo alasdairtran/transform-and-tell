@@ -49,7 +49,8 @@ class GoodNewsReader(DatasetReader):
         self.db = self.client.goodnews
         self.image_dir = image_dir
         self.preprocess = Compose([
-            Resize(256), CenterCrop(224), ToTensor(),
+            # Resize(256), CenterCrop(224),
+            ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         random.seed(1234)
 
@@ -75,9 +76,8 @@ class GoodNewsReader(DatasetReader):
             # Load the image
             image_path = os.path.join(self.image_dir, f"{sample['_id']}.jpg")
             try:
-                with Image.open(image_path) as image:
-                    image = image.convert('RGB')
-            except FileNotFoundError:
+                image = Image.open(image_path)
+            except (FileNotFoundError, OSError):
                 continue
 
             caption = article['images'][sample['image_index']]

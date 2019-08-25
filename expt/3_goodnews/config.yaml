@@ -10,7 +10,7 @@ dataset_reader:
       namespace: bpe
       padding_on_right: true
       padding_value: 1
-  image_dir: data/goodnews/images
+  image_dir: data/goodnews/images_processed
   lazy: true
 train_data_path: train
 validation_data_path: val
@@ -21,6 +21,7 @@ vocabulary:
 model:
   type: baseline
   use_context: true
+  evaluate_mode: false
   topk: 1
   vocab_size: 50265
   hidden_size: 1024
@@ -40,23 +41,33 @@ model:
 iterator:
   type: bucket
   sorting_keys:
-    - - caption
-      - num_tokens
-  batch_size: 4
-  max_instances_in_memory: 2048
-  biggest_batch_first: false
-  instances_per_epoch: 40000
-validation_iterator:
-  type: bucket
-  sorting_keys:
+    - - context
+      - num_fields
+    - - context
+      - list_num_tokens
     - - caption
       - num_tokens
   batch_size: 8
-  max_instances_in_memory: 2048
+  max_instances_in_memory: 4096
+  biggest_batch_first: false
+  instances_per_epoch: 16384
+  # maximum_samples_per_batch: ["total_num_tokens", 20000]
+validation_iterator:
+  type: bucket
+  sorting_keys:
+    - - context
+      - num_fields
+    - - context
+      - list_num_tokens
+    - - caption
+      - num_tokens
+  batch_size: 8
+  max_instances_in_memory: 4096
+  # maximum_samples_per_batch: ["total_num_tokens", 20000]
   biggest_batch_first: false
 trainer:
   type: callback_apex
-  apex_opt_level: O1
+  apex_opt_level: O2
   keep_batchnorm_fp32: None
   optimizer:
     type: adam_w
@@ -77,7 +88,7 @@ trainer:
   no_grad:
     - ^resnet
     - ^roberta
-  num_epochs: 20
+  num_epochs: 40
   shuffle: true
   cuda_device: 0
   callbacks:
@@ -92,8 +103,8 @@ trainer:
     - type: update_learning_rate
       learning_rate_scheduler:
         type: slanted_triangular
-        num_epochs: 20
-        num_steps_per_epoch: 10000
+        num_epochs: 40
+        num_steps_per_epoch: 2048
         cut_frac: 0.1
         ratio: 32
         gradual_unfreezing: false
