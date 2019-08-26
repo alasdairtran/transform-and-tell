@@ -139,7 +139,8 @@ class TransformerModel(Model):
                  index: str = 'roberta',
                  padding_value: int = 1,
                  use_context: bool = True,
-                 topk: int = 1,
+                 sampling_topk: int = 1,
+                 sampling_temp: float = 1.0,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
         self.decoder = decoder
@@ -152,6 +153,8 @@ class TransformerModel(Model):
         self.use_context = use_context
         self.padding_idx = padding_value
         self.evaluate_mode = evaluate_mode
+        self.sampling_topk = sampling_topk
+        self.sampling_temp = sampling_temp
 
         self.n_batches = 0
         self.n_samples = 0
@@ -169,6 +172,52 @@ class TransformerModel(Model):
                 image: torch.Tensor,
                 caption: Dict[str, torch.LongTensor],
                 metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+
+        _, target_ids, contexts, context_masks = self._forward(
+            context, image, caption)
+        decoder_out = self.decoder(caption, contexts, context_masks)
+
+        # Assume we're using adaptive loss
+        loss, sample_size = self.criterion(
+            self.decoder.adaptive_softmax, decoder_out, target_ids)
+
+        loss = loss / math.log(2)
+
+        output_dict = {
+            'loss': loss / sample_size,
+            'sample_size': sample_size,
+        }
+
+        return output_dict
+
+    def generate(self,  # type: ignore
+                 context: Dict[str, torch.LongTensor],
+                 image: torch.Tensor,
+                 caption: Dict[str, torch.LongTensor],
+                 metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+
+        caption_ids, _, contexts, context_masks = self._forward(
+            context, image, caption)
+
+        _, gen_ids = self._generate(caption_ids, contexts, context_masks)
+
+        gen_ids = gen_ids.cpu()
+        gen_texts = [self.roberta.decode(
+            x[x != self.padding_idx]) for x in gen_ids]
+
+        output_dict = {
+            'generated_indices': gen_ids,
+            'generated_texts': gen_texts,
+            'captions': [m['caption'] for m in metadata],
+            'web_url': [m['web_url'] for m in metadata],
+        }
+
+        return output_dict
+
+    def _forward(self,  # type: ignore
+                 context: Dict[str, torch.LongTensor],
+                 image: torch.Tensor,
+                 caption: Dict[str, torch.LongTensor]):
 
         # We assume that the first token in target is the <s> token. We
         # shall use it to seed the decoder. Here decoder_target is simply
@@ -225,20 +274,93 @@ class TransformerModel(Model):
 
         contexts = [X_image, X_article]
         context_masks = [image_padding_mask, article_padding_mask]
-        decoder_out = self.decoder(caption, contexts, context_masks)
 
-        # Assume we're using adaptive loss
-        loss, sample_size = self.criterion(
-            self.decoder.adaptive_softmax, decoder_out, target_ids)
+        return caption_ids, target_ids, contexts, context_masks
 
-        loss = loss / math.log(2)
+    def _generate(self, caption_ids, contexts, context_masks):
+        incremental_state: Dict[str, Any] = {}
+        seed_input = caption_ids[:, 0:1]
+        log_prob_list = []
+        index_path_list = [seed_input]
+        eos = 2
+        active_idx = seed_input[:, -1] != eos
+        full_active_idx = active_idx
+        gen_len = 100
+        B = caption_ids.shape[0]
 
-        output_dict = {
-            'loss': loss / sample_size,
-            'sample_size': sample_size,
-        }
+        for i in range(gen_len):
+            if i == 0:
+                prev_target = {self.index: seed_input}
+            else:
+                prev_target = {self.index: seed_input[:, -1:]}
 
-        return output_dict
+            self.decoder.filter_incremental_state(
+                incremental_state, active_idx)
+
+            contexts_i = [ctx[full_active_idx] for ctx in contexts]
+            context_masks_i = [mask[full_active_idx] for mask in context_masks]
+            decoder_out = self.decoder(
+                prev_target,
+                contexts_i,
+                context_masks_i,
+                incremental_state=incremental_state)
+
+            # We're only interested in the current final word
+            decoder_out = (decoder_out[0][:, -1:], None)
+
+            lprobs = self.decoder.get_normalized_probs(
+                decoder_out, log_probs=True)
+            # lprobs.shape == [batch_size, 1, vocab_size]
+
+            lprobs = lprobs.squeeze(1)
+            # lprobs.shape == [batch_size, vocab_size]
+
+            topk_lprobs, topk_indices = lprobs.topk(self.sampling_topk)
+            topk_lprobs = topk_lprobs.div_(self.sampling_temp)
+            # topk_lprobs.shape == [batch_size, topk]
+
+            # Take a random sample from those top k
+            topk_probs = topk_lprobs.exp()
+            sampled_index = torch.multinomial(topk_probs, num_samples=1)
+            # sampled_index.shape == [batch_size, 1]
+
+            selected_lprob = topk_lprobs.gather(
+                dim=-1, index=sampled_index)
+            # selected_prob.shape == [batch_size, 1]
+
+            selected_index = topk_indices.gather(
+                dim=-1, index=sampled_index)
+            # selected_index.shape == [batch_size, 1]
+
+            log_prob = selected_lprob.new_zeros(B, 1)
+            log_prob[full_active_idx] = selected_lprob
+
+            index_path = selected_index.new_zeros(B, 1)
+            index_path.fill_(self.padding_idx)
+            index_path[full_active_idx] = selected_index
+
+            log_prob_list.append(log_prob)
+            index_path_list.append(index_path)
+
+            seed_input = torch.cat([seed_input, selected_index], dim=-1)
+
+            is_eos = selected_index.squeeze(-1) == eos
+            active_idx = ~is_eos
+
+            full_active_idx[full_active_idx.nonzero()[~active_idx]] = 0
+
+            seed_input = seed_input[active_idx]
+
+            if active_idx.sum().item() == 0:
+                break
+
+        log_probs = torch.cat(log_prob_list, dim=-1)
+        # log_probs.shape == [batch_size * beam_size, generate_len]
+
+        token_ids = torch.cat(index_path_list, dim=-1)
+        # token_ids.shape == [batch_size * beam_size, generate_len]
+
+        return log_probs, token_ids
 
     @overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:

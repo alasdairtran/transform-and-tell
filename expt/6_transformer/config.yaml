@@ -72,9 +72,12 @@ model:
     padding_idx: 0
     namespace: bpe
     vocab_size: 50265
+  criterion:
+    type: adaptive_loss
+    padding_idx: 1
   use_context: true
   evaluate_mode: false
-  topk: 1
+  sampling_topk: 1
   vocab_size: 50265
   hidden_size: 1024
   attention_dim: 1024
@@ -90,9 +93,6 @@ model:
       - type: xavier_uniform
     - - ^rnn_cell.*bias
       - type: zero
-  criterion:
-    type: adaptive_loss
-    padding_idx: 1
 iterator:
   type: bucket
   sorting_keys:
