@@ -18,7 +18,6 @@ from allennlp.training.metrics import CategoricalAccuracy
 from overrides import overrides
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from pycocoevalcap.rouge.rouge import Rouge
-
 from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
 
@@ -495,7 +494,7 @@ class BaselineModel(Model):
 
         # STEP 3: Embed the first 512 words of the context
         if self.use_context:
-            context_ids = context[self.index][:, :512]
+            context_ids = context[self.index][:, :, :512]
             # context_ids.shape == [batch_size, n_sections, seq_len]
 
             context_mask = context_ids != self.padding_idx
