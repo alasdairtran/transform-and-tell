@@ -86,7 +86,10 @@ class GoodNewsReader(DatasetReader):
         sample_cursor.close()
 
     def article_to_instance(self, article, image, caption) -> Instance:
-        title = article['headline']['main'].strip()
+        try:
+            title = article['headline']['main'].strip()
+        except KeyError:
+            title = None
         content = article['article'].strip()
         paragraphs = [par.strip() for par in content.splitlines() if par]
         if title:
