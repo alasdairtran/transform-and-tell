@@ -134,8 +134,8 @@ trainer:
     b1: 0.9
     b2: 0.98
     e: 0.000001
-    weight_decay: 0.0001
-    max_grad_norm: 0.1
+    weight_decay: 0.000001 # Worse choice; 0.01, 0.001
+    max_grad_norm: 0.1 # Worse choices: 1.0
     parameter_groups:
       - - - ^decoder.embedder
         - {}
