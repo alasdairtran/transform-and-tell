@@ -90,15 +90,22 @@ class ResNetFeatureExtractor(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        # x.shape == [B, 3, 224, 224]
         x = self.conv1(x)
+        # x.shape == [B, 64, 112, 112]
         x = self.bn1(x)
         x = self.relu(x)
         x = self.maxpool(x)
+        # x.shape == [B, 64, 56, 56]
 
         x = self.layer1(x)
+        # x.shape == [B, 256, 56, 56]
         x = self.layer2(x)
+        # x.shape == [B, 512, 28, 28]
         x = self.layer3(x)
+        # x.shape == [B, 1024, 14, 14]
         x = self.layer4(x)
+        # x.shape == [B, 2048, 7, 7]
 
         return x
 
