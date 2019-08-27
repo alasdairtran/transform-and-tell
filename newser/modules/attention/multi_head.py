@@ -17,7 +17,7 @@ class MultiHeadAttention(nn.Module):
     """
 
     def __init__(self, embed_dim, num_heads, kdim=None, vdim=None, dropout=0., bias=True,
-                 add_bias_kv=True, add_zero_attn=False, self_attention=False,
+                 add_bias_kv=True, add_zero_attn=True, self_attention=False,
                  encoder_decoder_attention=False):
         super().__init__()
         self.embed_dim = embed_dim
