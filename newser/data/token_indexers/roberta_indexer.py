@@ -6,7 +6,6 @@ from allennlp.data.token_indexers.token_indexer import TokenIndexer
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.vocabulary import Vocabulary
 from overrides import overrides
-
 from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 
 
@@ -38,7 +37,8 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                  end_tokens: List[str] = None,
                  token_min_padding_length: int = 0,
                  padding_on_right: bool = True,
-                 padding_value: int = 1) -> None:
+                 padding_value: int = 1,
+                 max_len: int = 512) -> None:
         super().__init__(token_min_padding_length)
         roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
         self.source_dictionary = roberta.task.source_dictionary
@@ -47,6 +47,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         self._namespace = namespace
         self._padding_on_right = padding_on_right
         self._padding_value = padding_value
+        self._max_len = max_len
 
     @overrides
     def count_vocab_items(self, token: Token, counter: Dict[str, Dict[str, int]]):
@@ -76,7 +77,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         bpe_sentence = '<s> ' + self.bpe.encode(sentence) + ' </s>'
         tokens = self.source_dictionary.encode_line(
             bpe_sentence, append_eos=False)
-        return tokens.long().tolist()[:512]
+        return tokens.long().tolist()[:self._max_len]
 
     @overrides
     def get_padding_lengths(self, token: int) -> Dict[str, int]:  # pylint: disable=unused-argument

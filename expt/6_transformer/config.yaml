@@ -10,6 +10,7 @@ dataset_reader:
       namespace: bpe
       padding_on_right: true
       padding_value: 1
+      max_len: 512
   image_dir: data/goodnews/images_processed
   lazy: true
 train_data_path: train
