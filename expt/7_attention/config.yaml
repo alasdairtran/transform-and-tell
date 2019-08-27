@@ -128,14 +128,14 @@ trainer:
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.001
+    lr: 0.0001
     warmup: 0.05
     t_total: 320000
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
     e: 0.000001
-    weight_decay: 0.00001 # Worse choices: 0.01, 0.001, 0.000001
+    weight_decay: 0.0001 # Worse choices: 0.01, 0.001, 0.000001
     max_grad_norm: 0.1 # Worse choices: 1.0
     parameter_groups:
       - - - ^decoder.embedder

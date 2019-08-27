@@ -273,7 +273,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         self.context_attn_lns['image'] = nn.LayerNorm(self.embed_dim)
 
         self.context_attns['article'] = MultiHeadAttention(
-            self.embed_dim, decoder_attention_heads,
+            self.embed_dim, decoder_attention_heads, kdim=1024, vdim=1024,
             dropout=attention_dropout)
         self.context_attn_lns['article'] = nn.LayerNorm(self.embed_dim)
 

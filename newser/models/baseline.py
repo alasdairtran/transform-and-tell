@@ -97,7 +97,7 @@ class ArticleAttention(nn.Module):
     Adapted from https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Image-Captioning/blob/master/models.py
     """
 
-    def __init__(self, embed_size, hidden_size, attention_dim):
+    def __init__(self, embed_size, hidden_size, attention_dim, pool_type='lstm'):
         """
         :param embed_size: feature size of encoded images
         :param hidden_size: size of decoder's RNN
@@ -114,59 +114,90 @@ class ArticleAttention(nn.Module):
         self.section_attention = Attention(
             embed_size, hidden_size, attention_dim)
 
-        self.pooler = LSTM(input_size=embed_size, hidden_size=embed_size,
-                           bidirectional=False, bias=False)
+        self.pool_type = pool_type
+        if pool_type == 'lstm':
+            self.pooler = LSTM(input_size=embed_size, hidden_size=embed_size,
+                               bidirectional=False, bias=False)
+        elif pool_type in ['first', 'mean']:
+            self.pooler = nn.Linear(embed_size, embed_size)
+        elif pool_type != 'none':
+            raise ValueError(f'Unknown pool type: {pool_type}')
+
         self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
         warnings.filterwarnings(
             "ignore", message="RNN module weights are not part of single contiguous chunk of memory. This means they need to be compacted at every call, possibly greatly increasing memory usage. To compact weights again call flatten_parameters().")
 
-    def forward(self, article, article_mask, decoder_hidden):
+    def forward(self, article, article_mask, decoder_hidden, section_mask):
         # article.shape == [batch_size, n_sections, seq_len, embed_size]
         # article_mask.shape == [batch_size, n_sections, seq_len]
         # decoder_hidden.shape == [batch_size, hidden_size]
 
         B, G, S, E = article.shape
-        flattned_article = article.reshape(B * G, S, E)
-        flattened_mask = article_mask.view(B * G, S)
 
         # Pool each section of the article
-        pooled_article = self.pooler(flattned_article, flattened_mask)
-        # pooled_article.shape == [batch_size * n_sections, seq_len, hidden_size]
+        if self.pool_type == 'lstm':
+            flattned_article = article.reshape(B * G, S, E)[section_mask]
+            flattened_mask = article_mask.view(B * G, S)[section_mask]
+            pooled_article_i = self.pooler(flattned_article, flattened_mask)
+            # pooled_article.shape == [n_active_sections, seq_len, hidden_size]
 
-        pooled_article = pooled_article[:, -1]
-        # pooled_article.shape == [batch_size * n_sections, hidden_size]
+            pooled_article_i = pooled_article_i[:, -1]
+            # pooled_article.shape == [n_active_sections, hidden_size]
 
-        pooled_article = pooled_article.view(B, G, E)
-        # pooled_article.shape == [batch_size, n_sections, hidden_size]
+            pooled_article = pooled_article_i.new_zeros(B * G, E)
+            pooled_article[section_mask] = pooled_article_i
 
-        attn_1 = self.encoder_att(pooled_article)
-        # attn_1 = [batch_size, n_sections, attention_size]
+            pooled_article = pooled_article.view(B, G, E)
+            # pooled_article.shape == [batch_size, n_sections, hidden_size]
 
-        attn_2 = self.decoder_att(decoder_hidden).unsqueeze(1)
-        # attn_2 = [batch_size, 1, attention_size]
+        elif self.pool_type == 'first':
+            pooled_article = article[:, :, 0]
+            pooled_article = self.pooler(pooled_article)
+            # pooled_article.shape == [batch_size, n_sections, hidden_size]
 
-        attn = torch.cat([attn_1, attn_2.expand_as(attn_1)], dim=2)
+        elif self.pool_type == 'mean':
+            pooled_article = article.mean(dim=2)
+            pooled_article = self.pooler(pooled_article)
+            # pooled_article.shape == [batch_size, n_sections, hidden_size]
 
-        attn = self.full_att(gelu(attn)).squeeze(2)
-        # attn.shape == [batch_size, n_sections]
+        elif self.pool_type != 'none':
+            raise ValueError(f'Unknown pool type: {self.pool_type}')
 
-        alpha = self.softmax(attn)
-        # alpha.shape == [batch_size, n_sections]
+        if self.pool_type != 'none':
+            attn_1 = self.encoder_att(pooled_article)
+            # attn_1 = [batch_size, n_sections, attention_size]
 
-        attended_article = (pooled_article * alpha.unsqueeze(2)).sum(dim=1)
-        # attended_article.shape = [batch_size, embed_size]
+            attn_2 = self.decoder_att(decoder_hidden).unsqueeze(1)
+            # attn_2 = [batch_size, 1, attention_size]
 
-        # Find the most attended section
-        best_idx = alpha.argmax(dim=1)
-        # best_idx.shape == [batch_size]
+            attn = torch.cat([attn_1, attn_2.expand_as(attn_1)], dim=2)
 
-        section = article[torch.arange(B), best_idx]
-        # section.shape == [batch_size, seq_len, embed_size]
+            attn = self.full_att(gelu(attn)).squeeze(2)
+            # attn.shape == [batch_size, n_sections]
 
-        attended_section, alpha_2 = self.section_attention(
-            section, decoder_hidden)
+            alpha = self.softmax(attn)
+            # alpha.shape == [batch_size, n_sections]
 
-        return attended_article, attended_section, alpha, alpha_2
+            attended_article = (pooled_article * alpha.unsqueeze(2)).sum(dim=1)
+            # attended_article.shape = [batch_size, embed_size]
+
+            # Find the most attended section
+            best_idx = alpha.argmax(dim=1)
+            # best_idx.shape == [batch_size]
+
+            section = article[torch.arange(B), best_idx]
+            # section.shape == [batch_size, seq_len, embed_size]
+
+            attended_section, alpha_2 = self.section_attention(
+                section, decoder_hidden)
+
+            return attended_article, attended_section, alpha, alpha_2
+
+        else:
+            section = article.reshape(B, G * S, E)[:, :512]
+            attended_section, alpha_2 = self.section_attention(
+                section, decoder_hidden)
+            return None, attended_section, None, alpha_2
 
 
 @Model.register("baseline")
@@ -215,6 +246,7 @@ class BaselineModel(Model):
                  padding_value: int = 1,
                  use_context: bool = True,
                  topk: int = 1,
+                 pool_type: str = 'lstm',
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
         n_channels = 2048
@@ -247,10 +279,13 @@ class BaselineModel(Model):
 
         if use_context:
             self.article_attention = ArticleAttention(
-                text_embed_size, hidden_size, attention_dim)
+                text_embed_size, hidden_size, attention_dim, pool_type)
             self.f_beta_2 = nn.Linear(hidden_size, text_embed_size)
             self.f_beta_3 = nn.Linear(hidden_size, text_embed_size)
-            input_size = n_channels + text_embed_size * 3
+            if pool_type == 'none':
+                input_size = n_channels + text_embed_size * 2
+            else:
+                input_size = n_channels + text_embed_size * 3
         else:
             input_size = n_channels + text_embed_size
 
@@ -294,11 +329,12 @@ class BaselineModel(Model):
         loss : torch.FloatTensor, optional
             A scalar loss to be optimized.
         """
-        caption_ids, image_embeds, caption_embeds, context_mask, context_embeds, caption_lens, sort_index = self._forward(
+        caption_ids, image_embeds, caption_embeds, context_mask, context_ids, context_embeds, caption_lens, sort_index = self._forward(
             context, image, caption, metadata)
 
         metadata = list(np.array(metadata)[sort_index.cpu().numpy()])
         B, P, C = image_embeds.shape
+        B, G, S, E = context_embeds.shape
 
         # We won't decode at the </s> position, since we've finished
         # generating as soon as we generate </s>.
@@ -346,17 +382,24 @@ class BaselineModel(Model):
             if self.use_context:
                 context_embeds_t = context_embeds[:batch_size_t]
                 context_mask_t = context_mask[:batch_size_t]
+                context_ids_t = context_ids.view(
+                    B, G, -1)[:batch_size_t].view(batch_size_t * G, -1)
+                section_mask_t = ~(context_ids_t == self.padding_idx).all(1)
                 attended_article, attended_section, _, _ = self.article_attention(
-                    context_embeds_t, context_mask_t, h_t)
-
-                gate_2 = torch.sigmoid(self.f_beta_2(h_t))
-                attended_article = gate_2 * attended_article
+                    context_embeds_t, context_mask_t, h_t, section_mask_t)
 
                 gate_3 = torch.sigmoid(self.f_beta_3(h_t))
                 attended_section = gate_3 * attended_section
 
                 rnn_input = torch.cat(
-                    [prev_word, attended_image, attended_article, attended_section], dim=1)
+                    [prev_word, attended_image, attended_section], dim=1)
+
+                if attended_article is not None:
+                    gate_2 = torch.sigmoid(self.f_beta_2(h_t))
+                    attended_article = gate_2 * attended_article
+
+                    rnn_input = torch.cat([rnn_input, attended_article], dim=1)
+
             else:
                 rnn_input = torch.cat([prev_word, attended_image], dim=1)
 
@@ -389,7 +432,7 @@ class BaselineModel(Model):
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
             gen_dict = self._generate(caption_ids, image_embeds,
-                                      caption_embeds, context_embeds, context_mask)
+                                      caption_embeds, context_embeds, context_mask, context_ids)
             gen_texts = gen_dict['generated_texts']
             captions = [m['caption'] for m in metadata]
 
@@ -419,11 +462,11 @@ class BaselineModel(Model):
                  caption: Dict[str, torch.LongTensor],
                  metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
-        caption_ids, image_embeds, caption_embeds, context_mask, context_embeds, _, sort_index = self._forward(
+        caption_ids, image_embeds, caption_embeds, context_mask, context_ids, context_embeds, _, sort_index = self._forward(
             context, image, caption, metadata)
         metadata = list(np.array(metadata)[sort_index.cpu().numpy()])
         output_dict = self._generate(caption_ids, image_embeds,
-                                     caption_embeds, context_embeds, context_mask)
+                                     caption_embeds, context_embeds, context_mask, context_ids)
         output_dict['captions'] = [m['caption'] for m in metadata]
         output_dict['web_url'] = [m['web_url'] for m in metadata]
         return output_dict
@@ -508,14 +551,16 @@ class BaselineModel(Model):
             # context_embeds.shape == [batch_size, n_sections, seq_len, 1024]
 
             context_embeds = context_embeds[sort_index]
+            context_ids = context_ids.view(B, G, S)[sort_index].view(B * G, S)
             context_mask = context_mask[sort_index]
         else:
             context_embeds = None
+            context_ids = None
 
-        return caption_ids, image_embeds, caption_embeds, context_mask, context_embeds, caption_lens, sort_index
+        return caption_ids, image_embeds, caption_embeds, context_mask, context_ids, context_embeds, caption_lens, sort_index
 
     def _generate(self, caption_ids, image_embeds,
-                  caption_embeds, context_embeds, context_mask):
+                  caption_embeds, context_embeds, context_mask, context_ids):
 
         # Initialize LSTM state
         h, c = self.init_hidden_state(image_embeds)
@@ -580,8 +625,9 @@ class BaselineModel(Model):
                 # prev_word.shape == [batch_size, embed_size]
 
             if self.use_context:
+                section_mask = ~(context_ids == self.padding_idx).all(1)
                 attended_article, attended_section, _, _ = self.article_attention(
-                    context_embeds, context_mask, h)
+                    context_embeds, context_mask, h, section_mask)
 
                 gate_2 = torch.sigmoid(self.f_beta_2(h))
                 attended_article = gate_2 * attended_article

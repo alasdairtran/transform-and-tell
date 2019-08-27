@@ -10,9 +10,9 @@ dataset_reader:
       namespace: bpe
       padding_on_right: true
       padding_value: 1
-      max_len: 384
+      max_len: 512
   image_dir: data/goodnews/images_processed
-  max_paragraphs: 20
+  max_paragraphs: 2
   eval_limit: 1024
   lazy: true
 train_data_path: train
@@ -24,6 +24,7 @@ vocabulary:
 model:
   type: baseline
   use_context: true
+  pool_type: none
   evaluate_mode: false
   topk: 1
   vocab_size: 50265
@@ -54,7 +55,7 @@ iterator:
   max_instances_in_memory: 512
   biggest_batch_first: false
   instances_per_epoch: 16384
-  maximum_samples_per_batch: ["total_num_tokens", 7680]
+  maximum_samples_per_batch: ["total_num_tokens", 8192]
 validation_iterator:
   type: bucket
   sorting_keys:
@@ -66,7 +67,7 @@ validation_iterator:
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 512
-  maximum_samples_per_batch: ["total_num_tokens", 7680]
+  maximum_samples_per_batch: ["total_num_tokens", 8192]
   biggest_batch_first: false
 trainer:
   type: callback_apex
@@ -74,7 +75,7 @@ trainer:
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.001
+    lr: 0.0001
     warmup: 0.05
     t_total: 80000
     schedule: warmup_linear

@@ -10,9 +10,9 @@ dataset_reader:
       namespace: bpe
       padding_on_right: true
       padding_value: 1
-      max_len: 512
+      max_len: 384
   image_dir: data/goodnews/images_processed
-  max_paragraphs: 32
+  max_paragraphs: 24
   eval_limit: 5120
   lazy: true
 train_data_path: train
@@ -32,8 +32,8 @@ model:
           type: adaptive
           vocab_size: 50265
           namespace: bpe
-          initial_dim: 1024
-          output_dim: 1024
+          initial_dim: 768
+          output_dim: 768
           factor: 1
           cutoff: [5000, 20000]
           padding_idx: 0
@@ -41,7 +41,7 @@ model:
         position:
           type: sinusoidal_positional
           init_size: 512
-          embedding_dim: 1024
+          embedding_dim: 768
           padding_idx: 1
           left_pad: false
       embedder_to_indexer_map:
@@ -51,18 +51,18 @@ model:
     max_target_positions: 512
     dropout: 0.1
     share_decoder_input_output_embed: true
-    decoder_output_dim: 1024
-    decoder_conv_dim: 1024
+    decoder_output_dim: 768
+    decoder_conv_dim: 768
     decoder_glu: true
     decoder_conv_type: dynamic
     weight_softmax: true
-    decoder_attention_heads: 16
+    decoder_attention_heads: 12
     weight_dropout: 0.1
     relu_dropout: 0.0
     input_dropout: 0.1
     decoder_normalize_before: false
     attention_dropout: 0.1
-    decoder_ffn_embed_dim: 4096
+    decoder_ffn_embed_dim: 3072
     decoder_kernel_size_list: [3, 7, 15, 31]
     adaptive_softmax_cutoff: [5000, 20000]
     adaptive_softmax_factor: 1
@@ -81,8 +81,8 @@ model:
   evaluate_mode: false
   sampling_topk: 1
   vocab_size: 50265
-  hidden_size: 1024
-  attention_dim: 1024
+  hidden_size: 768
+  attention_dim: 768
   namespace: bpe
   index: roberta
   padding_value: 1
@@ -135,7 +135,7 @@ trainer:
     b1: 0.9
     b2: 0.98
     e: 0.000001
-    weight_decay: 0.00001 # Worse choices: 0.01, 0.001, 0.000001
+    weight_decay: 0.0001 # Worse choices: 0.01, 0.001, 0.000001
     max_grad_norm: 0.1 # Worse choices: 1.0
     parameter_groups:
       - - - ^decoder.embedder
