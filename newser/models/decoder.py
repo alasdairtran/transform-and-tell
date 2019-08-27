@@ -51,7 +51,7 @@ class DynamicConvDecoder(Decoder):
                  decoder_kernel_size_list, adaptive_softmax_cutoff=None,
                  tie_adaptive_weights=False, adaptive_softmax_dropout=0,
                  tie_adaptive_proj=False, adaptive_softmax_factor=0, decoder_layers=6,
-                 context_embed_sizes=[], final_norm=True, padding_idx=0, namespace='target_tokens',
+                 final_norm=True, padding_idx=0, namespace='target_tokens',
                  vocab_size=None):
         super().__init__()
         self.vocab = vocab
@@ -77,7 +77,7 @@ class DynamicConvDecoder(Decoder):
                                     decoder_conv_type, weight_softmax, decoder_attention_heads,
                                     weight_dropout, dropout, relu_dropout, input_dropout,
                                     decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                                    context_embed_sizes, kernel_size=decoder_kernel_size_list[i])
+                                    kernel_size=decoder_kernel_size_list[i])
             for i in range(decoder_layers)
         ])
 
@@ -113,7 +113,7 @@ class DynamicConvDecoder(Decoder):
         if self.normalize:
             self.layer_norm = nn.LayerNorm(embed_dim)
 
-    def forward(self, prev_target, contexts, context_masks, incremental_state=None,
+    def forward(self, prev_target, contexts, incremental_state=None,
                 use_layers=None, **kwargs):
         """
         Args:
@@ -155,7 +155,6 @@ class DynamicConvDecoder(Decoder):
                 X, attn = layer(
                     X,
                     contexts,
-                    context_masks,
                     incremental_state,
                 )
                 inner_states.append(X)
@@ -233,7 +232,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
                  decoder_conv_type, weight_softmax, decoder_attention_heads,
                  weight_dropout, dropout, relu_dropout, input_dropout,
                  decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                 context_embed_sizes=[], kernel_size=0):
+                 kernel_size=0):
         super().__init__()
         self.embed_dim = decoder_embed_dim
         self.conv_dim = decoder_conv_dim
@@ -264,16 +263,16 @@ class DynamicConvDecoderLayer(DecoderLayer):
 
         self.conv_layer_norm = nn.LayerNorm(self.embed_dim)
 
-        self.context_attns = nn.ModuleList()
-        self.context_attn_lns = nn.ModuleList()
-        for embed_size in context_embed_sizes:
-            self.context_attns.append(MultiHeadAttention(
-                embed_size, decoder_attention_heads,
-                dropout=attention_dropout,
-            ))
-            self.context_attn_lns.append(nn.LayerNorm(self.embed_dim))
+        self.context_attns = nn.ModuleDict()
+        self.context_attn_lns = nn.ModuleDict()
+        self.context_keys = ['image', 'article']
+        for key in self.context_keys:
+            self.context_attns[key] = MultiHeadAttention(
+                self.embed_dim, decoder_attention_heads,
+                dropout=attention_dropout)
+            self.context_attn_lns[key] = nn.LayerNorm(self.embed_dim)
 
-        context_size = self.embed_dim * len(context_embed_sizes)
+        context_size = self.embed_dim * len(self.context_keys)
         self.context_fc = GehringLinear(context_size, self.embed_dim)
 
         self.fc1 = GehringLinear(self.embed_dim, decoder_ffn_embed_dim)
@@ -282,7 +281,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         self.final_layer_norm = nn.LayerNorm(self.embed_dim)
         self.need_attn = True
 
-    def forward(self, X, contexts, context_masks, incremental_state):
+    def forward(self, X, contexts, incremental_state):
         """
         Args:
             X (Tensor): input to the layer of shape `(seq_len, batch, embed_dim)`
@@ -306,25 +305,70 @@ class DynamicConvDecoderLayer(DecoderLayer):
 
         attn = None
         X_contexts = []
-        for context, context_mask, context_attn, context_ln in zip(contexts, context_masks, self.context_attns, self.context_attn_lns):
-            residual = X
-            X_context = self.maybe_layer_norm(
-                context_ln, X, before=True)
-            X_context, attn = context_attn(
-                query=X_context,
-                key=context,
-                value=context,
-                key_padding_mask=context_mask,
-                incremental_state=None,
-                static_kv=True,
-                need_weights=(not self.training and self.need_attn),
-            )
-            X_context = F.dropout(
-                X_context, p=self.dropout, training=self.training)
-            X_context = residual + X_context
-            X_context = self.maybe_layer_norm(
-                context_ln, X_context, after=True)
-            X_contexts.append(X_context)
+
+        # Image attention
+        residual = X
+        X_image = self.maybe_layer_norm(
+            self.context_attn_lns['image'], X, before=True)
+        X_image, attn = self.context_attns['image'](
+            query=X_image,
+            key=contexts['image'],
+            value=contexts['image'],
+            key_padding_mask=contexts['image_mask'],
+            incremental_state=None,
+            static_kv=True,
+            need_weights=(not self.training and self.need_attn))
+        X_image = F.dropout(X_image, p=self.dropout, training=self.training)
+        X_image = residual + X_image
+        X_image = self.maybe_layer_norm(
+            self.context_attn_lns['image'], X_image, after=True)
+        X_contexts.append(X_image)
+
+        # Article attention
+        residual = X
+        X_article = self.maybe_layer_norm(
+            self.context_attn_lns['article'], X, before=True)
+        X_article, attn = self.context_attns['article'](
+            query=X_article,
+            key=contexts['article'],
+            value=contexts['article'],
+            key_padding_mask=contexts['article_mask'],
+            incremental_state=None,
+            static_kv=True,
+            need_weights=True)
+        X_article = F.dropout(X_article, p=self.dropout,
+                              training=self.training)
+        X_article = residual + X_article
+        X_article = self.maybe_layer_norm(
+            self.context_attn_lns['article'], X_article, after=True)
+        X_contexts.append(X_article)
+
+        # # Section attention
+        # # attn.shape [B, S, max_sections]
+        # # Select the best attended section
+        # best_section_idx = attn.argmax(dim=2, keepdim=True)
+        # # best_section_idx = [B, S, 1]
+
+        # B = best_section_idx.shape[0]
+        # contexts['sections'][torch.arange(B), ]
+
+        # residual = X
+        # X_section = self.maybe_layer_norm(
+        #     self.context_attn_lns['section'], X, before=True)
+        # X_section, attn = self.context_attns['section'](
+        #     query=X_section,
+        #     key=contexts['section'],
+        #     value=contexts['section'],
+        #     key_padding_mask=contexts['section_mask'],
+        #     incremental_state=None,
+        #     static_kv=True,
+        #     need_weights=(not self.training and self.need_attn))
+        # X_section = F.dropout(X_section, p=self.dropout,
+        #                       training=self.training)
+        # X_section = residual + X_section
+        # X_section = self.maybe_layer_norm(
+        #     self.context_attn_lns['section'], X_section, after=True)
+        # X_contexts.append(X_section)
 
         X_context = torch.cat(X_contexts, dim=-1)
         X = self.context_fc(X_context)

@@ -174,9 +174,9 @@ class TransformerModel(Model):
                 caption: Dict[str, torch.LongTensor],
                 metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
-        _, target_ids, contexts, context_masks = self._forward(
+        _, target_ids, contexts = self._forward(
             context, image, caption)
-        decoder_out = self.decoder(caption, contexts, context_masks)
+        decoder_out = self.decoder(caption, contexts)
 
         # Assume we're using adaptive loss
         loss, sample_size = self.criterion(
@@ -197,10 +197,10 @@ class TransformerModel(Model):
                  caption: Dict[str, torch.LongTensor],
                  metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
-        caption_ids, _, contexts, context_masks = self._forward(
+        caption_ids, _, contexts = self._forward(
             context, image, caption)
 
-        _, gen_ids = self._generate(caption_ids, contexts, context_masks)
+        _, gen_ids = self._generate(caption_ids, contexts)
 
         gen_ids = gen_ids.cpu()
         gen_texts = [self.roberta.decode(
@@ -282,12 +282,20 @@ class TransformerModel(Model):
         image_padding_mask = X_image.new_zeros(B, P).bool()
         article_padding_mask = article_padding_mask[:, :, 0]
 
-        contexts = [X_image, X_article]
-        context_masks = [image_padding_mask, article_padding_mask]
+        # The quirks of dynamic convolution implementation: The context
+        # embedding has dimension [seq_len, batch_size], but the mask has
+        # dimension [batch_size, seq_len].
+        contexts = {
+            'image': X_image.transpose(0, 1),
+            'image_mask': image_padding_mask,
+            'article': X_article.transpose(0, 1),
+            'article_mask': article_padding_mask,
+            'sections': X_sections.transpose(0, 1),
+        }
 
-        return caption_ids, target_ids, contexts, context_masks
+        return caption_ids, target_ids, contexts
 
-    def _generate(self, caption_ids, contexts, context_masks):
+    def _generate(self, caption_ids, contexts):
         incremental_state: Dict[str, Any] = {}
         seed_input = caption_ids[:, 0:1]
         log_prob_list = []
@@ -307,12 +315,10 @@ class TransformerModel(Model):
             self.decoder.filter_incremental_state(
                 incremental_state, active_idx)
 
-            contexts_i = [ctx[full_active_idx] for ctx in contexts]
-            context_masks_i = [mask[full_active_idx] for mask in context_masks]
+            contexts_i = {k: v[:, full_active_idx] for k, v in contexts}
             decoder_out = self.decoder(
                 prev_target,
                 contexts_i,
-                context_masks_i,
                 incremental_state=incremental_state)
 
             # We're only interested in the current final word

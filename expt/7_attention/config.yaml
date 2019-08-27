@@ -69,7 +69,6 @@ model:
     adaptive_softmax_dropout: 0
     tie_adaptive_proj: false
     decoder_layers: 4
-    context_embed_sizes: [1024, 1024]
     final_norm: false
     padding_idx: 0
     namespace: bpe
@@ -108,7 +107,7 @@ iterator:
   max_instances_in_memory: 8192
   biggest_batch_first: false
   instances_per_epoch: 65536
-  maximum_samples_per_batch: ["total_num_tokens", 20480]
+  maximum_samples_per_batch: ["total_num_tokens", 16384]
 validation_iterator:
   type: bucket
   sorting_keys:
@@ -120,7 +119,7 @@ validation_iterator:
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 8192
-  maximum_samples_per_batch: ["total_num_tokens", 20480]
+  maximum_samples_per_batch: ["total_num_tokens", 16384]
   biggest_batch_first: false
 trainer:
   type: callback_apex
@@ -161,7 +160,7 @@ trainer:
       learning_rate_scheduler:
         type: slanted_triangular
         num_epochs: 40
-        num_steps_per_epoch: 4196
+        num_steps_per_epoch: 7000
         cut_frac: 0.1
         ratio: 32
         gradual_unfreezing: false
