@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from newser.utils import get_incremental_state, set_incremental_state
 
-from .unfold1d import unfold1d
+from .unfold import unfold1d
 
 
 class LightweightConv1d(nn.Module):
