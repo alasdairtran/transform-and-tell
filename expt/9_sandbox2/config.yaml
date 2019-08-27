@@ -135,7 +135,7 @@ trainer:
     b2: 0.98
     e: 0.000001
     weight_decay: 0.001
-    max_grad_norm: 0.1
+    max_grad_norm: 1.0
     parameter_groups:
       - - - ^decoder.embedder
         - {}
