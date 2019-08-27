@@ -51,7 +51,7 @@ iterator:
   max_instances_in_memory: 4096
   biggest_batch_first: false
   instances_per_epoch: 16384
-  # maximum_samples_per_batch: ["total_num_tokens", 20000]
+  maximum_samples_per_batch: ["total_num_tokens", 16384]
 validation_iterator:
   type: bucket
   sorting_keys:
@@ -63,7 +63,7 @@ validation_iterator:
       - num_tokens
   batch_size: 8
   max_instances_in_memory: 4096
-  # maximum_samples_per_batch: ["total_num_tokens", 20000]
+  maximum_samples_per_batch: ["total_num_tokens", 16384]
   biggest_batch_first: false
 trainer:
   type: callback_apex
