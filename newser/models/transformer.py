@@ -34,7 +34,8 @@ LSTM = _Seq2SeqWrapper(nn.LSTM)
 def gelu(x):
     """Implementation of the gelu activation function.
         For information: OpenAI GPT's gelu is slightly different (and gives slightly different results):
-        0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
+        0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi)
+                   * (x + 0.044715 * torch.pow(x, 3))))
         Also see https://arxiv.org/abs/1606.08415
     """
     return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
@@ -252,6 +253,7 @@ class TransformerModel(Model):
         # article_ids.shape == [batch_size, max_sections, seq_len]
 
         article_padding_mask = article_ids == self.padding_idx
+        # article_padding_mask.shape == [batch_size, max_sections, seq_len]
 
         B, G, S = article_ids.shape
         article_ids = article_ids.reshape(B * G, S)
@@ -260,23 +262,25 @@ class TransformerModel(Model):
         # Remove empty sections (those containing only padding)
         section_mask = ~(article_ids == self.padding_idx).all(dim=1)
 
-        X_article_hiddens = self.roberta.extract_features(
+        X_sections_hiddens = self.roberta.extract_features(
             article_ids[section_mask], return_all_hiddens=True)
 
-        X_article_last = X_article_hiddens[-1]
-        # X_article.shape == [batch_size * n_sections, seq_len, embed_size]
+        X_sections_last = X_sections_hiddens[-1]
+        # X_sections.shape == [batch_size * n_sections, seq_len, embed_size]
 
-        X_article = X_image.new_ones((B * G, S, 1024))
-        X_article[section_mask] = X_article_last
-        X_article = X_article.view(B, G, S, -1)
-        # X_article.shape == [batch_size, max_sections, seq_len, embed_size]
+        X_sections = X_image.new_full((B * G, S, 1024), self.padding_idx)
+        X_sections[section_mask] = X_sections_last
+        X_sections = X_sections.view(B, G, S, -1)
+        # X_sections.shape == [batch_size, max_sections, seq_len, embed_size]
 
-        # First try: article is only the title and first paragraph
-        X_article = X_article.reshape(B, G * S, -1)
+        # We take the embedding of the first <s> token in each section as
+        # the representation of the entire section.
+        X_article = X_sections[:, :, 0]
+        # X_article.shape == [batch_size, max_sections, embed_size]
 
         # Create padding mask (1 corresponds to the padding index)
         image_padding_mask = X_image.new_zeros(B, P).bool()
-        article_padding_mask = article_padding_mask.view(B, G * S).bool()
+        article_padding_mask = article_padding_mask[:, :, 0]
 
         contexts = [X_image, X_article]
         context_masks = [image_padding_mask, article_padding_mask]
@@ -341,8 +345,7 @@ class TransformerModel(Model):
             log_prob = selected_lprob.new_zeros(B, 1)
             log_prob[full_active_idx] = selected_lprob
 
-            index_path = selected_index.new_zeros(B, 1)
-            index_path.fill_(self.padding_idx)
+            index_path = selected_index.new_full((B, 1), self.padding_idx)
             index_path[full_active_idx] = selected_index
 
             log_prob_list.append(log_prob)
