@@ -41,6 +41,7 @@ class GoodNewsReader(DatasetReader):
                  image_dir: str,
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
+                 max_paragraphs: int = 32,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -52,6 +53,7 @@ class GoodNewsReader(DatasetReader):
             # Resize(256), CenterCrop(224),
             ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        self.max_paragraphs = max_paragraphs
         random.seed(1234)
 
     @overrides
@@ -96,6 +98,7 @@ class GoodNewsReader(DatasetReader):
             paragraphs.insert(0, title)
         caption = caption.strip()
 
+        paragraphs = paragraphs[:self.max_paragraphs]
         context_tokens = [self._tokenizer.tokenize(par) for par in paragraphs]
         caption_tokens = self._tokenizer.tokenize(caption)
 
