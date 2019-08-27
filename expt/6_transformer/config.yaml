@@ -138,17 +138,17 @@ trainer:
     max_grad_norm: 1.0
     max_grad_norm: 0.1
     parameter_groups:
-      - - - ^decoders.embedder
+      - - - ^decoder.embedder
         - {}
-      - - - ^decoders.layers.0
+      - - - ^decoder.layers.0
         - {}
-      - - - ^decoders.layers.1
+      - - - ^decoder.layers.1
         - {}
-      - - - ^decoders.layers.2
+      - - - ^decoder.layers.2
         - {}
-      - - - ^decoders.layers.3
+      - - - ^decoder.layers.3
         - {}
-      - - - ^decoders.adaptive_softmax
+      - - - ^decoder.adaptive_softmax
         - {}
   no_grad:
     - ^resnet
