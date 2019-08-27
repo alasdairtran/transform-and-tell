@@ -248,22 +248,28 @@ class TransformerModel(Model):
         X_image = self.image_proj(X_image)
         # X_image.shape == [batch_size, 49, 1024]
 
-        # Embed article
-        article_ids = context[self.index][:, :, :128]
-        # article_ids.shape == [batch_size, n_sections, seq_len]
-        article_ids = article_ids[:, :2]
+        article_ids = context[self.index]
+        # article_ids.shape == [batch_size, max_sections, seq_len]
 
         article_padding_mask = article_ids == self.padding_idx
 
         B, G, S = article_ids.shape
         article_ids = article_ids.reshape(B * G, S)
-        # article_ids.shape == [batch_size * n_sections, seq_len]
+        # article_ids.shape == [batch_size * max_sections, seq_len]
 
-        X_article = self.roberta.extract_features(article_ids)
+        # Remove empty sections (those containing only padding)
+        section_mask = ~(article_ids == self.padding_idx).all(dim=1)
+
+        X_article_hiddens = self.roberta.extract_features(
+            article_ids[section_mask], return_all_hiddens=True)
+
+        X_article_last = X_article_hiddens[-1]
         # X_article.shape == [batch_size * n_sections, seq_len, embed_size]
 
+        X_article = X_image.new_ones((B * G, S, 1024))
+        X_article[section_mask] = X_article_last
         X_article = X_article.view(B, G, S, -1)
-        # X_article.shape == [batch_size, n_sections, seq_len, embed_size]
+        # X_article.shape == [batch_size, max_sections, seq_len, embed_size]
 
         # First try: article is only the title and first paragraph
         X_article = X_article.reshape(B, G * S, -1)
