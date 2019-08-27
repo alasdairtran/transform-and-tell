@@ -265,14 +265,19 @@ class DynamicConvDecoderLayer(DecoderLayer):
 
         self.context_attns = nn.ModuleDict()
         self.context_attn_lns = nn.ModuleDict()
-        self.context_keys = ['image', 'article']
-        for key in self.context_keys:
-            self.context_attns[key] = MultiHeadAttention(
-                self.embed_dim, decoder_attention_heads,
-                dropout=attention_dropout)
-            self.context_attn_lns[key] = nn.LayerNorm(self.embed_dim)
+        C = 2048
 
-        context_size = self.embed_dim * len(self.context_keys)
+        self.context_attns['image'] = MultiHeadAttention(
+            self.embed_dim, decoder_attention_heads, kdim=C, vdim=C,
+            dropout=attention_dropout)
+        self.context_attn_lns['image'] = nn.LayerNorm(self.embed_dim)
+
+        self.context_attns['article'] = MultiHeadAttention(
+            self.embed_dim, decoder_attention_heads,
+            dropout=attention_dropout)
+        self.context_attn_lns['article'] = nn.LayerNorm(self.embed_dim)
+
+        context_size = self.embed_dim * 2
         self.context_fc = GehringLinear(context_size, self.embed_dim)
 
         self.fc1 = GehringLinear(self.embed_dim, decoder_ffn_embed_dim)

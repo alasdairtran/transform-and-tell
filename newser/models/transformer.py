@@ -160,7 +160,6 @@ class TransformerModel(Model):
         self.n_batches = 0
         self.n_samples = 0
         self.sample_history: Dict[str, float] = defaultdict(float)
-        self.image_proj = GehringLinear(2048, 1024, bias=False)
 
         initializer(self)
 
@@ -245,9 +244,6 @@ class TransformerModel(Model):
         P = H * W  # number of pixels
         X_image = X_image.view(B, P, C)
         # X_image.shape == [batch_size, 49, 2048]
-
-        X_image = self.image_proj(X_image)
-        # X_image.shape == [batch_size, 49, 1024]
 
         article_ids = context[self.index]
         # article_ids.shape == [batch_size, max_sections, seq_len]
