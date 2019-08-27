@@ -203,7 +203,8 @@ class CallbackApexTrainer(TrainerBase):
         loss = self.batch_loss(batch_group, for_training=True)
 
         if torch.isnan(loss):
-            raise ValueError("nan loss encountered")
+            logger.warning("NaN loss encountered.")
+            return
 
         if self._use_apex:
             with amp.scale_loss(loss, self.optimizer) as scaled_loss:
@@ -247,6 +248,8 @@ class CallbackApexTrainer(TrainerBase):
 
         for self.batch_group in batch_groups_tqdm:
             description = self.train_one_batch_group(self.batch_group)
+            if description is None:
+                continue
             batch_groups_tqdm.set_description(description, refresh=False)
 
         self.handler.fire_event(Events.VALIDATE)
