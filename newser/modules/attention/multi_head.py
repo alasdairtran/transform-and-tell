@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn import Parameter
 
-from newser.utils import get_incremental_state, set_incremental_state
+from newser.utils import get_incremental_state, set_incremental_state, softmax
 
 
 class MultiHeadAttention(nn.Module):
@@ -344,10 +344,3 @@ class MultiHeadAttention(nn.Module):
 
     def apply_sparse_mask(self, attn_weights, tgt_len, src_len, bsz):
         return attn_weights
-
-
-def softmax(x, dim, onnx_trace=False):
-    if onnx_trace:
-        return F.softmax(x.float(), dim=dim)
-    else:
-        return F.softmax(x, dim=dim, dtype=torch.float32)
