@@ -13,6 +13,7 @@ dataset_reader:
       max_len: 512
   image_dir: data/goodnews/images_processed
   max_paragraphs: 32
+  eval_limit: 1024
   lazy: true
 train_data_path: train
 validation_data_path: val
@@ -52,7 +53,7 @@ iterator:
   batch_size: 16
   max_instances_in_memory: 8192
   biggest_batch_first: false
-  instances_per_epoch: 65536
+  instances_per_epoch: 16384
   maximum_samples_per_batch: ["total_num_tokens", 16384]
 validation_iterator:
   type: bucket
@@ -75,7 +76,7 @@ trainer:
     type: bert_adam
     lr: 0.001
     warmup: 0.05
-    t_total: 320000
+    t_total: 80000
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98

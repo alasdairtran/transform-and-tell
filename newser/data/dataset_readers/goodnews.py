@@ -42,6 +42,7 @@ class GoodNewsReader(DatasetReader):
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
                  max_paragraphs: int = 32,
+                 eval_limit: int = 5120,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -54,6 +55,7 @@ class GoodNewsReader(DatasetReader):
             ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.max_paragraphs = max_paragraphs
+        self.eval_limit = eval_limit
         random.seed(1234)
 
     @overrides
@@ -64,7 +66,7 @@ class GoodNewsReader(DatasetReader):
 
         # Setting the batch size is needed to avoid cursor timing out
         # We limit the validation set to 1000
-        limit = 5120 if split == 'val' else 0
+        limit = self.eval_limit if split == 'val' else 0
         sample_cursor = self.db.splits.find({
             'split': {'$eq': split},
         }, no_cursor_timeout=True, limit=limit).batch_size(128)
