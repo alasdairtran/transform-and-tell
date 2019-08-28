@@ -1,5 +1,5 @@
 dataset_reader:
-  type: goodnews
+  type: goodnews_flattened
   tokenizer:
     type: word
     word_splitter: just_spaces
@@ -12,8 +12,7 @@ dataset_reader:
       padding_value: 1
       max_len: 512
   image_dir: data/goodnews/images_processed
-  max_paragraphs: 32
-  eval_limit: 1024
+  eval_limit: 5120
   lazy: true
 train_data_path: train
 validation_data_path: val
@@ -24,7 +23,7 @@ vocabulary:
 model:
   type: baseline
   use_context: true
-  pool_type: first
+  pool_type: none
   evaluate_mode: false
   topk: 1
   vocab_size: 50265
@@ -46,28 +45,24 @@ iterator:
   type: bucket
   sorting_keys:
     - - context
-      - num_fields
-    - - context
-      - list_num_tokens
+      - num_tokens
     - - caption
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 512
   biggest_batch_first: false
-  instances_per_epoch: 16384
-  maximum_samples_per_batch: ["total_num_tokens", 12288]
+  instances_per_epoch: 65536
+  maximum_samples_per_batch: ["num_tokens", 4096]
 validation_iterator:
   type: bucket
   sorting_keys:
     - - context
-      - num_fields
-    - - context
-      - list_num_tokens
+      - num_tokens
     - - caption
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 512
-  maximum_samples_per_batch: ["total_num_tokens", 12288]
+  maximum_samples_per_batch: ["num_tokens", 4096]
   biggest_batch_first: false
 trainer:
   type: callback_apex
@@ -75,9 +70,9 @@ trainer:
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.0001
-    warmup: 0.05
-    t_total: 80000
+    lr: 0.001
+    warmup: 0.02
+    t_total: 400000
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98

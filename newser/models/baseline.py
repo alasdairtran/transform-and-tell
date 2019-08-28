@@ -535,11 +535,10 @@ class BaselineModel(Model):
         # image_embeds = self.image_proj(image_embeds)
         # image_embeds.shape == [batch_size, 49, 1024]
 
-        # STEP 3: Embed the first 512 words of the context
         if self.use_context:
-            context_ids = context[self.index][:, :, :512]
-            # context_ids.shape == [batch_size, n_sections, seq_len]
-
+            context_ids = context[self.index]
+            if len(context_ids.shape) == 2:
+                context_ids = context_ids.unsqueeze(1)
             context_mask = context_ids != self.padding_idx
 
             B, G, S = context_ids.shape

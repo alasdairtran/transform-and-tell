@@ -10,7 +10,7 @@ dataset_reader:
       namespace: bpe
       padding_on_right: true
       padding_value: 1
-      max_len: 384
+      max_len: 256
   image_dir: data/goodnews/images_processed
   max_paragraphs: 24
   eval_limit: 5120
@@ -109,7 +109,7 @@ iterator:
   max_instances_in_memory: 512
   biggest_batch_first: false
   instances_per_epoch: 65536
-  maximum_samples_per_batch: ["total_num_tokens", 9216]
+  maximum_samples_per_batch: ["total_num_tokens", 6144]
 validation_iterator:
   type: bucket
   sorting_keys:
@@ -121,7 +121,7 @@ validation_iterator:
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 8192
-  maximum_samples_per_batch: ["total_num_tokens", 9216]
+  maximum_samples_per_batch: ["total_num_tokens", 6144]
   biggest_batch_first: false
 trainer:
   type: callback_apex
@@ -130,8 +130,8 @@ trainer:
   optimizer:
     type: bert_adam
     lr: 0.0001
-    warmup: 0.05
-    t_total: 320000
+    warmup: 0.02
+    t_total: 400000
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
