@@ -1,4 +1,5 @@
 import math
+import operator
 import re
 import warnings
 from collections import defaultdict
@@ -67,7 +68,7 @@ class Attention(nn.Module):
         self.full_att = nn.Linear(attention_dim * 2, 1)
         self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
 
-    def forward(self, image, decoder_hidden):
+    def forward(self, image, decoder_hidden, softmax=False):
         # image.shape == [batch_size, n_pixels, n_channels]
         # decoder_hidden.shape == [batch_size, hidden_size]
 
@@ -81,6 +82,9 @@ class Attention(nn.Module):
 
         attn = self.full_att(gelu(attn)).squeeze(2)
         # attn.shape == [batch_size, num_pixels]
+
+        if softmax:
+            return None, F.softmax(attn, dim=-1)
 
         alpha = self.softmax(attn)
         # alpha.shape == [batch_size, num_pixels]
@@ -200,8 +204,8 @@ class ArticleAttention(nn.Module):
             return None, attended_section, None, alpha_2
 
 
-@Model.register("baseline")
-class BaselineModel(Model):
+@Model.register("pointer")
+class PointerModel(Model):
     """
     An AllenNLP Model that runs pretrained BERT,
     takes the pooled output, and adds a Linear layer on top.
@@ -261,6 +265,9 @@ class BaselineModel(Model):
         self.padding_idx = padding_value
         self.evaluate_mode = evaluate_mode
 
+        self.attention_copy = Attention(
+            text_embed_size, hidden_size, attention_dim)
+
         # Projection so that image and text embeds have same dimension
         # self.image_proj = nn.Linear(2048, 384)
         # self.text_proj = nn.Linear(1024, 384)
@@ -276,6 +283,9 @@ class BaselineModel(Model):
 
         # Linear layer to find scores over vocabulary
         self.fc = nn.Linear(hidden_size, vocab_size)
+
+        # Linear layer to decide whether to copy or not
+        self.fc_copy = nn.Linear(hidden_size, 2)
 
         if use_context:
             self.article_attention = ArticleAttention(
@@ -349,15 +359,19 @@ class BaselineModel(Model):
 
         # Create tensors to hold word prediction scores and alphas
         V = self.vocab.get_vocab_size(self.namespace)
-        S = max(decode_lens)
-        logits = image_embeds.new_zeros(B, S, V)
-        alphas = image_embeds.new_zeros(B, S, P)
+        L = max(decode_lens)
+        logits = image_embeds.new_zeros(B, L, V)
+        logits_decision = image_embeds.new_zeros(B, L, 2)
+        copy_probs = image_embeds.new_zeros(B, L, G * S)
+        alphas = image_embeds.new_zeros(B, L, P)
+
+        targets = caption_ids[:, 1:]
 
         # At each time-step, decode by attention-weighing the encoder's output
         # based on the decoder's previous hidden state output then generate a
         # new word in the decoder with the previous word and the attention
         # weighted encoding
-        for t in range(S):
+        for t in range(L):
             batch_size_t = sum([length > t for length in decode_lens])
             image_embeds_t = image_embeds[:batch_size_t]
             caption_embeds_t = caption_embeds[:batch_size_t]
@@ -410,21 +424,59 @@ class BaselineModel(Model):
             logits_t = self.fc(self.dropout(h))
             # logits_t.shape = [batch_size_t, vocab_size]
 
+            logits_decision_t = self.fc_copy(self.dropout(h))
+            # logits_decision_t.shape = [batch_size_t, 2]
+
             logits[:batch_size_t, t, :] = logits_t
+            logits_decision[:batch_size_t, t, :] = logits_decision_t
             alphas[:batch_size_t, t, :] = alpha
 
-        # Calculate loss
-        probs = F.log_softmax(logits, dim=-1)
-        # probs.shape == [batch_size, seq_len, vocab_size]
+            context_embeds_t = context_embeds_t.view(batch_size_t, G * S, E)
+            _, copy_probs_t = self.attention_copy(
+                context_embeds_t, h, softmax=True)
+            # copy_probs.shape == [batch_size_t, G * S]
+
+            copy_probs[:batch_size_t, t, :] = copy_probs_t
+
+        gen_probs = F.softmax(logits, dim=-1)
+        # gen_probs.shape == [batch_size, seq_len, vocab_size]
+
+        decision_probs = F.softmax(logits_decision, dim=-1)
+        # decision_probs.shape == [batch_size, seq_len, 2]
+
+        # copy_probs.shape == [batch_size, seq_len, src_len]
+
+        # the second probability is the generation prob
+        gen_probs = gen_probs * decision_probs[:, :, 1:]
+        # gen_probs.shape == [batch_size, seq_len, vocab_size]
+
+        copy_probs = copy_probs * decision_probs[:, :, :1]
+        # copy_probs.shape == [batch_size, seq_len, src_len]
+
+        projected_copy_probs = gen_probs.new_zeros(gen_probs.shape)
+        # projected_copy_probs.shape == [batch_size, seq_len, vocab_size]
+
+        context_ids = context_ids.view(B, -1)
+        # context_ids = [batch_size, src_len]
+
+        index = context_ids.unsqueeze(1)
+        # context_ids = [batch_size, 1, src_len]
+
+        index = index.expand_as(copy_probs)
+        # context_ids = [batch_size, seq_len, src_len]
+
+        projected_copy_probs.scatter_add_(2, index, copy_probs)
+        # projected_copy_probs.shape == [batch_size, seq_len, vocab_size]
+
+        probs = projected_copy_probs + gen_probs
 
         probs = probs.view(-1, V)
-        targets = caption_ids[:, 1:]
 
         text_mask = targets.ne(self.padding_idx)
-        targets = targets[text_mask].contiguous().view(-1)
+        targets = targets[text_mask].contiguous().view(-1, 1)
         probs = probs[text_mask.view(-1)]
 
-        loss = F.nll_loss(probs, targets, reduction='mean')
+        loss = -torch.log(probs.gather(dim=-1, index=targets)).mean()
 
         self.n_batches += 1
         self.n_samples += B
@@ -576,6 +628,9 @@ class BaselineModel(Model):
         eos = 2
         is_end = generated[:, 0] == eos
 
+        BG, S = context_ids.shape
+        context_ids = context_ids.view(B, -1)
+
         # At each time-step, decode by attention-weighing the encoder's output
         # based on the decoder's previous hidden state output then generate a
         # new word in the decoder with the previous word and the attention
@@ -598,10 +653,6 @@ class BaselineModel(Model):
                 prev_word = caption_embeds[:, 0, :]
                 generated[:, 0] = caption_ids[:, 0]
             else:
-                # top-20 sampling
-                probs_t = F.softmax(logits_t, dim=-1)
-                # probs_t.shape == [batch_size_t, vocab_size]
-
                 top_probs, top_indices = probs_t.topk(self.topk, dim=-1)
                 # top_indices.shape == [batch_size_t, k]
 
@@ -647,7 +698,38 @@ class BaselineModel(Model):
 
             # Project onto the vocabulary
             logits_t = self.fc(self.dropout(h))
-            # logits_t.shape = [batch_size_t, vocab_size]
+            # logits_t.shape = [batch_size, vocab_size]
+
+            gen_probs_t = F.softmax(logits_t, dim=-1)
+            # gen_probs_t.shape = [batch_size, vocab_size]
+
+            logits_decision_t = self.fc_copy(self.dropout(h))
+            # logits_decision_t.shape = [batch_size, 2]
+
+            decision_probs_t = F.softmax(logits_decision_t, dim=-1)
+            # decision_probs.shape == [batch_size, 2]
+
+            B, G, S, E = context_embeds.shape
+            context_embeds_t = context_embeds.view(B, G * S, E)
+            _, copy_probs_t = self.attention_copy(
+                context_embeds_t, h, softmax=True)
+            # copy_probs.shape == [batch_size, G * S]
+
+            copy_probs_t = copy_probs_t * decision_probs_t[:, :1]
+
+            gen_probs_t = gen_probs_t * decision_probs_t[:, 1:]
+
+            projected_copy_probs = gen_probs_t.new_zeros(gen_probs_t.shape)
+            # projected_copy_probs.shape == [batch_size, vocab_size]
+
+            index = context_ids.view(B, -1)
+            # context_ids = [batch_size, src_len]
+
+            projected_copy_probs.scatter_add_(1, index, copy_probs_t)
+            # projected_copy_probs.shape == [batch_size, vocab_size]
+
+            probs_t = projected_copy_probs + gen_probs_t
+            # probs_t.shape == [batch_size, vocab_size]
 
         self.n_batches += 1
         self.n_samples += B
