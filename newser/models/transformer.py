@@ -248,8 +248,8 @@ class TransformerModel(Model):
         article_ids = context[self.index]
         # article_ids.shape == [batch_size, max_sections, seq_len]
 
-        article_padding_mask = article_ids == self.padding_idx
-        # article_padding_mask.shape == [batch_size, max_sections, seq_len]
+        whole_article_padding_mask = article_ids == self.padding_idx
+        # whole_article_padding_mask.shape == [batch_size, max_sections, seq_len]
 
         B, G, S = article_ids.shape
         article_ids = article_ids.reshape(B * G, S)
@@ -276,7 +276,7 @@ class TransformerModel(Model):
 
         # Create padding mask (1 corresponds to the padding index)
         image_padding_mask = X_image.new_zeros(B, P).bool()
-        article_padding_mask = article_padding_mask[:, :, 0]
+        article_padding_mask = whole_article_padding_mask[:, :, 0]
 
         # The quirks of dynamic convolution implementation: The context
         # embedding has dimension [seq_len, batch_size], but the mask has
@@ -286,7 +286,8 @@ class TransformerModel(Model):
             'image_mask': image_padding_mask,
             'article': X_article.transpose(0, 1),
             'article_mask': article_padding_mask,
-            'sections': X_sections.transpose(0, 1),
+            'sections': X_sections,
+            'sections_mask': whole_article_padding_mask,
         }
 
         return caption_ids, target_ids, contexts
@@ -311,7 +312,15 @@ class TransformerModel(Model):
             self.decoder.filter_incremental_state(
                 incremental_state, active_idx)
 
-            contexts_i = {k: v[:, full_active_idx] for k, v in contexts}
+            contexts_i = {
+                'image': contexts['image'][:, full_active_idx],
+                'image_mask': contexts['image_mask'][full_active_idx],
+                'article': contexts['article'][:, full_active_idx],
+                'article_mask': contexts['article_mask'][full_active_idx],
+                'sections':  contexts['sections'][full_active_idx],
+                'sections_mask': contexts['sections_mask'][full_active_idx],
+            }
+
             decoder_out = self.decoder(
                 prev_target,
                 contexts_i,

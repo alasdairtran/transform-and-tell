@@ -32,8 +32,8 @@ model:
           type: adaptive
           vocab_size: 50265
           namespace: bpe
-          initial_dim: 768
-          output_dim: 768
+          initial_dim: 1024
+          output_dim: 1024
           factor: 1
           cutoff: [5000, 20000]
           padding_idx: 0
@@ -41,7 +41,7 @@ model:
         position:
           type: sinusoidal_positional
           init_size: 512
-          embedding_dim: 768
+          embedding_dim: 1024
           padding_idx: 1
           left_pad: false
       embedder_to_indexer_map:
@@ -51,18 +51,18 @@ model:
     max_target_positions: 512
     dropout: 0.1
     share_decoder_input_output_embed: true
-    decoder_output_dim: 768
-    decoder_conv_dim: 768
+    decoder_output_dim: 1024
+    decoder_conv_dim: 1024
     decoder_glu: true
     decoder_conv_type: dynamic
     weight_softmax: true
-    decoder_attention_heads: 12
+    decoder_attention_heads: 16
     weight_dropout: 0.1
     relu_dropout: 0.0
     input_dropout: 0.1
     decoder_normalize_before: false
     attention_dropout: 0.1
-    decoder_ffn_embed_dim: 3072
+    decoder_ffn_embed_dim: 4096
     decoder_kernel_size_list: [3, 7, 15, 31]
     adaptive_softmax_cutoff: [5000, 20000]
     adaptive_softmax_factor: 1
@@ -74,6 +74,7 @@ model:
     padding_idx: 0
     namespace: bpe
     vocab_size: 50265
+    section_attn: true
   criterion:
     type: adaptive_loss
     padding_idx: 1
@@ -81,8 +82,8 @@ model:
   evaluate_mode: false
   sampling_topk: 1
   vocab_size: 50265
-  hidden_size: 768
-  attention_dim: 768
+  hidden_size: 1024
+  attention_dim: 1024
   namespace: bpe
   index: roberta
   padding_value: 1
@@ -105,10 +106,10 @@ iterator:
     - - caption
       - num_tokens
   batch_size: 16
-  max_instances_in_memory: 8192
+  max_instances_in_memory: 512
   biggest_batch_first: false
   instances_per_epoch: 65536
-  maximum_samples_per_batch: ["total_num_tokens", 16384]
+  maximum_samples_per_batch: ["total_num_tokens", 9216]
 validation_iterator:
   type: bucket
   sorting_keys:
@@ -120,7 +121,7 @@ validation_iterator:
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 8192
-  maximum_samples_per_batch: ["total_num_tokens", 16384]
+  maximum_samples_per_batch: ["total_num_tokens", 9216]
   biggest_batch_first: false
 trainer:
   type: callback_apex
@@ -128,7 +129,7 @@ trainer:
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.001
+    lr: 0.0001
     warmup: 0.05
     t_total: 320000
     schedule: warmup_linear

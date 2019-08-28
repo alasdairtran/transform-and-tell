@@ -629,14 +629,16 @@ class BaselineModel(Model):
                 attended_article, attended_section, _, _ = self.article_attention(
                     context_embeds, context_mask, h, section_mask)
 
-                gate_2 = torch.sigmoid(self.f_beta_2(h))
-                attended_article = gate_2 * attended_article
-
                 gate_3 = torch.sigmoid(self.f_beta_3(h))
                 attended_section = gate_3 * attended_section
-
                 rnn_input = torch.cat(
-                    [prev_word, attended_image, attended_article, attended_section], dim=1)
+                    [prev_word, attended_image, attended_section], dim=1)
+
+                if attended_article is not None:
+                    gate_2 = torch.sigmoid(self.f_beta_2(h))
+                    attended_article = gate_2 * attended_article
+                    rnn_input = torch.cat([rnn_input, attended_article], dim=1)
+
             else:
                 rnn_input = torch.cat([prev_word, attended_image], dim=1)
 

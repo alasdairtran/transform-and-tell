@@ -15,7 +15,7 @@ from allennlp.modules.text_field_embedders import TextFieldEmbedder
 from newser.modules import (AdaptiveSoftmax, DynamicConv1dTBC, GehringLinear,
                             LightweightConv1dTBC, MultiHeadAttention)
 from newser.modules.token_embedders import AdaptiveEmbedding
-from newser.utils import eval_str_list, fill_with_neg_inf
+from newser.utils import eval_str_list, fill_with_neg_inf, softmax
 
 
 class Decoder(Registrable, nn.Module):
@@ -52,7 +52,7 @@ class DynamicConvDecoder(Decoder):
                  tie_adaptive_weights=False, adaptive_softmax_dropout=0,
                  tie_adaptive_proj=False, adaptive_softmax_factor=0, decoder_layers=6,
                  final_norm=True, padding_idx=0, namespace='target_tokens',
-                 vocab_size=None):
+                 vocab_size=None, section_attn=False):
         super().__init__()
         self.vocab = vocab
         vocab_size = vocab_size or vocab.get_vocab_size(namespace)
@@ -77,7 +77,8 @@ class DynamicConvDecoder(Decoder):
                                     decoder_conv_type, weight_softmax, decoder_attention_heads,
                                     weight_dropout, dropout, relu_dropout, input_dropout,
                                     decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                                    kernel_size=decoder_kernel_size_list[i])
+                                    kernel_size=decoder_kernel_size_list[i],
+                                    section_attn=section_attn)
             for i in range(decoder_layers)
         ])
 
@@ -217,6 +218,238 @@ class DynamicConvDecoder(Decoder):
                 incremental_state[key] = incremental_state[key][:, active_idx]
 
 
+class SectionAttention(nn.Module):
+    def __init__(self, embed_dim, num_heads, query_dim, key_dim, value_dim,
+                 dropout=0, bias=True, add_bias_kv=True, add_zero_attn=True):
+        super().__init__()
+        self.onnx_trace = False
+        self.q_proj = GehringLinear(query_dim, embed_dim, bias=bias)
+        self.k_proj = GehringLinear(key_dim, embed_dim, bias=bias)
+        self.v_proj = GehringLinear(value_dim, embed_dim, bias=bias)
+
+        self.num_heads = num_heads
+        self.dropout = dropout
+        self.embed_dim = embed_dim
+        self.head_dim = embed_dim // num_heads
+        assert self.head_dim * \
+            num_heads == self.embed_dim, "embed_dim must be divisible by num_heads"
+        self.scaling = self.head_dim ** -0.5
+
+        if add_bias_kv:
+            self.bias_k = nn.Parameter(torch.Tensor(1, 1, 1, embed_dim))
+            self.bias_v = nn.Parameter(torch.Tensor(1, 1, 1, embed_dim))
+        else:
+            self.bias_k = self.bias_v = None
+
+        self.add_zero_attn = add_zero_attn
+
+        self.out_proj = GehringLinear(embed_dim, embed_dim, bias=bias)
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        if self.bias_k is not None:
+            nn.init.xavier_normal_(self.bias_k)
+        if self.bias_v is not None:
+            nn.init.xavier_normal_(self.bias_v)
+
+    def forward(self, query, contexts, attn_scores, need_weights=True):
+        # attn_scores.shape == [batch_size, target_len, max_sections + 2]
+        # query.shape == [target_len, batch_size, embed_size]
+
+        # Remove bias terms
+        attn_scores = attn_scores[:, :, :-2]
+        # attn_scores.shape == [batch_size, target_len, max_sections + 2]
+
+        B, L, G = attn_scores.shape
+
+        attn_mask = None
+
+        key_padding_mask = contexts['sections_mask']
+        # key_padding_mask.shape == [batch_size, max_sections, source_len]
+
+        # Select the best attended section
+        best_section_idx = attn_scores.argmax(dim=2)
+        # best_section_idx = [batch_size, target_len]
+
+        best_section_idx = best_section_idx.view(-1)
+        # best_section_idx.shape == [batch_size * target_len]
+
+        X_sections = contexts['sections']
+        # X_sections.shape == [batch_size, max_sections, source_len, embed_size]
+
+        B, G, S, E = X_sections.shape
+
+        X_sections = X_sections.unsqueeze(1)
+        # X_sections.shape == [batch_size, 1, max_sections, source_len, embed_size]
+
+        key_padding_mask = key_padding_mask.unsqueeze(1)
+        # key_padding_mask.shape == [batch_size, 1, max_sections, source_len]
+
+        E = X_sections.shape[-1]
+
+        X_sections = X_sections.expand(B, L, G, S, E)
+        # X_sections.shape == [batch_size, target_len, max_sections, source_len, embed_size]
+
+        key_padding_mask = key_padding_mask.expand(B, L, G, S)
+        # key_padding_mask.shape == [batch_size, target_len, max_sections, source_len]
+
+        X_sections = X_sections.reshape(B * L, G, S, E)
+        # X_sections.shape == [batch_size * target_len, max_sections, source_len, embed_size]
+
+        key_padding_mask = key_padding_mask.reshape(B * L, G, S)
+        # key_padding_mask.shape == [batch_size * target_len, max_sections, source_len]
+
+        X_sections = X_sections[torch.arange(B * L), best_section_idx]
+        # X_sections.shape == [batch_size * target_len, source_len, embed_size]
+
+        key_padding_mask = key_padding_mask[torch.arange(
+            B * L), best_section_idx]
+        # key_padding_mask.shape == [batch_size * target_len, source_len]
+
+        X_sections = X_sections.view(B, L, S, E)
+        # X_sections.shape == [batch_size, target_len, source_len, embed_size]
+
+        key_padding_mask = key_padding_mask.view(B, L, S)
+        # X_sections.shape == [batch_size, target_len, source_len]
+
+        # Project query, key, and value
+        query = self.q_proj(query)
+        # query.shape == [target_len, batch_size, embed_size]
+
+        key = self.k_proj(X_sections)
+        # key.shape == [batch_size, target_len, source_len, embed_size]
+
+        value = self.v_proj(X_sections)
+        # value.shape == [batch_size, target_len, source_len, embed_size]
+
+        query *= self.scaling
+
+        # Append an extra bias token to the source
+        if self.bias_k is not None:
+            assert self.bias_v is not None
+            S += 1
+            key = torch.cat([key, self.bias_k.repeat(B, L, 1, 1)], dim=2)
+            value = torch.cat([value, self.bias_v.repeat(B, L, 1, 1)], dim=2)
+            if attn_mask is not None:
+                attn_mask = torch.cat(
+                    [attn_mask, attn_mask.new_zeros(attn_mask.size(0), 1)], dim=1)
+            if key_padding_mask is not None:
+                key_padding_mask = torch.cat(
+                    [key_padding_mask, key_padding_mask.new_zeros(B, L, 1)], dim=2)
+
+        query = query.contiguous().view(L, B * self.num_heads,
+                                        self.head_dim).transpose(0, 1)
+        # query.shape == [batch_size * n_heads, target_len, head_size]
+
+        if key is not None:
+            key = key.transpose(0, 1).transpose(1, 2)
+            # key.shape == [target_len, source_len, batch_size, embed_size]
+
+            key = key.contiguous().view(L, S, B * self.num_heads, self.head_dim)
+            # key.shape == [target_len, source_len, batch_size * n_heads, head_size]
+
+            key = key.transpose(1, 2).transpose(0, 1)
+            # key.shape == [batch_size * n_heads, target_len, source_len, head_size]
+
+        if value is not None:
+            value = value.transpose(0, 1).transpose(1, 2)
+            # value.shape == [target_len, source_len, batch_size, embed_size]
+
+            value = value.contiguous().view(L, S, B * self.num_heads, self.head_dim)
+            # value.shape == [target_len, source_len, batch_size * n_heads, head_size]
+
+            value = value.transpose(1, 2).transpose(0, 1)
+            # value.shape == [batch_size * n_heads, target_len, source_len, head_size]
+
+        # This is part of a workaround to get around fork/join parallelism
+        # not supporting Optional types.
+        if key_padding_mask is not None and key_padding_mask.shape == torch.Size([]):
+            key_padding_mask = None
+
+        if key_padding_mask is not None:
+            assert key_padding_mask.size(0) == B
+            assert key_padding_mask.size(2) == S
+
+        BH, L, S, R = key.shape
+        if self.add_zero_attn:
+            S += 1
+            key = torch.cat([key, key.new_zeros(BH, L, 1, R)], dim=2)
+            value = torch.cat([value, value.new_zeros(BH, L, 1, R)], dim=2)
+            if attn_mask is not None:
+                attn_mask = torch.cat(
+                    [attn_mask, attn_mask.new_zeros(attn_mask.size(0), 1)], dim=1)
+            if key_padding_mask is not None:
+                key_padding_mask = torch.cat(
+                    [key_padding_mask, torch.zeros(B, L, 1).type_as(key_padding_mask)], dim=2)
+
+        query = query.unsqueeze(2)
+        # query.shape == [batch_size * n_heads, target_len, 1, head_size]
+
+        query = query.expand_as(key)
+        # query.shape == [batch_size * n_heads, target_len, source_len, head_size]
+
+        attn_weights = (query * key).sum(-1)
+        # attn_weights.shape == [batch_size * n_heads, target_len, source_len]
+
+        assert list(attn_weights.size()) == [B * self.num_heads, L, S]
+
+        if attn_mask is not None:
+            attn_mask = attn_mask.unsqueeze(0)
+            if self.onnx_trace:
+                attn_mask = attn_mask.repeat(attn_weights.size(0), 1, 1)
+            attn_weights += attn_mask
+
+        if key_padding_mask is not None:
+            # don't attend to padding symbols
+            attn_weights = attn_weights.view(B, self.num_heads, L, S)
+            if self.onnx_trace:
+                attn_weights = torch.where(
+                    key_padding_mask.unsqueeze(1),
+                    torch.Tensor([float("-Inf")]),
+                    attn_weights.float()
+                ).type_as(attn_weights)
+            else:
+                attn_weights = attn_weights.masked_fill(
+                    key_padding_mask.unsqueeze(1),
+                    float('-inf'),
+                )
+            attn_weights = attn_weights.view(
+                B * self.num_heads, L, S)
+
+        attn_weights = softmax(
+            attn_weights, dim=-1, onnx_trace=self.onnx_trace,
+        ).type_as(attn_weights)
+        attn_weights = F.dropout(
+            attn_weights, p=self.dropout, training=self.training)
+
+        attn_weights = attn_weights.unsqueeze(-1)
+        # attn_weights.shape == [batch_size * n_heads, target_len, source_len, 1]
+
+        attn = (attn_weights * value).sum(2)
+        # attn.shape == [batch_size * n_heads, target_len, head_size]
+
+        assert list(attn.size()) == [B * self.num_heads, L, self.head_dim]
+        if (self.onnx_trace and attn.size(1) == 1):
+            # when ONNX tracing a single decoder step (sequence length == 1)
+            # the transpose is a no-op copy before view, thus unnecessary
+            attn = attn.contiguous().view(L, B, E)
+        else:
+            attn = attn.transpose(0, 1).contiguous().view(
+                L, B, E)
+        attn = self.out_proj(attn)
+
+        if need_weights:
+            # average attention weights over heads
+            attn_weights = attn_weights.view(
+                B, self.num_heads, L, S)
+            attn_weights = attn_weights.sum(dim=1) / self.num_heads
+        else:
+            attn_weights = None
+
+        return attn, attn_weights
+
+
 @DecoderLayer.register('dynamic_conv')
 class DynamicConvDecoderLayer(DecoderLayer):
     """Decoder layer block.
@@ -232,7 +465,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
                  decoder_conv_type, weight_softmax, decoder_attention_heads,
                  weight_dropout, dropout, relu_dropout, input_dropout,
                  decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                 kernel_size=0):
+                 kernel_size=0, section_attn=False):
         super().__init__()
         self.embed_dim = decoder_embed_dim
         self.conv_dim = decoder_conv_dim
@@ -277,7 +510,13 @@ class DynamicConvDecoderLayer(DecoderLayer):
             dropout=attention_dropout)
         self.context_attn_lns['article'] = nn.LayerNorm(self.embed_dim)
 
+        if section_attn:
+            self.section_attn = SectionAttention(
+                self.embed_dim, decoder_attention_heads, self.embed_dim,
+                1024, 1024, dropout=0)
+            self.section_attn_ln = nn.LayerNorm(self.embed_dim)
         context_size = self.embed_dim * 2
+
         self.context_fc = GehringLinear(context_size, self.embed_dim)
 
         self.fc1 = GehringLinear(self.embed_dim, decoder_ffn_embed_dim)
@@ -346,34 +585,25 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_article = residual + X_article
         X_article = self.maybe_layer_norm(
             self.context_attn_lns['article'], X_article, after=True)
-        X_contexts.append(X_article)
 
-        # # Section attention
-        # # attn.shape [B, S, max_sections]
-        # # Select the best attended section
-        # best_section_idx = attn.argmax(dim=2, keepdim=True)
-        # # best_section_idx = [B, S, 1]
-
-        # B = best_section_idx.shape[0]
-        # contexts['sections'][torch.arange(B), ]
-
-        # residual = X
-        # X_section = self.maybe_layer_norm(
-        #     self.context_attn_lns['section'], X, before=True)
-        # X_section, attn = self.context_attns['section'](
-        #     query=X_section,
-        #     key=contexts['section'],
-        #     value=contexts['section'],
-        #     key_padding_mask=contexts['section_mask'],
-        #     incremental_state=None,
-        #     static_kv=True,
-        #     need_weights=(not self.training and self.need_attn))
-        # X_section = F.dropout(X_section, p=self.dropout,
-        #                       training=self.training)
-        # X_section = residual + X_section
-        # X_section = self.maybe_layer_norm(
-        #     self.context_attn_lns['section'], X_section, after=True)
-        # X_contexts.append(X_section)
+        # Section attention
+        if hasattr(self, 'section_attn'):
+            residual = X
+            X_section = self.maybe_layer_norm(
+                self.section_attn_ln, X, before=True)
+            X_section, attn = self.section_attn(
+                query=X_section,
+                contexts=contexts,
+                attn_scores=attn,
+                need_weights=(not self.training and self.need_attn))
+            X_section = F.dropout(X_section, p=self.dropout,
+                                  training=self.training)
+            X_section = residual + X_section
+            X_section = self.maybe_layer_norm(
+                self.section_attn_ln, X_section, after=True)
+            X_contexts.append(X_section)
+        else:
+            X_contexts.append(X_article)
 
         X_context = torch.cat(X_contexts, dim=-1)
         X = self.context_fc(X_context)
