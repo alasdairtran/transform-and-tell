@@ -173,7 +173,7 @@ class TransformerModel(Model):
                 caption: Dict[str, torch.LongTensor],
                 metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
-        _, target_ids, contexts = self._forward(
+        caption_ids, target_ids, contexts = self._forward(
             context, image, caption)
         decoder_out = self.decoder(caption, contexts)
 
@@ -182,6 +182,32 @@ class TransformerModel(Model):
             self.decoder.adaptive_softmax, decoder_out, target_ids)
 
         loss = loss / math.log(2)
+
+        # During evaluation, we will generate a caption and compute BLEU, etc.
+        if not self.training and self.evaluate_mode:
+            _, gen_ids = self._generate(caption_ids, contexts)
+            gen_texts = [self.roberta.decode(x[x != 1]) for x in gen_ids.cpu()]
+            captions = [m['caption'] for m in metadata]
+
+            # Remove punctuation
+            gen_texts = [re.sub(r'[^\w\s]', '', t) for t in gen_texts]
+            captions = [re.sub(r'[^\w\s]', '', t) for t in captions]
+
+            for gen, ref in zip(gen_texts, captions):
+                bleu_scorer = BleuScorer(n=4)
+                bleu_scorer += (gen, [ref])
+                score, _ = bleu_scorer.compute_score(option='closest')
+                self.sample_history['bleu-1'] += score[0] * 100
+                self.sample_history['bleu-2'] += score[1] * 100
+                self.sample_history['bleu-3'] += score[2] * 100
+                self.sample_history['bleu-4'] += score[3] * 100
+
+                rogue_scorer = Rouge()
+                score = rogue_scorer.calc_score([gen], [ref])
+                self.sample_history['rogue'] += score * 100
+
+        self.n_samples += caption_ids.shape[0]
+        self.n_batches += 1
 
         output_dict = {
             'loss': loss / sample_size,
