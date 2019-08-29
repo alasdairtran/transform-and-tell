@@ -66,7 +66,7 @@ validation_iterator:
   biggest_batch_first: false
 trainer:
   type: callback_apex
-  apex_opt_level: O0
+  apex_opt_level: O1 # keep softmax computation at full precision
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
