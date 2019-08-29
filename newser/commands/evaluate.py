@@ -46,7 +46,7 @@ def evaluate_from_file(archive_path, model_path, overrides=None, device=0):
         best_model_state = torch.load(model_path)
         model.load_state_dict(best_model_state)
 
-    instances = all_datasets.get('validation')
+    instances = all_datasets.get('test')
     iterator = DataIterator.from_params(
         config.pop("validation_iterator"))
 
