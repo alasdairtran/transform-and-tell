@@ -142,6 +142,7 @@ class TransformerFlattenedModel(Model):
                  use_context: bool = True,
                  sampling_topk: int = 1,
                  sampling_temp: float = 1.0,
+                 weigh_bert: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
         self.decoder = decoder
@@ -156,6 +157,10 @@ class TransformerFlattenedModel(Model):
         self.evaluate_mode = evaluate_mode
         self.sampling_topk = sampling_topk
         self.sampling_temp = sampling_temp
+        self.weigh_bert = weigh_bert
+        if weigh_bert:
+            self.bert_weight = nn.Parameter(torch.Tensor(25))
+            nn.init.uniform_(self.bert_weight)
 
         self.n_batches = 0
         self.n_samples = 0
@@ -282,8 +287,20 @@ class TransformerFlattenedModel(Model):
         X_sections_hiddens = self.roberta.extract_features(
             article_ids, return_all_hiddens=True)
 
-        X_article = X_sections_hiddens[-1]
-        # X_article.shape == [batch_size, seq_len, embed_size]
+        if self.weigh_bert:
+            X_article = torch.stack(X_sections_hiddens, dim=2)
+            # X_article.shape == [batch_size, seq_len, 13, embed_size]
+
+            weight = F.softmax(self.bert_weight, dim=0)
+            weight = weight.unsqueeze(0).unsqueeze(1).unsqueeze(3)
+            # weight.shape == [1, 1, 13, 1]
+
+            X_article = (X_article * weight).sum(dim=2)
+            # X_article.shape == [batch_size, seq_len, embed_size]
+
+        else:
+            X_article = X_sections_hiddens[-1]
+            # X_article.shape == [batch_size, seq_len, embed_size]
 
         # Create padding mask (1 corresponds to the padding index)
         image_padding_mask = X_image.new_zeros(B, P).bool()
