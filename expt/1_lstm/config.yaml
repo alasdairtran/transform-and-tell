@@ -21,7 +21,7 @@ vocabulary:
   type: roberta
   directory_path: ./expt/vocabulary
 model:
-  type: pointer
+  type: baseline
   use_context: true
   pool_type: none
   evaluate_mode: false
@@ -48,11 +48,11 @@ iterator:
       - num_tokens
     - - caption
       - num_tokens
-  batch_size: 8
-  max_instances_in_memory: 512
+  batch_size: 16
+  max_instances_in_memory: 2048
   biggest_batch_first: false
-  instances_per_epoch: 16384
-  maximum_samples_per_batch: ["num_tokens", 2048]
+  instances_per_epoch: 65536
+  maximum_samples_per_batch: ["num_tokens", 4096]
 validation_iterator:
   type: bucket
   sorting_keys:
@@ -60,19 +60,19 @@ validation_iterator:
       - num_tokens
     - - caption
       - num_tokens
-  batch_size: 8
-  max_instances_in_memory: 512
-  maximum_samples_per_batch: ["num_tokens", 2048]
+  batch_size: 16
+  max_instances_in_memory: 2048
+  maximum_samples_per_batch: ["num_tokens", 4096]
   biggest_batch_first: false
 trainer:
   type: callback_apex
-  apex_opt_level: O1 # keep softmax computation at full precision
+  apex_opt_level: O2 # keep softmax computation at full precision
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.0001
-    warmup: 0.02
-    t_total: 400000
+    lr: 0.0005
+    warmup: 0.05
+    t_total: 680000 # Takees 1h 20m to go through 6800 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
@@ -91,13 +91,13 @@ trainer:
   no_grad:
     - ^resnet
     - ^roberta
-  num_epochs: 40
+  num_epochs: 100
   shuffle: true
   cuda_device: 0
   callbacks:
     - type: checkpoint
     - type: track_metrics
-      patience: 40
+      patience: 10
     - type: validate
     - type: log_to_tensorboard
       summary_interval: 512

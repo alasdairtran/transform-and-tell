@@ -55,15 +55,12 @@ class AdaptiveEmbedding(TokenEmbedder):
         # Recursively initialize weights of all children
         self.apply(init_weights)
 
-        # Shortcut to create new tensors in the same device as the module
-        self.register_buffer('_float_tensor', torch.FloatTensor(1))
-
     def weights_for_band(self, band: int):
         return self.embeddings[band][0].weight, self.embeddings[band][1].weight
 
     def forward(self, X: torch.Tensor, incremental_state=None):
         result_shape = X.shape + (self.embed_size,)
-        result = self._float_tensor.new_zeros(result_shape)
+        result = self.embeddings[0][0].weight.new_zeros(result_shape)
 
         for i in range(len(self.cutoff)):
             mask = X < self.cutoff[i]
@@ -73,7 +70,7 @@ class AdaptiveEmbedding(TokenEmbedder):
             else:
                 chunk_input = X[mask]
             if mask.any():
-                result[mask] = self.embeddings[i](chunk_input)
+                result[mask] = self.embeddings[i](chunk_input).type_as(result)
 
         result = self.embed_scale * result
         return result
