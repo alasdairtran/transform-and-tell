@@ -124,7 +124,7 @@ trainer:
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.001
+    lr: 0.0002
     warmup: 0.05
     t_total: 500000 # Takees 43m to go through 4376 batches per epoch
     schedule: warmup_linear
