@@ -11,9 +11,11 @@ Options:
 """
 import json
 import os
+import re
 
 import ptvsd
 import requests
+from bs4 import BeautifulSoup
 from docopt import docopt
 from pymongo import MongoClient
 from schema import And, Or, Schema, Use
@@ -22,6 +24,42 @@ from tqdm import tqdm
 from newser.utils import setup_logger
 
 logger = setup_logger()
+
+
+def strip_html(text):
+    """Remove/replace HTML elements, e.g.
+
+    An auction at Christie&apos;s in New York.
+    <b> PRECEDENT </b> The 1885 label of a drink made by the inventor of Coca-Cola.
+    <strong>CHANGING TECHNOLOGY</strong>  Sandbags are the traditional solution, but Fargo is turning to newer innovations like TrapBags.
+    """
+    soup = BeautifulSoup(text, "html.parser")
+    return soup.get_text()
+
+
+def remove_between_square_brackets(text):
+    """Remove square annotations, e.g.
+
+    Cora Bissett and Matthew Pidgeon in "Midsummer [a play with songs]."
+    “Panthers Indoctrinate The Young,” Aug. 18, 1969. [Click to read on desktop]
+    "[To be titled]," 2015.
+
+    But not all squares are bad, e.g.
+
+    Hujar’s “Susan Sontag,” 1975, and “Fran Lebowitz [at Home in Morristown],” 1974.
+    Pau Poch in “[REC]2,” about a paramilitary team in Barcelona.
+    Chadwick Boseman: “A lot of times, being [a black man] in Hollywood, when you get material you’ll read it and you’ll be like, ‘That’s not us.’”
+    Will Rawls performing in “I make me [sic].”
+
+    We keep this anyway to be consistent with the original dataset.
+    """
+    return re.sub('\[[^]]*\]', '', text)
+
+
+def denoise_text(text):
+    text = strip_html(text)
+    text = remove_between_square_brackets(text)
+    return text
 
 
 def get_goodnews_articles(root_dir, db, resume):
@@ -39,6 +77,11 @@ def get_goodnews_articles(root_dir, db, resume):
             if result is None:
                 article['_id'] = id_
                 article['web_url'] = article['article_url']
+
+                for idx, caption in article['images'].items():
+                    caption = caption.strip()
+                    article['images'][idx] = denoise_text(caption)
+
                 db.articles.insert_one(article)
 
     if not resume:
