@@ -82,6 +82,14 @@ def get_goodnews_articles(root_dir, db, resume):
                     caption = caption.strip()
                     article['images'][idx] = denoise_text(caption)
 
+                context = article['article'].strip()
+                try:
+                    title = article['headline']['main'].strip()
+                    context = title + '\n\n' + context
+                except KeyError:
+                    pass
+                article['context'] = context
+
                 db.articles.insert_one(article)
 
     if not resume:
