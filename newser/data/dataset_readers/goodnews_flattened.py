@@ -1,20 +1,23 @@
 import logging
 import os
+import pickle
 import random
 from typing import Dict
 
+import spacy
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import MetadataField, TextField
+from allennlp.data.fields import MetadataField
 from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer
 from allennlp.data.tokenizers import Tokenizer
 from overrides import overrides
 from PIL import Image
 from pymongo import MongoClient
+from spacy.tokens import Doc
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 
-from newser.data.fields import ImageField, ListTextField
+from newser.data.fields import ImageField, ListTextField, SpacyTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -39,6 +42,7 @@ class FlattenedGoodNewsReader(DatasetReader):
                  tokenizer: Tokenizer,
                  token_indexers: Dict[str, TokenIndexer],
                  image_dir: str,
+                 annotation_path: str,
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
@@ -55,6 +59,15 @@ class FlattenedGoodNewsReader(DatasetReader):
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.eval_limit = eval_limit
         random.seed(1234)
+
+        logger.info('Loading entity annotations.')
+        ann_path = os.path.join(annotation_path)
+        with open(ann_path, 'rb') as f:
+            self.annotations = pickle.load(f)
+
+        logger.info('Loading spacy model.')
+        nlp = spacy.load("en_core_web_lg", disable=['parser', 'tagger'])
+        self.vocab = nlp.vocab
 
     @overrides
     def _read(self, split: str):
@@ -82,32 +95,29 @@ class FlattenedGoodNewsReader(DatasetReader):
             except (FileNotFoundError, OSError):
                 continue
 
-            caption = article['images'][sample['image_index']]
-            yield self.article_to_instance(article, image, caption)
+            ann = self.annotations[sample['article_id']]
+            yield self.article_to_instance(article, image, sample['image_index'], ann)
 
         sample_cursor.close()
 
-    def article_to_instance(self, article, image, caption) -> Instance:
-        try:
-            title = article['headline']['main'].strip()
-        except KeyError:
-            title = None
-        content = article['article'].strip()
-        if title:
-            content = title + '\n\n' + content
-        caption = caption.strip()
+    def article_to_instance(self, article, image, image_index, ann) -> Instance:
+        context = article['context'].strip()
+        context_doc = Doc(self.vocab).from_bytes(ann['context'])
 
-        context_tokens = self._tokenizer.tokenize(content)
+        caption = article['images'][image_index]
+        caption = caption.strip()
+        caption_doc = Doc(self.vocab).from_bytes(ann['captions'][image_index])
+
+        context_tokens = self._tokenizer.tokenize(context)
         caption_tokens = self._tokenizer.tokenize(caption)
 
         fields = {
-            'context': TextField(context_tokens, self._token_indexers),
+            'context': SpacyTextField(context_tokens, self._token_indexers, context_doc),
             'image': ImageField(image, self.preprocess),
-            'caption': TextField(caption_tokens, self._token_indexers),
+            'caption': SpacyTextField(caption_tokens, self._token_indexers, caption_doc),
         }
 
-        metadata = {'title': title,
-                    'content': content,
+        metadata = {'context': context,
                     'caption': caption,
                     'web_url': article['web_url']}
         fields['metadata'] = MetadataField(metadata)

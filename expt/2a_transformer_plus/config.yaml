@@ -11,7 +11,9 @@ dataset_reader:
       padding_on_right: true
       padding_value: 1
       max_len: 512
+      legacy: true
   image_dir: data/goodnews/images_processed
+  annotation_path: data/goodnews/annotations.pkl
   eval_limit: 5120
   lazy: true
 train_data_path: train
@@ -84,6 +86,7 @@ model:
   attention_dim: 1024
   namespace: bpe
   index: roberta
+  weigh_bert: true
   padding_value: 1
   # initializer:
   #   - - ^(attention|article_attention|init|f).*weight
@@ -123,9 +126,9 @@ trainer:
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.001
+    lr: 0.0003
     warmup: 0.05
-    t_total: 438000 # Takees 43m to go through 4376 batches per epoch
+    t_total: 500000 # Takees 43m to go through 4376 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98

@@ -12,6 +12,7 @@ dataset_reader:
       padding_value: 1
       max_len: 512
   image_dir: data/goodnews/images_processed
+  annotation_path: data/goodnews/annotations.pkl
   eval_limit: 5120
   lazy: true
 train_data_path: train
