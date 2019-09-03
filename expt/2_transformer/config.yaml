@@ -11,6 +11,7 @@ dataset_reader:
       padding_on_right: true
       padding_value: 1
       max_len: 512
+      legacy: true
   image_dir: data/goodnews/images_processed
   annotation_path: data/goodnews/annotations.pkl
   eval_limit: 5120
@@ -85,6 +86,7 @@ model:
   attention_dim: 1024
   namespace: bpe
   index: roberta
+  weigh_bert: true
   padding_value: 1
   # initializer:
   #   - - ^(attention|article_attention|init|f).*weight
@@ -124,14 +126,14 @@ trainer:
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
-    lr: 0.0001
+    lr: 0.0002
     warmup: 0.05
-    t_total: 320000
+    t_total: 500000 # Takees 43m to go through 4376 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
     e: 0.000001
-    weight_decay: 0.0001 # Worse choices: 0.01, 0.001, 0.000001
+    weight_decay: 0.00001 # Worse choices: 0.01, 0.001, 0.000001
     max_grad_norm: 0.1 # Worse choices: 1.0
     parameter_groups:
       - - - ^decoder.embedder
@@ -149,13 +151,15 @@ trainer:
   no_grad:
     - ^resnet
     - ^roberta
-  num_epochs: 40
+  num_epochs: 100
   shuffle: true
   cuda_device: 0
   callbacks:
     - type: checkpoint
+      checkpointer:
+        num_serialized_models_to_keep: 10
     - type: track_metrics
-      patience: 40
+      patience: 10
     - type: validate
     - type: log_to_tensorboard
       summary_interval: 512
