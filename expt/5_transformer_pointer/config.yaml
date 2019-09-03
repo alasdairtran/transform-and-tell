@@ -1,5 +1,5 @@
 dataset_reader:
-  type: goodnews_flattened
+  type: goodnews_annotated
   tokenizer:
     type: word
     word_splitter: just_spaces

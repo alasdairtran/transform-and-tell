@@ -77,7 +77,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                           tokens: List[Token],
                           vocabulary: Vocabulary,
                           index_name: str,
-                          doc: Doc) -> Dict[str, List[int]]:
+                          doc: Doc = None) -> Dict[str, List[int]]:
         if not self._added_to_vocabulary:
             self._add_encoding_to_vocabulary(vocabulary)
             self._added_to_vocabulary = True
@@ -129,8 +129,11 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         raw_tokens = self.bpe.re.findall(self.bpe.pat, text)
         # e.g.[' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
 
-        entity_masks = self.get_entity_mask(raw_tokens, doc)
-        # Same length as raw_tokens
+        if doc is not None:
+            entity_masks = self.get_entity_mask(raw_tokens, doc)
+            # Same length as raw_tokens
+        else:
+            entity_masks = []
 
         for raw_token, entity_mask in zip(raw_tokens, entity_masks):
             # e.g. raw_token == " Tomas"

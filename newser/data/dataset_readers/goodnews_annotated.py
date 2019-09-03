@@ -6,7 +6,7 @@ from typing import Dict
 
 import spacy
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import MetadataField, TextField
+from allennlp.data.fields import MetadataField
 from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer
 from allennlp.data.tokenizers import Tokenizer
@@ -18,13 +18,13 @@ from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 from tqdm import tqdm
 
-from newser.data.fields import ImageField, ListTextField
+from newser.data.fields import ImageField, ListTextField, SpacyTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-@DatasetReader.register('goodnews_flattened')
-class FlattenedGoodNewsReader(DatasetReader):
+@DatasetReader.register('goodnews_annotated')
+class AnnotatedGoodNewsReader(DatasetReader):
     """Read from the Good News dataset.
 
     See the repo README for more instruction on how to download the dataset.
@@ -47,6 +47,7 @@ class FlattenedGoodNewsReader(DatasetReader):
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
+                 cache_annotations: bool = False,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -60,6 +61,26 @@ class FlattenedGoodNewsReader(DatasetReader):
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.eval_limit = eval_limit
         random.seed(1234)
+
+        logger.info('Loading spacy model.')
+        nlp = spacy.load("en_core_web_lg", disable=['parser', 'tagger'])
+        self.spacy_vocab = nlp.vocab
+
+        logger.info('Loading entity annotations.')
+        ann_path = os.path.join(annotation_path)
+        with open(ann_path, 'rb') as f:
+            self.annotations = pickle.load(f)
+
+        # If we cache annotations, it would take 14 minutes and 46GB of memory.
+        # Turing caching off adds only 2 minutes to each epoch and uses 20GB of
+        # memory.
+        self.cache_annotations = cache_annotations
+        if cache_annotations:
+            logger.info('Converting annotations to Doc objects.')
+            for ann in tqdm(self.annotations.values()):
+                ann['context'] = Doc(nlp.vocab).from_bytes(ann['context'])
+                ann['captions'] = {k: Doc(nlp.vocab).from_bytes(c)
+                                   for k, c in ann['captions'].items()}
 
     @overrides
     def _read(self, split: str):
@@ -87,23 +108,30 @@ class FlattenedGoodNewsReader(DatasetReader):
             except (FileNotFoundError, OSError):
                 continue
 
-            yield self.article_to_instance(article, image, sample['image_index'])
+            ann = self.annotations[sample['article_id']]
+            yield self.article_to_instance(article, image, sample['image_index'], ann)
 
         sample_cursor.close()
 
-    def article_to_instance(self, article, image, image_index) -> Instance:
+    def article_to_instance(self, article, image, image_index, ann) -> Instance:
         context = article['context'].strip()
+        context_doc = ann['context']
 
         caption = article['images'][image_index]
         caption = caption.strip()
+        caption_doc = ann['captions'][image_index]
+
+        if not self.cache_annotations:
+            context_doc = Doc(self.spacy_vocab).from_bytes(context_doc)
+            caption_doc = Doc(self.spacy_vocab).from_bytes(caption_doc)
 
         context_tokens = self._tokenizer.tokenize(context)
         caption_tokens = self._tokenizer.tokenize(caption)
 
         fields = {
-            'context': TextField(context_tokens, self._token_indexers),
+            'context': SpacyTextField(context_tokens, self._token_indexers, context_doc),
             'image': ImageField(image, self.preprocess),
-            'caption': TextField(caption_tokens, self._token_indexers),
+            'caption': SpacyTextField(caption_tokens, self._token_indexers, caption_doc),
         }
 
         metadata = {'context': context,
