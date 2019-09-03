@@ -156,6 +156,8 @@ trainer:
   cuda_device: 0
   callbacks:
     - type: checkpoint
+      checkpointer:
+        num_serialized_models_to_keep: 10
     - type: track_metrics
       patience: 10
     - type: validate
