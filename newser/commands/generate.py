@@ -60,11 +60,17 @@ def generate(archive_path, model_path, overrides=None, device=0):
             batch = move_to_device(batch, device)
             output_dict = model.generate(**batch)
             generated_texts = output_dict['generated_texts']
+            if 'copied_texts' in output_dict:
+                copied_texts = output_dict['copied_texts']
+            else:
+                copied_texts = ['' for _ in generated_texts]
 
             print(f'Batch {i}:\n')
-            for url, cap, gen in zip(output_dict['web_url'], output_dict['captions'], generated_texts):
+            for url, cap, gen, copied in zip(output_dict['web_url'], output_dict['captions'], generated_texts, copied_texts):
                 print(url)
                 print(cap)
                 print(gen)
+                if copied:
+                    print(copied)
                 print()
             i += 1

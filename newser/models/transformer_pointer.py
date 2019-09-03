@@ -213,7 +213,8 @@ class TransformerPointerModel(Model):
 
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
-            _, gen_ids = self._generate(caption_ids, contexts)
+            log_probs, copy_probs, should_copy_probs, gen_ids = self._generate(
+                caption_ids, contexts, X_sections_hiddens, article_padding_mask, context)
             gen_texts = [self.roberta.decode(x[x > 1]) for x in gen_ids.cpu()]
             captions = [m['caption'] for m in metadata]
 
@@ -334,18 +335,24 @@ class TransformerPointerModel(Model):
                  caption: Dict[str, torch.LongTensor],
                  metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
-        caption_ids, _, contexts, _, _ = self._forward(
+        caption_ids, _, contexts, X_sections_hiddens, article_padding_mask = self._forward(
             context, image, caption)
 
-        _, gen_ids = self._generate(caption_ids, contexts)
+        log_probs, copy_probs, should_copy_mask, gen_ids = self._generate(
+            caption_ids, contexts, X_sections_hiddens, article_padding_mask, context)
 
         gen_ids = gen_ids.cpu()
         gen_texts = [self.roberta.decode(
             x[x != self.padding_idx]) for x in gen_ids]
 
+        # Get the copied words
+        copied_texts = [self.roberta.decode(x[should_copy_mask[i]])
+                        for i, x in enumerate(gen_ids)]
+
         output_dict = {
             'generated_indices': gen_ids,
             'generated_texts': gen_texts,
+            'copied_texts': copied_texts,
             'captions': [m['caption'] for m in metadata],
             'web_url': [m['web_url'] for m in metadata],
         }
@@ -428,16 +435,39 @@ class TransformerPointerModel(Model):
 
         return caption_ids, target_ids, contexts, X_sections_hiddens, article_padding_mask
 
-    def _generate(self, caption_ids, contexts):
+    def _generate(self, caption_ids, contexts, X_sections_hiddens, article_padding_mask, context):
         incremental_state: Dict[str, Any] = {}
         seed_input = caption_ids[:, 0:1]
+        B = caption_ids.shape[0]
         log_prob_list = []
+        copy_prob_list = []
+        should_copy_list = [seed_input.new_ones(B, 1).bool()]
         index_path_list = [seed_input]
         eos = 2
         active_idx = seed_input[:, -1] != eos
         full_active_idx = active_idx
         gen_len = 100
-        B = caption_ids.shape[0]
+
+        context_entity_masks = context[f'{self.index}_entity_masks']
+        # context_entity_masks.shape == [batch_size, source_len]
+
+        if self.weigh_bert:
+            X_article = torch.stack(X_sections_hiddens, dim=2)
+            # X_article.shape == [batch_size, src_len, 13, embed_size]
+
+            weight = F.softmax(self.bert_weight_2, dim=0)
+            weight = weight.unsqueeze(0).unsqueeze(1).unsqueeze(3)
+            # weight.shape == [1, 1, 13, 1]
+
+            X_article = (X_article * weight).sum(dim=2)
+            # X_article.shape == [batch_size, seq_len, embed_size]
+
+        else:
+            X_article = X_sections_hiddens[-1]
+            # X_article.shape == [batch_size, seq_len, embed_size]
+
+        X_article = X_article.transpose(0, 1)
+        # X_article.shape == [seq_len, batch_size, embed_size]
 
         for i in range(gen_len):
             if i == 0:
@@ -472,6 +502,74 @@ class TransformerPointerModel(Model):
             lprobs = lprobs.squeeze(1)
             # lprobs.shape == [batch_size, vocab_size]
 
+            X = decoder_out[0]
+            # X.shape == [batch_size, 1, embed_size]
+
+            entity_logits = self.entity_fc(X)
+            # entity_logits.shape == [batch_size, 1, 2]
+
+            entity_logits = entity_logits.squeeze(1)
+            # entity_logits.shape == [batch_size, 2]
+
+            should_copy = entity_logits.argmax(dim=-1) == 1
+            # should_copy.shape == [batch_size]
+
+            X = X.transpose(0, 1)
+            # X.shape == [1, batch_size, embed_size]
+
+            X_article_i = X_article[:, full_active_idx]
+            article_padding_mask_i = article_padding_mask[full_active_idx]
+
+            _, copy_attn = self.copy_attn(
+                query=X, key=X_article_i, value=X_article_i, key_padding_mask=article_padding_mask_i)
+            # copy_attn.shape == [batch_size, 1, source_len + 2]
+
+            copy_attn = copy_attn[:, :, :-2]
+            # copy_attn.shape == [batch_size, 1, source_len]
+
+            copy_attn = copy_attn.squeeze(1)
+            # copy_attn.shape == [batch_size, source_len]
+
+            irrelevant_mask = context_entity_masks[full_active_idx] != 1
+            copy_attn[irrelevant_mask] = 0
+            # copy_attn.shape == [batch_size, source_len]
+
+            copy_probs = copy_attn.new_zeros(
+                copy_attn.shape[0], self.vocab_size)
+            # copy_probs.shape == [batch_size, vocab_size]
+
+            context_ids = context[self.index][full_active_idx]
+            # context_ids.shape == [batch_size, source_len]
+
+            copy_probs.scatter_add_(1, context_ids, copy_attn)
+            # copy_probs.shape == [batch_size, vocab_size]
+
+            topk_copy_probs, topk_copy_indices = copy_probs.topk(
+                self.sampling_topk)
+            # topk_copy_probs.shape == [batch_size, topk]
+
+            sampled_copy_index = torch.multinomial(
+                topk_copy_probs, num_samples=1)
+            # sampled_copy_index.shape == [batch_size, 1]
+
+            selected_copy_prob = topk_copy_probs.gather(
+                dim=-1, index=sampled_copy_index)
+            # selected_prob.shape == [batch_size, 1]
+
+            selected_copy_index = topk_copy_indices.gather(
+                dim=-1, index=sampled_copy_index)
+            # selected_copy_index.shape == [batch_size, 1]
+
+            copy_prob = selected_copy_prob.new_zeros(B, 1)
+            copy_prob[full_active_idx] = selected_copy_prob
+
+            copy_prob_list.append(copy_prob)
+
+            should_copy_full = should_copy.new_zeros(B, 1)
+            should_copy_full[full_active_idx] = should_copy.unsqueeze(1)
+            should_copy_list.append(should_copy_full)
+
+            ###################
             topk_lprobs, topk_indices = lprobs.topk(self.sampling_topk)
             topk_lprobs = topk_lprobs.div_(self.sampling_temp)
             # topk_lprobs.shape == [batch_size, topk]
@@ -485,9 +583,14 @@ class TransformerPointerModel(Model):
                 dim=-1, index=sampled_index)
             # selected_prob.shape == [batch_size, 1]
 
-            selected_index = topk_indices.gather(
+            selected_gen_index = topk_indices.gather(
                 dim=-1, index=sampled_index)
-            # selected_index.shape == [batch_size, 1]
+            # selected_gen_index.shape == [batch_size, 1]
+
+            selected_index = selected_gen_index.new_zeros(
+                selected_gen_index.shape)
+            selected_index[should_copy] = selected_copy_index[should_copy]
+            selected_index[~should_copy] = selected_gen_index[~should_copy]
 
             log_prob = selected_lprob.new_zeros(B, 1)
             log_prob[full_active_idx] = selected_lprob
@@ -513,10 +616,14 @@ class TransformerPointerModel(Model):
         log_probs = torch.cat(log_prob_list, dim=-1)
         # log_probs.shape == [batch_size * beam_size, generate_len]
 
+        copy_probs = torch.cat(copy_prob_list, dim=-1)
+
+        should_copy_probs = torch.cat(should_copy_list, dim=-1)
+
         token_ids = torch.cat(index_path_list, dim=-1)
         # token_ids.shape == [batch_size * beam_size, generate_len]
 
-        return log_probs, token_ids
+        return log_probs, copy_probs, should_copy_probs, token_ids
 
     @overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
