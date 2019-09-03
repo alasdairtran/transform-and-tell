@@ -160,6 +160,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
     def get_entity_mask(self, tokens, doc):
         # We first compute the start and end points for each token.
         # End points are exclusive.
+        # e.g. tokens = [' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
         starts = []
         ends = []
         current = 0

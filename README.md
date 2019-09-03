@@ -30,7 +30,7 @@ URL="https://docs.google.com/uc?export=download&id=1rswGdNNfl4HoP9trslP0RUrcmSbg
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $URL -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1rswGdNNfl4HoP9trslP0RUrcmSbg1_RD" -O data/goodnews/article_caption.json && rm -rf /tmp/cookies.txt
 python scripts/get_goodnews.py
 
-python scripts/spacize.py # takes 4h
+python scripts/spacize.py # takes 2-3h
 ```
 
 ## Training and Evaluation

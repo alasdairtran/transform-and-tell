@@ -65,7 +65,7 @@ def main():
         context = nlp(article['context'].strip())
         caption_list = list(article['images'].items())
         caption_texts = [x[1] for x in caption_list]
-        caption_docs = list(nlp.pipe([c for c in caption_texts]))
+        caption_docs = list(nlp.pipe([c.strip() for c in caption_texts]))
         caption_dict = {}
         for d, x in zip(caption_docs, caption_list):
             caption_dict[x[0]] = d.to_bytes()
