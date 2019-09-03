@@ -16,6 +16,7 @@ from pymongo import MongoClient
 from spacy.tokens import Doc
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
+from tqdm import tqdm
 
 from newser.data.fields import ImageField, ListTextField, SpacyTextField
 
@@ -46,6 +47,7 @@ class FlattenedGoodNewsReader(DatasetReader):
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
+                 cache_annotations: bool = True,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -60,14 +62,22 @@ class FlattenedGoodNewsReader(DatasetReader):
         self.eval_limit = eval_limit
         random.seed(1234)
 
+        logger.info('Loading spacy model.')
+        nlp = spacy.load("en_core_web_lg", disable=['parser', 'tagger'])
+        self.spacy_vocab = nlp.vocab
+
         logger.info('Loading entity annotations.')
         ann_path = os.path.join(annotation_path)
         with open(ann_path, 'rb') as f:
             self.annotations = pickle.load(f)
 
-        logger.info('Loading spacy model.')
-        nlp = spacy.load("en_core_web_lg", disable=['parser', 'tagger'])
-        self.vocab = nlp.vocab
+        self.cache_annotations = cache_annotations
+        if cache_annotations:
+            logger.info('Converting annotations to Doc objects.')
+            for ann in tqdm(self.annotations.values()):
+                ann['context'] = Doc(nlp.vocab).from_bytes(ann['context'])
+                ann['captions'] = {k: Doc(nlp.vocab).from_bytes(c)
+                                   for k, c in ann['captions'].items()}
 
     @overrides
     def _read(self, split: str):
@@ -102,11 +112,15 @@ class FlattenedGoodNewsReader(DatasetReader):
 
     def article_to_instance(self, article, image, image_index, ann) -> Instance:
         context = article['context'].strip()
-        context_doc = Doc(self.vocab).from_bytes(ann['context'])
+        context_doc = ann['context']
 
         caption = article['images'][image_index]
         caption = caption.strip()
-        caption_doc = Doc(self.vocab).from_bytes(ann['captions'][image_index])
+        caption_doc = ann['captions'][image_index]
+
+        if not self.cache_annotations:
+            context_doc = Doc(self.spacy_vocab).from_bytes(context_doc)
+            caption_doc = Doc(self.spacy_vocab).from_bytes(caption_doc)
 
         context_tokens = self._tokenizer.tokenize(context)
         caption_tokens = self._tokenizer.tokenize(caption)
