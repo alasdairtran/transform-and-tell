@@ -202,10 +202,10 @@ class TransformerPointerModel(Model):
             decoder_out, context, caption, target_ids, X_sections_hiddens, article_padding_mask)
 
         gen_loss = gen_loss / sample_size / math.log(2)
-        entity_loss = entity_loss * 10 / math.log(2)
-        copy_loss = copy_loss * 5 / math.log(2)
+        entity_loss = entity_loss / math.log(2)
+        copy_loss = copy_loss / math.log(2)
 
-        loss = (gen_loss + entity_loss + copy_loss) / 3
+        loss = gen_loss + entity_loss + copy_loss
 
         self.batch_history['gen_loss'] += gen_loss.item()
         self.batch_history['entity_loss'] += entity_loss.item()
