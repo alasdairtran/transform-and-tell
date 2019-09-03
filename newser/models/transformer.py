@@ -186,7 +186,7 @@ class TransformerModel(Model):
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
             _, gen_ids = self._generate(caption_ids, contexts)
-            gen_texts = [self.roberta.decode(x[x != 1]) for x in gen_ids.cpu()]
+            gen_texts = [self.roberta.decode(x[x > 1]) for x in gen_ids.cpu()]
             captions = [m['caption'] for m in metadata]
 
             # Remove punctuation

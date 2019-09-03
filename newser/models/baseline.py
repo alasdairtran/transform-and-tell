@@ -653,7 +653,7 @@ class BaselineModel(Model):
         self.n_samples += B
 
         gen_indices = generated[:, :t].cpu()
-        gen_texts = [self.roberta.decode(x[x != 1]) for x in gen_indices]
+        gen_texts = [self.roberta.decode(x[x > 1]) for x in gen_indices]
 
         return {
             'generated_indices': gen_indices,
