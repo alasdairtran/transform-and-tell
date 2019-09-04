@@ -312,20 +312,48 @@ class TransformerPointerModel(Model):
         context_ids = context[self.index]
         # context_ids.shape == [batch_size, source_len]
 
-        context_ids = context_ids.unsqueeze(1).expand_as(copy_attn)
-        # context_ids.shape == [batch_size, 1, source_len]
+        # Second attempt at calculating copy loss
+        # First construct the reduced dictionary, containing only tokens
+        # mentioned in the context.
+        unique_ids = torch.cat([context_ids, caption_targets], dim=1).unique()
+        V = len(unique_ids)
+        # unique_ids.shape == [reduced_vocab_size]
+
+        # Construct the inverse map of unique_ids
+        inverse_unique_ids = unique_ids.new_full([self.vocab_size], -1)
+        inverse_unique_ids.index_copy_(
+            0, unique_ids, torch.arange(V).to(unique_ids.device))
+        # inverse_unique_ids.shape == [vocab_size]
+        # e.g. [-1, -1, 0, -1, -1, 1, 2, -1, 3, ....]
+
+        # Next we need to remap the context_ids to the new dictionary.
+        new_context_ids = inverse_unique_ids.index_select(
+            0, context_ids.reshape(-1))
+        # new_context_ids.shape == [batch_size * source_len]
+
+        new_context_ids = new_context_ids.view(B, S)
+        new_context_ids = new_context_ids.unsqueeze(1).expand_as(copy_attn)
+        # new_context_ids.shape == [batch_size, target_len, source_len]
+
+        new_caption_targets = inverse_unique_ids.index_select(
+            0, caption_targets.reshape(-1))
+        # new_caption_targets.shape == [batch_size * source_len, 1]
 
         relevant_mask = (caption_entity_masks == 1).view(-1)
-        caption_targets = caption_targets.reshape(-1, 1)[relevant_mask]
-        # caption_targets.shape == [batch_size * n_entity_tokens]
+        new_caption_targets = new_caption_targets.reshape(-1, 1)[relevant_mask]
+        # new_caption_targets.shape == [batch_size * n_entity_tokens, 1]
 
-        copy_probs.scatter_add_(2, context_ids, copy_attn)
+        copy_probs = copy_attn.new_zeros(B, L, V)
+        # copy_probs.shape == [batch_size, target_len, reduced_vocab_size]
+
+        copy_probs.scatter_add_(2, new_context_ids, copy_attn)
         copy_lprobs = copy_probs.new_zeros(copy_probs.shape)
         copy_lprobs[copy_probs > 0] = torch.log(copy_probs[copy_probs > 0])
-        copy_lprobs = copy_lprobs.view(B * L, self.vocab_size)[relevant_mask]
-        # copy_lprobs.shape == [batch_size * n_entity_tokens, vocab_size]
+        copy_lprobs = copy_lprobs.view(B * L, V)[relevant_mask]
+        # copy_lprobs.shape == [batch_size * n_entity_tokens, reduced_vocab_size]
 
-        copy_loss = -copy_lprobs.gather(dim=-1, index=caption_targets).mean()
+        copy_loss = -copy_lprobs.gather(dim=-1,
+                                        index=new_caption_targets).mean()
 
         return entity_loss, copy_loss
 

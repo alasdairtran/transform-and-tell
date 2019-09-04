@@ -104,10 +104,10 @@ iterator:
     - - caption
       - num_tokens
   batch_size: 16
-  max_instances_in_memory: 8192
+  max_instances_in_memory: 4096
   biggest_batch_first: false
   instances_per_epoch: 65536
-  maximum_samples_per_batch: ["num_tokens", 16384]
+  maximum_samples_per_batch: ["num_tokens", 6144]
 validation_iterator:
   type: bucket
   sorting_keys:
@@ -116,18 +116,18 @@ validation_iterator:
     - - caption
       - num_tokens
   batch_size: 16
-  max_instances_in_memory: 8192
-  maximum_samples_per_batch: ["num_tokens", 16384]
+  max_instances_in_memory: 4096
+  maximum_samples_per_batch: ["num_tokens", 6144]
   biggest_batch_first: false
 trainer:
   type: callback_apex
-  apex_opt_level: O2
+  apex_opt_level: O1
   keep_batchnorm_fp32: None
   optimizer:
     type: bert_adam
     lr: 0.0003
     warmup: 0.05
-    t_total: 500000 # Takees 43m to go through 4376 batches per epoch
+    t_total: 500000 # Takees 1h to go through 4924 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
