@@ -1,4 +1,4 @@
 from .attention import AttentionLayer
 from .downsampled_multi_head import DownsampledMultiHeadAttention
-from .multi_head import MultiHeadAttention
+from .multi_head import MultiHeadAttention, multi_head_attention_score_forward
 from .self_attention import SelfAttention

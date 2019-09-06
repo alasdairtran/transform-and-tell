@@ -11,6 +11,199 @@ from torch.nn import Parameter
 from newser.utils import get_incremental_state, set_incremental_state, softmax
 
 
+def multi_head_attention_score_forward(query,
+                                       key,
+                                       embed_dim_to_check,
+                                       num_heads,
+                                       in_proj_weight,
+                                       in_proj_bias,
+                                       bias_k,
+                                       add_zero_attn,
+                                       dropout_p,
+                                       out_proj_weight,
+                                       out_proj_bias,
+                                       training=True,
+                                       key_padding_mask=None,
+                                       attn_mask=None,
+                                       use_separate_proj_weight=False,
+                                       q_proj_weight=None,
+                                       k_proj_weight=None,
+                                       static_k=None):
+    # type: (...) -> Tuple[Tensor, Optional[Tensor]]
+    r"""
+    Args:
+        query, key: map a query and a set of keys to an output.
+            See "Attention Is All You Need" for more details.
+        embed_dim_to_check: total dimension of the model.
+        num_heads: parallel attention heads.
+        in_proj_weight, in_proj_bias: input projection weight and bias.
+        bias_k: bias of the key sequences to be added at dim=0.
+        add_zero_attn: add a new batch of zeros to the key sequences at dim=1.
+        dropout_p: probability of an element to be zeroed.
+        out_proj_weight, out_proj_bias: the output projection weight and bias.
+        training: apply dropout if is ``True``.
+        key_padding_mask: if provided, specified padding elements in the key will
+            be ignored by the attention. This is an binary mask. When the value is True,
+            the corresponding value on the attention layer will be filled with -inf.
+        attn_mask: mask that prevents attention to certain positions. This is an additive mask
+            (i.e. the values will be added to the attention layer).
+        use_separate_proj_weight: the function accept the proj. weights for query, key,
+            in different forms. If false, in_proj_weight will be used, which is
+            a combination of q_proj_weight, k_proj_weight, v_proj_weight.
+        q_proj_weight, k_proj_weight, v_proj_weight, in_proj_bias: input projection weight and bias.
+        static_k: static key used for attention operators.
+
+
+    Shape:
+        Inputs:
+        - query: :math:`(L, N, E)` where L is the target sequence length, N is the batch size, E is
+          the embedding dimension.
+        - key: :math:`(S, N, E)`, where S is the source sequence length, N is the batch size, E is
+          the embedding dimension.
+        - key_padding_mask: :math:`(N, S)`, ByteTensor, where N is the batch size, S is the source sequence length.
+        - attn_mask: :math:`(L, S)` where L is the target sequence length, S is the source sequence length.
+        - static_k: :math:`(N*num_heads, S, E/num_heads)`, where S is the source sequence length,
+          N is the batch size, E is the embedding dimension. E/num_heads is the head dimension.
+        - static_v: :math:`(N*num_heads, S, E/num_heads)`, where S is the source sequence length,
+          N is the batch size, E is the embedding dimension. E/num_heads is the head dimension.
+
+        Outputs:
+        - attn_output: :math:`(L, N, E)` where L is the target sequence length, N is the batch size,
+          E is the embedding dimension.
+        - attn_output_weights: :math:`(N, L, S)` where N is the batch size,
+          L is the target sequence length, S is the source sequence length.
+    """
+
+    qk_same = torch.equal(query, key)
+
+    tgt_len, bsz, embed_dim = query.size()
+    assert embed_dim == embed_dim_to_check
+    assert list(query.size()) == [tgt_len, bsz, embed_dim]
+
+    head_dim = embed_dim // num_heads
+    assert head_dim * num_heads == embed_dim, "embed_dim must be divisible by num_heads"
+    scaling = float(head_dim) ** -0.5
+
+    if use_separate_proj_weight is not True:
+        if qk_same:
+            # self-attention
+            q, k = F.linear(query, in_proj_weight,
+                            in_proj_bias).chunk(2, dim=-1)
+
+        else:
+            # This is inline in_proj function with in_proj_weight and in_proj_bias
+            _b = in_proj_bias
+            _start = 0
+            _end = embed_dim
+            _w = in_proj_weight[_start:_end, :]
+            if _b is not None:
+                _b = _b[_start:_end]
+            q = F.linear(query, _w, _b)
+
+            # This is inline in_proj function with in_proj_weight and in_proj_bias
+            _b = in_proj_bias
+            _start = embed_dim
+            _end = embed_dim * 2
+            _w = in_proj_weight[_start:_end, :]
+            if _b is not None:
+                _b = _b[_start:_end]
+            k = F.linear(key, _w, _b)
+
+    else:
+        q_proj_weight_non_opt = torch.jit._unwrap_optional(q_proj_weight)
+        len1, len2 = q_proj_weight_non_opt.size()
+        assert len1 == embed_dim and len2 == query.size(-1)
+
+        k_proj_weight_non_opt = torch.jit._unwrap_optional(k_proj_weight)
+        len1, len2 = k_proj_weight_non_opt.size()
+        assert len1 == embed_dim and len2 == key.size(-1)
+
+        if in_proj_bias is not None:
+            q = F.linear(query, q_proj_weight_non_opt,
+                         in_proj_bias[0:embed_dim])
+            k = F.linear(key, k_proj_weight_non_opt,
+                         in_proj_bias[embed_dim:(embed_dim * 2)])
+        else:
+            q = F.linear(query, q_proj_weight_non_opt, in_proj_bias)
+            k = F.linear(key, k_proj_weight_non_opt, in_proj_bias)
+    q = q * scaling
+
+    if bias_k is not None:
+        if static_k is None:
+            k = torch.cat([k, bias_k.repeat(1, bsz, 1)])
+            if attn_mask is not None:
+                attn_mask = torch.cat([attn_mask,
+                                       torch.zeros((attn_mask.size(0), 1),
+                                                   dtype=attn_mask.dtype,
+                                                   device=attn_mask.device)], dim=1)
+            if key_padding_mask is not None:
+                key_padding_mask = torch.cat(
+                    [key_padding_mask, torch.zeros((key_padding_mask.size(0), 1),
+                                                   dtype=key_padding_mask.dtype,
+                                                   device=key_padding_mask.device)], dim=1)
+        else:
+            assert static_k is None, "bias cannot be added to static key."
+    else:
+        assert bias_k is None
+
+    q = q.contiguous().view(tgt_len, bsz * num_heads, head_dim).transpose(0, 1)
+    if k is not None:
+        k = k.contiguous().view(-1, bsz * num_heads, head_dim).transpose(0, 1)
+
+    if static_k is not None:
+        assert static_k.size(0) == bsz * num_heads
+        assert static_k.size(2) == head_dim
+        k = static_k
+
+    src_len = k.size(1)
+
+    if key_padding_mask is not None:
+        assert key_padding_mask.size(0) == bsz
+        assert key_padding_mask.size(1) == src_len
+
+    if add_zero_attn:
+        src_len += 1
+        k = torch.cat([k, torch.zeros((k.size(0), 1) + k.size()
+                                      [2:], dtype=k.dtype, device=k.device)], dim=1)
+        if attn_mask is not None:
+            attn_mask = torch.cat([attn_mask, torch.zeros((attn_mask.size(0), 1),
+                                                          dtype=attn_mask.dtype,
+                                                          device=attn_mask.device)], dim=1)
+        if key_padding_mask is not None:
+            key_padding_mask = torch.cat(
+                [key_padding_mask, torch.zeros((key_padding_mask.size(0), 1),
+                                               dtype=key_padding_mask.dtype,
+                                               device=key_padding_mask.device)], dim=1)
+
+    attn_output_weights = torch.bmm(q, k.transpose(1, 2))
+    assert list(attn_output_weights.size()) == [
+        bsz * num_heads, tgt_len, src_len]
+
+    if attn_mask is not None:
+        attn_mask = attn_mask.unsqueeze(0)
+        attn_output_weights += attn_mask
+
+    if key_padding_mask is not None:
+        attn_output_weights = attn_output_weights.view(
+            bsz, num_heads, tgt_len, src_len)
+        attn_output_weights = attn_output_weights.masked_fill(
+            key_padding_mask.unsqueeze(1).unsqueeze(2),
+            float('-inf'),
+        )
+        attn_output_weights = attn_output_weights.view(
+            bsz * num_heads, tgt_len, src_len)
+
+    attn_output_weights = F.softmax(
+        attn_output_weights, dim=-1)
+    attn_output_weights = F.dropout(
+        attn_output_weights, p=dropout_p, training=training)
+
+    # average attention weights over heads
+    attn_output_weights = attn_output_weights.view(
+        bsz, num_heads, tgt_len, src_len)
+    return attn_output_weights.sum(dim=1) / num_heads
+
+
 class MultiHeadAttention(nn.Module):
     """Multi-headed attention.
     See "Attention Is All You Need" for more details.
