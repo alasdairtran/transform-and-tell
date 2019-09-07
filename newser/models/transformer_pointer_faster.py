@@ -213,9 +213,12 @@ class TransformerPointerModelFaster(Model):
 
         loss = gen_loss + entity_loss + copy_loss
 
-        self.batch_history['gen_loss'] += gen_loss.item()
-        self.batch_history['entity_loss'] += entity_loss.item()
-        self.batch_history['copy_loss'] += copy_loss.item()
+        if not torch.isnan(gen_loss):
+            self.batch_history['gen_loss'] += gen_loss.item()
+        if not torch.isnan(entity_loss):
+            self.batch_history['entity_loss'] += entity_loss.item()
+        if not torch.isnan(copy_loss):
+            self.batch_history['copy_loss'] += copy_loss.item()
 
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
