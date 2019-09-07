@@ -211,7 +211,7 @@ class MultiHeadAttention(nn.Module):
 
     def __init__(self, embed_dim, num_heads, kdim=None, vdim=None, dropout=0., bias=True,
                  add_bias_kv=True, add_zero_attn=True, self_attention=False,
-                 encoder_decoder_attention=False):
+                 encoder_decoder_attention=False, out_dim=None):
         super().__init__()
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
@@ -244,7 +244,8 @@ class MultiHeadAttention(nn.Module):
         else:
             self.register_parameter('in_proj_bias', None)
 
-        self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+        out_dim = out_dim if out_dim else embed_dim
+        self.out_proj = nn.Linear(embed_dim, out_dim, bias=bias)
 
         if add_bias_kv:
             self.bias_k = Parameter(torch.Tensor(1, 1, embed_dim))
