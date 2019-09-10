@@ -319,9 +319,6 @@ class TransformerPointerModelFaster(Model):
         # copy_attn.shape == [batch_size, target_len, source_len]
 
         B, L, S = copy_attn.shape
-        copy_probs = copy_attn.new_zeros(B, L, self.vocab_size)
-        # copy_probs.shape == [batch_size, target_len, vocab_size]
-
         context_ids = context[self.index]
         # context_ids.shape == [batch_size, source_len]
 
@@ -565,6 +562,14 @@ class TransformerPointerModelFaster(Model):
                 query=X, key=X_article_i, value=X_article_i, key_padding_mask=article_padding_mask_i)
             # copy_attn.shape == [batch_size, 1, source_len + 2]
 
+            copy_attn = multi_head_attention_score_forward(
+                X, X_article_i, 1024, 16,
+                self.in_proj_weight, self.in_proj_bias,
+                self.bias_k, True, 0.1, self.out_proj.weight, self.out_proj.bias,
+                training=self.training,
+                key_padding_mask=article_padding_mask_i)
+            # copy_attn.shape == [batch_size, target_len, source_len + 2]
+
             copy_attn = copy_attn[:, :, :-2]
             # copy_attn.shape == [batch_size, 1, source_len]
 
@@ -582,8 +587,32 @@ class TransformerPointerModelFaster(Model):
             context_ids = context[self.index][full_active_idx]
             # context_ids.shape == [batch_size, source_len]
 
-            copy_probs.scatter_add_(1, context_ids, copy_attn)
-            # copy_probs.shape == [batch_size, vocab_size]
+            # First construct the reduced dictionary, containing only tokens
+            # mentioned in the context.
+            unique_ids = context_ids.unique()
+            V = len(unique_ids)
+            # unique_ids.shape == [reduced_vocab_size]
+
+            # Construct the inverse map of unique_ids
+            inverse_unique_ids = unique_ids.new_full([self.vocab_size], -1)
+            inverse_unique_ids.index_copy_(
+                0, unique_ids, torch.arange(V).to(unique_ids.device))
+            # inverse_unique_ids.shape == [vocab_size]
+            # e.g. [-1, -1, 0, -1, -1, 1, 2, -1, 3, ....]
+
+            # Next we need to remap the context_ids to the new dictionary.
+            new_context_ids = inverse_unique_ids.index_select(
+                0, context_ids.reshape(-1))
+            # new_context_ids.shape == [batch_size * source_len]
+
+            new_context_ids = new_context_ids.view(B, S)
+            # new_context_ids.shape == [batch_size, source_len]
+
+            B, S = copy_attn.shape
+            copy_probs = copy_attn.new_zeros(B, V)
+            # copy_probs.shape == [batch_size, reduced_vocab_size]
+
+            copy_probs.scatter_add_(2, new_context_ids, copy_attn)
 
             topk_copy_probs, topk_copy_indices = copy_probs.topk(
                 self.sampling_topk)
@@ -597,8 +626,16 @@ class TransformerPointerModelFaster(Model):
                 dim=-1, index=sampled_copy_index)
             # selected_prob.shape == [batch_size, 1]
 
-            selected_copy_index = topk_copy_indices.gather(
+            selected_copy_new_index = topk_copy_indices.gather(
                 dim=-1, index=sampled_copy_index)
+            # selected_copy_new_index.shape == [batch_size, 1]
+
+            # Convert back to old vocab space
+            selected_copy_index = unique_ids.gather(
+                dim=0, index=selected_copy_new_index.squeeze(1))
+            # selected_copy_index.shape == [batch_size]
+
+            selected_copy_index = selected_copy_index.unsqueeze(1)
             # selected_copy_index.shape == [batch_size, 1]
 
             copy_prob = selected_copy_prob.new_zeros(B, 1)
@@ -610,7 +647,6 @@ class TransformerPointerModelFaster(Model):
             should_copy_full[full_active_idx] = should_copy.unsqueeze(1)
             should_copy_list.append(should_copy_full)
 
-            ###################
             topk_lprobs, topk_indices = lprobs.topk(self.sampling_topk)
             topk_lprobs = topk_lprobs.div_(self.sampling_temp)
             # topk_lprobs.shape == [batch_size, topk]
