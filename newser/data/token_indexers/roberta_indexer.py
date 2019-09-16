@@ -129,11 +129,8 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         raw_tokens = self.bpe.re.findall(self.bpe.pat, text)
         # e.g.[' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
 
-        if doc is not None:
-            entity_masks = self.get_entity_mask(raw_tokens, doc)
-            # Same length as raw_tokens
-        else:
-            entity_masks = []
+        entity_masks = self.get_entity_mask(raw_tokens, doc)
+        # Same length as raw_tokens
 
         for raw_token, entity_mask in zip(raw_tokens, entity_masks):
             # e.g. raw_token == " Tomas"
@@ -170,6 +167,9 @@ class RobertaTokenIndexer(TokenIndexer[int]):
             ends.append(current)
 
         entity_masks = [0] * len(tokens)
+
+        if doc is None:
+            return entity_masks
 
         # Next we get the character positions of named entities
         for ent in doc.ents:
