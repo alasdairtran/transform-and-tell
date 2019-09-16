@@ -376,21 +376,29 @@ class TransformerPointerModelFaster(Model):
         caption_ids, _, contexts, X_sections_hiddens, article_padding_mask = self._forward(
             context, image, caption)
 
-        log_probs, copy_probs, should_copy_mask, gen_ids = self._generate(
-            caption_ids, contexts, X_sections_hiddens, article_padding_mask, context)
+        _, _, should_copy_mask_1, gen_ids_1 = self._generate(
+            caption_ids, contexts, X_sections_hiddens, article_padding_mask, context, never_copy=False)
 
-        gen_ids = gen_ids.cpu()
-        gen_texts = [self.roberta.decode(
-            x[x != self.padding_idx]) for x in gen_ids]
+        _, _, should_copy_mask_2, gen_ids_2 = self._generate(
+            caption_ids, contexts, X_sections_hiddens, article_padding_mask, context, never_copy=True)
+
+        gen_ids_1 = gen_ids_1.cpu()
+        gen_texts_1 = [self.roberta.decode(
+            x[x != self.padding_idx]) for x in gen_ids_1]
+
+        gen_ids_2 = gen_ids_2.cpu()
+        gen_texts_2 = [self.roberta.decode(
+            x[x != self.padding_idx]) for x in gen_ids_2]
 
         # Get the copied words
-        copied_texts = [self.roberta.decode(x[should_copy_mask[i]])
-                        for i, x in enumerate(gen_ids)]
+        copied_texts = [self.roberta.decode(x[should_copy_mask_1[i]])
+                        for i, x in enumerate(gen_ids_1)]
 
         output_dict = {
-            'generated_indices': gen_ids,
-            'generated_texts': gen_texts,
+            'generated_indices': gen_ids_1,
+            'generated_texts': gen_texts_1,
             'copied_texts': copied_texts,
+            'generated_texts_2': gen_texts_2,
             'captions': [m['caption'] for m in metadata],
             'web_url': [m['web_url'] for m in metadata],
         }
@@ -473,7 +481,7 @@ class TransformerPointerModelFaster(Model):
 
         return caption_ids, target_ids, contexts, X_sections_hiddens, article_padding_mask
 
-    def _generate(self, caption_ids, contexts, X_sections_hiddens, article_padding_mask, context):
+    def _generate(self, caption_ids, contexts, X_sections_hiddens, article_padding_mask, context, never_copy=False):
         incremental_state: Dict[str, Any] = {}
         seed_input = caption_ids[:, 0:1]
         B = caption_ids.shape[0]
@@ -558,10 +566,6 @@ class TransformerPointerModelFaster(Model):
             X_article_i = X_article[:, full_active_idx]
             article_padding_mask_i = article_padding_mask[full_active_idx]
 
-            _, copy_attn = self.copy_attn(
-                query=X, key=X_article_i, value=X_article_i, key_padding_mask=article_padding_mask_i)
-            # copy_attn.shape == [batch_size, 1, source_len + 2]
-
             copy_attn = multi_head_attention_score_forward(
                 X, X_article_i, 1024, 16,
                 self.in_proj_weight, self.in_proj_bias,
@@ -605,18 +609,27 @@ class TransformerPointerModelFaster(Model):
                 0, context_ids.reshape(-1))
             # new_context_ids.shape == [batch_size * source_len]
 
-            new_context_ids = new_context_ids.view(B, S)
+            B_i, S = copy_attn.shape
+            new_context_ids = new_context_ids.view(B_i, S)
             # new_context_ids.shape == [batch_size, source_len]
 
-            B, S = copy_attn.shape
-            copy_probs = copy_attn.new_zeros(B, V)
+            copy_probs = copy_attn.new_zeros(B_i, V)
             # copy_probs.shape == [batch_size, reduced_vocab_size]
 
-            copy_probs.scatter_add_(2, new_context_ids, copy_attn)
+            copy_probs.scatter_add_(1, new_context_ids, copy_attn)
 
             topk_copy_probs, topk_copy_indices = copy_probs.topk(
                 self.sampling_topk)
             # topk_copy_probs.shape == [batch_size, topk]
+
+            # If the top probability is 0, then we simply don't copy
+            empty_copy = topk_copy_probs < 1e-6
+            # Add small epsilon
+            topk_copy_probs[empty_copy] = 1e-6
+            should_copy = should_copy & (~empty_copy.max(dim=1)[0])
+
+            if never_copy:
+                should_copy = should_copy.new_zeros(should_copy.shape).bool()
 
             sampled_copy_index = torch.multinomial(
                 topk_copy_probs, num_samples=1)

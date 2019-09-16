@@ -65,12 +65,19 @@ def generate(archive_path, model_path, overrides=None, device=0):
             else:
                 copied_texts = ['' for _ in generated_texts]
 
+            if 'generated_texts_2' in output_dict:
+                copied_texts_2 = output_dict['generated_texts_2']
+            else:
+                copied_texts_2 = ['' for _ in generated_texts]
+
             print(f'Batch {i}:\n')
-            for url, cap, gen, copied in zip(output_dict['web_url'], output_dict['captions'], generated_texts, copied_texts):
+            for url, cap, gen, copied, copied_2 in zip(output_dict['web_url'], output_dict['captions'], generated_texts, copied_texts, copied_texts_2):
                 print(url)
                 print(cap)
                 print(gen)
                 if copied:
                     print(copied)
+                if copied_2:
+                    print(copied_2)
                 print()
             i += 1
