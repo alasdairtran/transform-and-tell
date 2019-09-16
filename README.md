@@ -32,6 +32,7 @@ python scripts/get_goodnews.py
 
 python scripts/spacize.py # takes 2-3h
 python scripts/annotate_corefs.py # takes about 4 days
+python scripts/count_words.py # takes 35m
 ```
 
 ## Training and Evaluation

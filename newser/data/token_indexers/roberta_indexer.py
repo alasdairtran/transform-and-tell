@@ -13,6 +13,18 @@ from spacy.tokens import Doc
 SPACE_NORMALIZER = re.compile(r"\s+")
 
 
+def to_token_ids(sentence, roberta):
+    bpe_tokens = roberta.bpe.encode(sentence)
+    bpe_tokens = f'<s> {bpe_tokens} </s>'
+    words = tokenize_line(bpe_tokens)
+
+    token_ids = []
+    for word in words:
+        idx = roberta.task.source_dictionary.indices[word]
+        token_ids.append(idx)
+    return token_ids
+
+
 def tokenize_line(line):
     line = SPACE_NORMALIZER.sub(" ", line)
     line = line.strip()
