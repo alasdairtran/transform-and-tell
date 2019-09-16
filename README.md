@@ -31,6 +31,7 @@ wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download
 python scripts/get_goodnews.py
 
 python scripts/spacize.py # takes 2-3h
+python scripts/annotate_corefs.py # takes about 4 days
 ```
 
 ## Training and Evaluation
