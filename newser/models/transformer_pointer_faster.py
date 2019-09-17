@@ -263,6 +263,9 @@ class TransformerPointerModelFaster(Model):
         caption_copy_masks = caption_copy_masks[:, 1:]
         # caption_copy_masks.shape == [batch_size, target_len]
 
+        if not caption_copy_masks[caption_copy_masks == 1].bool().any():
+            return torch.tensor(0.0).to(X.device), torch.tensor(0.0).to(X.device)
+
         context_copy_masks = context[f'{self.index}_copy_masks']
         # context_copy_masks.shape == [batch_size, source_len]
 

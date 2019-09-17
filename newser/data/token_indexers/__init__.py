@@ -1,1 +1,2 @@
 from .roberta_indexer import RobertaTokenIndexer
+from .roberta_indexer_rare import RareRobertaTokenIndexer
