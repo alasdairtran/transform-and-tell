@@ -97,36 +97,36 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         text = ' '.join([token.text for token in tokens])
         if self.legacy:
             indices = self.encode(text, doc)
-            entity_masks = []
+            copy_masks = []
         else:
-            indices, entity_masks = self.encode(text, doc)
+            indices, copy_masks = self.encode(text, doc)
 
         return {
             index_name: indices,
-            f'{index_name}_entity_masks': entity_masks,
+            f'{index_name}_copy_masks': copy_masks,
         }
 
     def encode(self, sentence, doc):
         if self.legacy:
             return self.encode_legacy(sentence)
 
-        bpe_tokens, entity_masks = self._byte_pair_encode(sentence, doc)
+        bpe_tokens, copy_masks = self._byte_pair_encode(sentence, doc)
         sentence = ' '.join(map(str, bpe_tokens))
         words = tokenize_line(sentence)
-        assert len(words) == len(entity_masks)
+        assert len(words) == len(copy_masks)
 
         # Enforce maximum length constraint
         words = words[:self._max_len - 2]
-        entity_masks = entity_masks[:self._max_len - 2]
+        copy_masks = copy_masks[:self._max_len - 2]
         words = ['<s>'] + words + ['</s>']
-        entity_masks = [0] + entity_masks + [0]
+        copy_masks = [0] + copy_masks + [0]
 
         token_ids = []
         for word in words:
             idx = self.source_dictionary.indices[word]
             token_ids.append(idx)
 
-        return token_ids, entity_masks
+        return token_ids, copy_masks
 
     def encode_legacy(self, sentence):
         bpe_sentence = '<s> ' + self.bpe_legacy.encode(sentence) + ' </s>'
@@ -136,15 +136,15 @@ class RobertaTokenIndexer(TokenIndexer[int]):
 
     def _byte_pair_encode(self, text, doc):
         bpe_tokens = []
-        bpe_entity_masks = []
+        copy_masks = []
 
         raw_tokens = self.bpe.re.findall(self.bpe.pat, text)
         # e.g.[' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
 
-        entity_masks = self.get_entity_mask(raw_tokens, doc)
+        copy_masks = self.get_entity_mask(raw_tokens, doc)
         # Same length as raw_tokens
 
-        for raw_token, entity_mask in zip(raw_tokens, entity_masks):
+        for raw_token, entity_mask in zip(raw_tokens, copy_masks):
             # e.g. raw_token == " Tomas"
 
             # I guess this step is used so that we can distinguish between
@@ -160,11 +160,11 @@ class RobertaTokenIndexer(TokenIndexer[int]):
             bpe_tokens.extend(token_ids)
 
             if entity_mask == 0:
-                bpe_entity_masks.extend([0] * len(token_ids))
+                copy_masks.extend([0] * len(token_ids))
             else:
-                bpe_entity_masks.extend([1] * len(token_ids))
+                copy_masks.extend([1] * len(token_ids))
 
-        return bpe_tokens, bpe_entity_masks
+        return bpe_tokens, copy_masks
 
     def get_entity_mask(self, tokens, doc):
         # We first compute the start and end points for each token.
@@ -178,10 +178,10 @@ class RobertaTokenIndexer(TokenIndexer[int]):
             current += len(token)
             ends.append(current)
 
-        entity_masks = [0] * len(tokens)
+        copy_masks = [0] * len(tokens)
 
         if doc is None:
-            return entity_masks
+            return copy_masks
 
         # Next we get the character positions of named entities
         for ent in doc.ents:
@@ -193,9 +193,9 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                 entity_end = ent.end_char
 
                 if start >= entity_start and end <= entity_end:
-                    entity_masks[i] = 1
+                    copy_masks[i] = 1
 
-        return entity_masks
+        return copy_masks
 
     @overrides
     def get_padding_lengths(self, token: int) -> Dict[str, int]:  # pylint: disable=unused-argument
@@ -208,7 +208,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                          padding_lengths: Dict[str, int]) -> Dict[str, torch.Tensor]:  # pylint: disable=unused-argument
         padded_dict: Dict[str, torch.Tensor] = {}
         for key, val in tokens.items():
-            if 'entity_masks' in key:
+            if 'copy_masks' in key:
                 def default_value(): return -1
             else:
                 def default_value(): return self._padding_value
@@ -225,4 +225,4 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         We need to override this because the indexer generates multiple keys.
         """
         # pylint: disable=no-self-use
-        return [index_name, f'{index_name}_entity_masks']
+        return [index_name, f'{index_name}_copy_masks']

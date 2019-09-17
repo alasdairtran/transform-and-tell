@@ -253,12 +253,12 @@ class TransformerPointerModel(Model):
         X = decoder_out[0]
         # X.shape == [batch_size, target_len, embed_size]
 
-        caption_entity_masks = caption[f'{self.index}_entity_masks']
-        caption_entity_masks = caption_entity_masks[:, 1:]
-        # caption_entity_masks.shape == [batch_size, target_len]
+        caption_copy_masks = caption[f'{self.index}_copy_masks']
+        caption_copy_masks = caption_copy_masks[:, 1:]
+        # caption_copy_masks.shape == [batch_size, target_len]
 
-        context_entity_masks = context[f'{self.index}_entity_masks']
-        # context_entity_masks.shape == [batch_size, source_len]
+        context_copy_masks = context[f'{self.index}_copy_masks']
+        # context_copy_masks.shape == [batch_size, source_len]
 
         entity_logits = self.entity_fc(X)
         # entity_logits.shape == [batch_size, target_len, 2]
@@ -266,7 +266,7 @@ class TransformerPointerModel(Model):
         entity_logits = entity_logits.view(-1, 2)
         # entity_logits.shape == [batch_size * target_len, 2]
 
-        targets = caption_entity_masks.reshape(-1)
+        targets = caption_copy_masks.reshape(-1)
         # targets.shape == [batch_size * target_len]
 
         entity_loss = self.entity_loss(entity_logits, targets)
@@ -298,13 +298,13 @@ class TransformerPointerModel(Model):
         copy_attn = copy_attn[:, :, :-2]
         # copy_attn.shape == [batch_size, target_len, source_len]
 
-        context_entity_masks = context_entity_masks.unsqueeze(1)
-        # context_entity_masks.shape == [batch_size, 1, source_len]
+        context_copy_masks = context_copy_masks.unsqueeze(1)
+        # context_copy_masks.shape == [batch_size, 1, source_len]
 
-        context_entity_masks = context_entity_masks.expand_as(copy_attn)
-        # context_entity_masks.shape == [batch_size, target_len, source_len]
+        context_copy_masks = context_copy_masks.expand_as(copy_attn)
+        # context_copy_masks.shape == [batch_size, target_len, source_len]
 
-        irrelevant_mask = context_entity_masks != 1
+        irrelevant_mask = context_copy_masks != 1
         copy_attn[irrelevant_mask] = 0
         # copy_attn.shape == [batch_size, target_len, source_len]
 
@@ -342,7 +342,7 @@ class TransformerPointerModel(Model):
             0, caption_targets.reshape(-1))
         # new_caption_targets.shape == [batch_size * source_len, 1]
 
-        relevant_mask = (caption_entity_masks == 1).view(-1)
+        relevant_mask = (caption_copy_masks == 1).view(-1)
         new_caption_targets = new_caption_targets.reshape(-1, 1)[relevant_mask]
         # new_caption_targets.shape == [batch_size * n_entity_tokens, 1]
 
@@ -479,8 +479,8 @@ class TransformerPointerModel(Model):
         full_active_idx = active_idx
         gen_len = 100
 
-        context_entity_masks = context[f'{self.index}_entity_masks']
-        # context_entity_masks.shape == [batch_size, source_len]
+        context_copy_masks = context[f'{self.index}_copy_masks']
+        # context_copy_masks.shape == [batch_size, source_len]
 
         if self.weigh_bert:
             X_article = torch.stack(X_sections_hiddens, dim=2)
@@ -561,7 +561,7 @@ class TransformerPointerModel(Model):
             copy_attn = copy_attn.squeeze(1)
             # copy_attn.shape == [batch_size, source_len]
 
-            irrelevant_mask = context_entity_masks[full_active_idx] != 1
+            irrelevant_mask = context_copy_masks[full_active_idx] != 1
             copy_attn[irrelevant_mask] = 0
             # copy_attn.shape == [batch_size, source_len]
 
