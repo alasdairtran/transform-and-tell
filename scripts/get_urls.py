@@ -11,7 +11,6 @@ Options:
 import json
 import os
 import time
-from itertools import product
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
@@ -37,6 +36,15 @@ def validate(args):
     return args
 
 
+def month_year_iter(end_month, end_year, start_month, start_year):
+    # The first month is excluded
+    ym_start = 12 * start_year + start_month - 1
+    ym_end = 12 * end_year + end_month - 1
+    for ym in range(ym_end, ym_start, -1):
+        y, m = divmod(ym, 12)
+        yield y, m + 1
+
+
 def main():
     args = docopt(__doc__, version='0.0.1')
     args = validate(args)
@@ -48,13 +56,11 @@ def main():
 
     api_key = args['api_key']
     url = 'http://api.nytimes.com/svc/archive/v1/%s/%s.json?api-key=%s'
-    years = range(1980, 2019)
-    months = range(1, 13)
 
     data_dir = 'data/nytimes/archive'
     os.makedirs(data_dir, exist_ok=True)
 
-    for year, month in tqdm(product(years, months)):
+    for year, month in tqdm(month_year_iter(8, 2019, 12, 1979)):
         out_path = f'{data_dir}/{year}_{month:02}.json'
         if os.path.exists(out_path):
             continue
