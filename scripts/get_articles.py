@@ -8,25 +8,25 @@ Options:
     -r --root-dir DIR   Root directory of data [default: data/nytimes].
 
 """
+import hashlib
 import json
 import os
 import time
 from datetime import datetime
-from itertools import product
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import urlopen
-
+import socket
+import bs4
 import ptvsd
 import requests
-from bs4 import BeautifulSoup
 from docopt import docopt
 from joblib import Parallel, delayed
 from posixpath import normpath
 from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
-
+import pymongo
 from newser.utils import setup_logger
 
 logger = setup_logger()
@@ -50,10 +50,99 @@ def resolve_url(url):
     return cleaned.geturl()
 
 
+def get_tags(d, params):
+    # See https://stackoverflow.com/a/57683816/3790116
+    if any((lambda x: b in x if a == 'class' else b == x)(d.attrs.get(a, [])) for a, b in params.get(d.name, {}).items()):
+        yield d
+    for i in filter(lambda x: x != '\n' and not isinstance(x, bs4.element.NavigableString), d.contents):
+        yield from get_tags(i, params)
+
+
+def extract_text_new(soup):
+    # For articles between 2013 and 2019
+    sections = []
+    article_node = soup.find('article')
+
+    params = {
+        'div': {'class': 'StoryBodyCompanionColumn'},
+        'figcaption': {'itemprop': 'caption description'},
+    }
+
+    article_parts = get_tags(article_node, params)
+    i = 0
+
+    for part in article_parts:
+        if part.name == 'div':
+            paragraphs = part.find_all(['p', 'h2'])
+            for p in paragraphs:
+                sections.append({'type': 'paragraph', 'text': p.text.strip()})
+        elif part.name == 'figcaption':
+            if part.parent.attrs.get('itemid', 0):
+                caption = part.find('span', {'class': 'e13ogyst0'})
+                if caption:
+                    url = resolve_url(part.parent.attrs['itemid'])
+                    sections.append({
+                        'type': 'caption',
+                        'order': i,
+                        'text': caption.text.strip(),
+                        'url': url,
+                        'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
+                    })
+                    i += 1
+
+    return sections
+
+
+def extract_text_old(soup):
+    # For articles in 2012 and earlier
+    sections = []
+
+    params = {
+        'p': {'class': 'story-body-text'},
+        'figcaption': {'itemprop': 'caption description'},
+        'span': {'class': 'caption-text'},
+    }
+
+    article_parts = get_tags(soup, params)
+    i = 0
+    for part in article_parts:
+        if part.name == 'p':
+            sections.append({'type': 'paragraph', 'text': part.text.strip()})
+        elif part.name == 'figcaption':
+            if part.parent.attrs.get('itemid', 0):
+                caption = part.find('span', {'class': 'caption-text'})
+                if caption:
+                    url = resolve_url(part.parent.attrs['itemid'])
+                    sections.append({
+                        'type': 'caption',
+                        'order': i,
+                        'text': caption.text.strip(),
+                        'url': url,
+                        'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
+                    })
+                    i += 1
+
+    return sections
+
+
+def extract_text(html):
+    soup = bs4.BeautifulSoup(html, 'html.parser')
+
+    # Newer articles use StoryBodyCompanionColumn
+    if soup.find('article') and soup.find('article').find_all('div', {'class': 'StoryBodyCompanionColumn'}):
+        return extract_text_new(soup)
+
+    # Older articles use story-body
+    elif soup.find_all('p', {'class': 'story-body-text'}):
+        return extract_text_old(soup)
+
+    return []
+
+
 def retrieve_articles(root_dir, year, month, db):
     result = db.scraping.find_one({'year': year, 'month': month})
     if result is not None:
-        return
+       return
 
     in_path = os.path.join(root_dir, 'archive', f'{year}_{month:02}.json')
     with open(in_path) as f:
@@ -64,17 +153,12 @@ def retrieve_articles(root_dir, year, month, db):
     db.scraping.insert_one({'year': year, 'month': month})
 
 
-def get_soup(raw_html):
-    soup = BeautifulSoup(raw_html, 'html.parser')
-    [s.extract() for s in soup('script')]
-    [s.extract() for s in soup('noscript')]
-    figcap = soup.find_all("figcaption")
-    return soup, figcap
-
-
 def retrieve_article(article, root_dir, db):
+    if article['_id'].startswith('nyt://article/'):
+        article['_id'] = article['_id'][14:]
+
     result = db.articles.find_one({'_id': article['_id']})
-    if result is not None and (result['scraped'] or result['error']):
+    if result is not None and result['scraped']:
         return
 
     data = article
@@ -91,22 +175,9 @@ def retrieve_article(article, root_dir, db):
         return
 
     url = resolve_url(article['web_url'])
-    while True:
-        #     try:
-        #         with Goose() as g:
-        #             extract = g.extract(url=url)
-        #             break
-        #     except requests.exceptions.MissingSchema:
-        #         return  # Ignore invalid URLs
-        #     except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
-        #         return
-        #     except requests.exceptions.TooManyRedirects:
-        #         return
-        #     except lxml.etree.ParserError:
-        #         return
-
+    for i in range(10):
         try:
-            response = urlopen(url)
+            response = urlopen(url, timeout=20)
             break
         except (ValueError, HTTPError):
             # ValueError: unknown url type: '/interactive/2018/12/05/business/05Markets.html'
@@ -115,41 +186,73 @@ def retrieve_article(article, root_dir, db):
             db.articles.find_one_and_update(
                 {'_id': article['_id']}, {'$set': data})
             return
-        except URLError:
-            # urllib.error.URLError: <urlopen error [Errno 110] Connection timed out>
-            time.sleep(60)
+        except (URLError, ConnectionResetError):
+            if i == 9:
+                # urllib.error.URLError: <urlopen error [Errno 110] Connection timed out>
+                data['error'] = True
+                data['timeout'] = True
+                db.articles.find_one_and_update(
+                    {'_id': article['_id']}, {'$set': data})
+                return
+            else:
+                time.sleep(60)
+                continue
+        except socket.timeout:
+            pass
+        # urllib.error.URLError: <urlopen error [Errno 110] Connection timed out>
+        data['error'] = True
+        data['timeout'] = True
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': data})
+        return
 
     data['web_url'] = url
-    raw_html = response.read().decode('utf-8')
+    try:
+        raw_html = response.read().decode('utf-8')
+    except UnicodeDecodeError:
+        data['error'] = True
+        data['decode_error'] = True
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': data})
+        return
+
     data['raw_html'] = raw_html
-    # data['article'] = extract.cleaned_text
 
-    if article['multimedia']:
-        data['images'] = {}
-        _, figcap = get_soup(raw_html)
-        figcap = [c for c in figcap if c.text]
-        for ix, cap in enumerate(figcap):
-            if cap.parent.attrs.get('itemid', 0):
+    parsed_sections = extract_text(raw_html)
+    data['parsed_section'] = parsed_sections
+
+    if parsed_sections:
+        image_positions = []
+        for i, section in enumerate(parsed_sections):
+            if section['type'] == 'caption':
+                image_positions.append(i)
                 img_path = os.path.join(root_dir, 'images',
-                                        f"{article['_id']}_{ix}.jpg")
-                if os.path.exists(img_path):
-                    text = cap.get_text().split('credit')[0]
-                    text = text.split('Credit')[0]
-                    data['images'].update({f'{ix}': text})
-                    continue
+                                        f"{section['hash']}.jpg")
+                if not os.path.exists(img_path):
+                    try:
+                        img_response = requests.get(
+                            section['url'], stream=True)
+                        img_data = img_response.content
+                        with open(img_path, 'wb') as f:
+                            f.write(img_data)
 
-                img_url = resolve_url(cap.parent.attrs['itemid'])
-                try:
-                    img_data = requests.get(img_url, stream=True).content
-                except requests.exceptions.MissingSchema:
-                    continue
+                        db.images.update_one(
+                            {'_id': section['hash']},
+                            {'$push': {'captions': {
+                                'id': article['_id'],
+                                'caption': section['text'],
+                            }}}, upsert=True)
 
-                with open(img_path, 'wb') as f:
-                    f.write(img_data)
+                    except requests.exceptions.MissingSchema:
+                        section['downloaded'] = False
+                    else:
+                        section['downloaded'] = True
 
-                text = cap.get_text().split('credit')[0]
-                text = text.split('Credit')[0]
-                data['images'].update({f'{ix}': text})
+        data['parsed'] = True
+        article['image_positions'] = image_positions
+        article['n_images'] = len(image_positions)
+    else:
+        article['n_images'] = 0
 
     data['scraped'] = True
     db.articles.find_one_and_update({'_id': article['_id']}, {'$set': data})
@@ -167,6 +270,15 @@ def validate(args):
     return args
 
 
+def month_year_iter(end_month, end_year, start_month, start_year):
+    # The first month is excluded
+    ym_start = 12 * start_year + start_month - 1
+    ym_end = 12 * end_year + end_month - 1
+    for ym in range(ym_end, ym_start, -1):
+        y, m = divmod(ym, 12)
+        yield y, m + 1
+
+
 def main():
     args = docopt(__doc__, version='0.0.1')
     args = validate(args)
@@ -175,9 +287,6 @@ def main():
         address = ('0.0.0.0', args['ptvsd'])
         ptvsd.enable_attach(address)
         ptvsd.wait_for_attach()
-
-    years = range(2018, 1999, -1)
-    months = range(12, 0, -1)
 
     root_dir = args['root_dir']
     img_dir = os.path.join(root_dir, 'images')
@@ -189,7 +298,15 @@ def main():
 
     with Parallel(n_jobs=12, backend='threading') as parallel:
         parallel(delayed(retrieve_articles)(root_dir, year, month, db)
-                 for year, month in product(years, months))
+                 for year, month in month_year_iter(8, 2019, 12, 2003))
+
+    # Build indices
+    logger.info('Building indices')
+    db.articles.create_index([
+        ('parsed', pymongo.ASCENDING),
+        ('n_images', pymongo.ASCENDING),
+        ('pub_date', pymongo.DESCENDING),
+    ])
 
 
 if __name__ == '__main__':

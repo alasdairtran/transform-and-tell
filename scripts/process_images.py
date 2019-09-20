@@ -6,7 +6,7 @@ Usage:
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
     -i --in-dir DIR   Root directory of data [default: data/goodnews/images].
-    -i --out-dir DIR   Root directory of data [default: data/goodnews/images_processed].
+    -o --out-dir DIR   Root directory of data [default: data/goodnews/images_processed].
 
 """
 import os
