@@ -34,4 +34,4 @@ __pycache__
 
 *.pdf
 /data
-/expt/**/*.th
+/expt/**/serialization
