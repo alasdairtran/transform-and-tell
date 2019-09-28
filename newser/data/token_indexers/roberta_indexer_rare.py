@@ -98,16 +98,21 @@ class RareRobertaTokenIndexer(TokenIndexer[int]):
             context = ' '.join([token.text for token in context_tokens])
         else:
             context = None
-        indices, copy_masks = self.encode(
+        indices, copy_masks, rare_tokens = self.encode(
             text, context, most_common_words)
 
-        return {
+        output = {
             index_name: indices,
             f'{index_name}_copy_masks': copy_masks,
         }
 
+        if context_tokens is not None:
+            output['rare_tokens'] = rare_tokens
+
+        return output
+
     def encode(self, sentence, context, most_common_words):
-        bpe_tokens, copy_masks = self._byte_pair_encode(
+        bpe_tokens, copy_masks, rare_tokens = self._byte_pair_encode(
             sentence, context, most_common_words)
         sentence = ' '.join(map(str, bpe_tokens))
         words = tokenize_line(sentence)
@@ -124,7 +129,7 @@ class RareRobertaTokenIndexer(TokenIndexer[int]):
             idx = self.source_dictionary.indices[word]
             token_ids.append(idx)
 
-        return token_ids, copy_masks
+        return token_ids, copy_masks, rare_tokens
 
     def _byte_pair_encode(self, text, context, most_common):
         # Let's start by encoding the context
@@ -140,6 +145,7 @@ class RareRobertaTokenIndexer(TokenIndexer[int]):
 
         bpe_tokens = []
         copy_masks = []
+        rare_tokens = []
 
         raw_tokens = self.bpe.re.findall(self.bpe.pat, text)
         # e.g.[' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
@@ -170,8 +176,9 @@ class RareRobertaTokenIndexer(TokenIndexer[int]):
                 copy_masks.extend([0] * len(token_ids))
             else:
                 copy_masks.extend([1] * len(token_ids))
+                rare_tokens.append(raw_token)
 
-        return bpe_tokens, copy_masks
+        return bpe_tokens, copy_masks, rare_tokens
 
     @overrides
     def get_padding_lengths(self, token: int) -> Dict[str, int]:  # pylint: disable=unused-argument
@@ -188,11 +195,15 @@ class RareRobertaTokenIndexer(TokenIndexer[int]):
                 def default_value(): return -1
             else:
                 def default_value(): return self._padding_value
-            padded_val = pad_sequence_to_length(sequence=val,
-                                                desired_length=desired_num_tokens[key],
-                                                default_value=default_value,
-                                                padding_on_right=self._padding_on_right)
-            padded_dict[key] = torch.LongTensor(padded_val)
+
+            if key == 'rare_tokens':
+                padded_dict[key] = val
+            else:
+                padded_val = pad_sequence_to_length(sequence=val,
+                                                    desired_length=desired_num_tokens[key],
+                                                    default_value=default_value,
+                                                    padding_on_right=self._padding_on_right)
+                padded_dict[key] = torch.LongTensor(padded_val)
         return padded_dict
 
     @overrides

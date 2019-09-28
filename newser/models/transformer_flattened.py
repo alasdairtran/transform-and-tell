@@ -212,6 +212,28 @@ class TransformerFlattenedModel(Model):
                 score = rogue_scorer.calc_score([gen], [ref])
                 self.sample_history['rogue'] += score * 100
 
+            if 'rare_tokens' in caption:
+                for gen, ref, rare_list in zip(gen_texts, captions, caption['rare_tokens']):
+                    bleu_scorer = BleuScorer(n=4)
+                    rare_words = ' '.join(rare_list)
+                    gen = gen + ' ' + rare_words
+
+                    if rare_words:
+                        print(ref)
+                        print(gen)
+                        print()
+
+                    bleu_scorer += (gen, [ref])
+                    score, _ = bleu_scorer.compute_score(option='closest')
+                    self.sample_history['bleu-1r'] += score[0] * 100
+                    self.sample_history['bleu-2r'] += score[1] * 100
+                    self.sample_history['bleu-3r'] += score[2] * 100
+                    self.sample_history['bleu-4r'] += score[3] * 100
+
+                    rogue_scorer = Rouge()
+                    score = rogue_scorer.calc_score([gen], [ref])
+                    self.sample_history['roguer'] += score * 100
+
         self.n_samples += caption_ids.shape[0]
         self.n_batches += 1
 

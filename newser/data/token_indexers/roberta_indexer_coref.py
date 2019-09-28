@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import torch
 from allennlp.common.util import pad_sequence_to_length
@@ -50,8 +50,8 @@ class RobertaTokenizer2(RobertaTokenizer):
         return ids
 
 
-@TokenIndexer.register("roberta")
-class RobertaTokenIndexer(TokenIndexer[int]):
+@TokenIndexer.register("roberta_coref")
+class RobertaCorefTokenIndexer(TokenIndexer[int]):
     def __init__(self,
                  model_name: str = 'roberta-base',
                  namespace: str = 'bpe',
@@ -89,28 +89,21 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                           tokens: List[Token],
                           vocabulary: Vocabulary,
                           index_name: str,
-                          doc: Doc = None) -> Dict[str, List[int]]:
+                          copy_pos: List[Tuple[int, int]] = None) -> Dict[str, List[int]]:
         if not self._added_to_vocabulary:
             self._add_encoding_to_vocabulary(vocabulary)
             self._added_to_vocabulary = True
 
         text = ' '.join([token.text for token in tokens])
-        if self.legacy:
-            indices = self.encode(text, doc)
-            copy_masks = []
-        else:
-            indices, copy_masks = self.encode(text, doc)
+        indices, copy_masks = self.encode(text, copy_pos)
 
         return {
             index_name: indices,
             f'{index_name}_copy_masks': copy_masks,
         }
 
-    def encode(self, sentence, doc):
-        if self.legacy:
-            return self.encode_legacy(sentence)
-
-        bpe_tokens, copy_masks = self._byte_pair_encode(sentence, doc)
+    def encode(self, sentence, copy_pos):
+        bpe_tokens, copy_masks = self._byte_pair_encode(sentence, copy_pos)
         sentence = ' '.join(map(str, bpe_tokens))
         words = tokenize_line(sentence)
         assert len(words) == len(copy_masks)
@@ -128,20 +121,14 @@ class RobertaTokenIndexer(TokenIndexer[int]):
 
         return token_ids, copy_masks
 
-    def encode_legacy(self, sentence):
-        bpe_sentence = '<s> ' + self.bpe_legacy.encode(sentence) + ' </s>'
-        tokens = self.source_dictionary.encode_line(
-            bpe_sentence, append_eos=False)
-        return tokens.long().tolist()[:self._max_len]
-
-    def _byte_pair_encode(self, text, doc):
+    def _byte_pair_encode(self, text, copy_pos):
         bpe_tokens = []
         bpe_copy_masks = []
 
         raw_tokens = self.bpe.re.findall(self.bpe.pat, text)
         # e.g.[' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
 
-        copy_masks = self.get_entity_mask(raw_tokens, doc)
+        copy_masks = self.get_entity_mask(raw_tokens, copy_pos)
         # Same length as raw_tokens
 
         for raw_token, entity_mask in zip(raw_tokens, copy_masks):
@@ -166,7 +153,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
 
         return bpe_tokens, bpe_copy_masks
 
-    def get_entity_mask(self, tokens, doc):
+    def get_entity_mask(self, tokens, copy_pos):
         # We first compute the start and end points for each token.
         # End points are exclusive.
         # e.g. tokens = [' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
@@ -180,19 +167,14 @@ class RobertaTokenIndexer(TokenIndexer[int]):
 
         copy_masks = [0] * len(tokens)
 
-        if doc is None:
-            return copy_masks
-
         # Next we get the character positions of named entities
-        for ent in doc.ents:
+        for c_start, c_end in copy_pos:
             # A token is part of an entity if it lies strictly inside it
             for i, (start, end, token) in enumerate(zip(starts, ends, tokens)):
-                entity_start = ent.start_char
                 if token[0] == ' ':
-                    entity_start -= 1
-                entity_end = ent.end_char
+                    c_start -= 1
 
-                if start >= entity_start and end <= entity_end:
+                if start >= c_start and end <= c_end:
                     copy_masks[i] = 1
 
         return copy_masks

@@ -50,12 +50,11 @@ class RobertaTokenizer2(RobertaTokenizer):
         return ids
 
 
-@TokenIndexer.register("roberta")
-class RobertaTokenIndexer(TokenIndexer[int]):
+@TokenIndexer.register("roberta_rare_whole_words")
+class RareWholeWordRobertaTokenIndexer(TokenIndexer[int]):
     def __init__(self,
                  model_name: str = 'roberta-base',
                  namespace: str = 'bpe',
-                 legacy: bool = False,
                  start_tokens: List[str] = None,
                  end_tokens: List[str] = None,
                  token_min_padding_length: int = 0,
@@ -66,13 +65,12 @@ class RobertaTokenIndexer(TokenIndexer[int]):
         roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
         self.source_dictionary = roberta.task.source_dictionary
         self.bpe = roberta.bpe.bpe
-        self.bpe_legacy = roberta.bpe
+        self.bpe_wrapper = roberta.bpe
         self._added_to_vocabulary = False
         self._namespace = namespace
         self._padding_on_right = padding_on_right
         self._padding_value = padding_value
         self._max_len = max_len
-        self.legacy = legacy
 
     @overrides
     def count_vocab_items(self, token: Token, counter: Dict[str, Dict[str, int]]):
@@ -89,28 +87,33 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                           tokens: List[Token],
                           vocabulary: Vocabulary,
                           index_name: str,
-                          doc: Doc = None) -> Dict[str, List[int]]:
+                          context_tokens=None,
+                          most_common_words=None) -> Dict[str, List[int]]:
         if not self._added_to_vocabulary:
             self._add_encoding_to_vocabulary(vocabulary)
             self._added_to_vocabulary = True
 
         text = ' '.join([token.text for token in tokens])
-        if self.legacy:
-            indices = self.encode(text, doc)
-            copy_masks = []
+        if context_tokens is not None:
+            context = ' '.join([token.text for token in context_tokens])
         else:
-            indices, copy_masks = self.encode(text, doc)
+            context = None
+        indices, copy_masks, rare_tokens = self.encode(
+            text, context, most_common_words)
 
-        return {
+        output = {
             index_name: indices,
             f'{index_name}_copy_masks': copy_masks,
         }
 
-    def encode(self, sentence, doc):
-        if self.legacy:
-            return self.encode_legacy(sentence)
+        if context_tokens is not None:
+            output['rare_tokens'] = rare_tokens
 
-        bpe_tokens, copy_masks = self._byte_pair_encode(sentence, doc)
+        return output
+
+    def encode(self, sentence, context, most_common_words):
+        bpe_tokens, copy_masks, rare_tokens = self._byte_pair_encode(
+            sentence, context, most_common_words)
         sentence = ' '.join(map(str, bpe_tokens))
         words = tokenize_line(sentence)
         assert len(words) == len(copy_masks)
@@ -126,25 +129,28 @@ class RobertaTokenIndexer(TokenIndexer[int]):
             idx = self.source_dictionary.indices[word]
             token_ids.append(idx)
 
-        return token_ids, copy_masks
+        return token_ids, copy_masks, rare_tokens
 
-    def encode_legacy(self, sentence):
-        bpe_sentence = '<s> ' + self.bpe_legacy.encode(sentence) + ' </s>'
-        tokens = self.source_dictionary.encode_line(
-            bpe_sentence, append_eos=False)
-        return tokens.long().tolist()[:self._max_len]
+    def _byte_pair_encode(self, text, context, most_common):
+        # Let's start by encoding the context
+        if context:
+            bpe_tokens = self.bpe_wrapper.encode(context)
+            bpe_tokens = f'<s> {bpe_tokens} </s>'
+            words = tokenize_line(bpe_tokens)
 
-    def _byte_pair_encode(self, text, doc):
+            context_ids = []
+            for word in words:
+                idx = self.source_dictionary.indices[word]
+                context_ids.append(idx)
+
         bpe_tokens = []
-        bpe_copy_masks = []
+        copy_masks = []
+        rare_tokens = []
 
         raw_tokens = self.bpe.re.findall(self.bpe.pat, text)
         # e.g.[' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
 
-        copy_masks = self.get_entity_mask(raw_tokens, doc)
-        # Same length as raw_tokens
-
-        for raw_token, entity_mask in zip(raw_tokens, copy_masks):
+        for raw_token in raw_tokens:
             # e.g. raw_token == " Tomas"
 
             # I guess this step is used so that we can distinguish between
@@ -159,43 +165,17 @@ class RobertaTokenIndexer(TokenIndexer[int]):
 
             bpe_tokens.extend(token_ids)
 
-            if entity_mask == 0:
-                bpe_copy_masks.extend([0] * len(token_ids))
+            if most_common is None:
+                copy_masks.extend([1] * len(token_ids))
+                continue
+
+            if raw_token.strip() in most_common:
+                copy_masks.extend([0] * len(token_ids))
             else:
-                bpe_copy_masks.extend([1] * len(token_ids))
+                copy_masks.extend([1] * len(token_ids))
+                rare_tokens.append(raw_token)
 
-        return bpe_tokens, bpe_copy_masks
-
-    def get_entity_mask(self, tokens, doc):
-        # We first compute the start and end points for each token.
-        # End points are exclusive.
-        # e.g. tokens = [' Tomas', ' Maier', ',', ' autumn', '/', 'winter', ' 2014', ',', '\n', ' in', 'Milan', '.']
-        starts = []
-        ends = []
-        current = 0
-        for token in tokens:
-            starts.append(current)
-            current += len(token)
-            ends.append(current)
-
-        copy_masks = [0] * len(tokens)
-
-        if doc is None:
-            return copy_masks
-
-        # Next we get the character positions of named entities
-        for ent in doc.ents:
-            # A token is part of an entity if it lies strictly inside it
-            for i, (start, end, token) in enumerate(zip(starts, ends, tokens)):
-                entity_start = ent.start_char
-                if token[0] == ' ':
-                    entity_start -= 1
-                entity_end = ent.end_char
-
-                if start >= entity_start and end <= entity_end:
-                    copy_masks[i] = 1
-
-        return copy_masks
+        return bpe_tokens, copy_masks, rare_tokens
 
     @overrides
     def get_padding_lengths(self, token: int) -> Dict[str, int]:  # pylint: disable=unused-argument
@@ -212,11 +192,15 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                 def default_value(): return -1
             else:
                 def default_value(): return self._padding_value
-            padded_val = pad_sequence_to_length(sequence=val,
-                                                desired_length=desired_num_tokens[key],
-                                                default_value=default_value,
-                                                padding_on_right=self._padding_on_right)
-            padded_dict[key] = torch.LongTensor(padded_val)
+
+            if key == 'rare_tokens':
+                padded_dict[key] = val
+            else:
+                padded_val = pad_sequence_to_length(sequence=val,
+                                                    desired_length=desired_num_tokens[key],
+                                                    default_value=default_value,
+                                                    padding_on_right=self._padding_on_right)
+                padded_dict[key] = torch.LongTensor(padded_val)
         return padded_dict
 
     @overrides
