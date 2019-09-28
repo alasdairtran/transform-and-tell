@@ -8,6 +8,6 @@ setup(name='newser',
       author_email='alasdair.tran@anu.edu.au',
       license='MIT',
       packages=['newser'],
-      install_requires=['allennlp', 'goose3'],
+      install_requires=['allennlp'],
       scripts=['bin/newser'],
       zip_safe=False)
