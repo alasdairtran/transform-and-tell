@@ -20,8 +20,8 @@ from newser.data.fields import ImageField, ListTextField
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-@DatasetReader.register('nytimes')
-class NYTimesReader(DatasetReader):
+@DatasetReader.register('nytimes_position')
+class NYTimesPositionReader(DatasetReader):
     """Read from the New York Times dataset.
 
     See the repo README for more instruction on how to download the dataset.
@@ -71,7 +71,6 @@ class NYTimesReader(DatasetReader):
             raise ValueError(f'Unknown split: {split}')
 
         # Setting the batch size is needed to avoid cursor timing out
-        # We collected 1.7M articles
         article_cursor = self.db.articles.find({
             'parsed': True, # article body is parsed into paragraphs
             'n_images': {'$gt': 0}, # at least one image is present
@@ -85,23 +84,48 @@ class NYTimesReader(DatasetReader):
                 title = ''
                 if 'main' in article['headline']:
                     title = article['headline']['main'].strip()
-                paragraphs = [s['text'].strip() for s in sections if s['type'] == 'paragraph']
+                paragraphs = []
+                n_words = 0
                 if title:
-                    paragraphs.insert(0, title)
+                    paragraphs.append(title)
+                    n_words += len(title.split())
+
                 caption = sections[pos]['text'].strip()
+
+                before = []
+                after = []
+                i = pos - 1
+                j = pos + 1
+                for k, section in enumerate(sections):
+                    if section['type'] == 'paragraph':
+                        paragraphs.append(section['text'])
+                        break
+
+                while True:
+                    if i > k and sections[i]['type'] == 'paragraph':
+                        text = sections[i]['text']
+                        before.insert(0, text)
+                        n_words += len(text.split())
+                    i -= 1
+                    
+                    if k < j < len(sections) and sections[j]['type'] == 'paragraph':
+                        text = sections[j]['text']
+                        after.append(text)
+                        n_words += len(text.split())
+                    j += 1
+
+                    if n_words > 500 or (i <= k and j >= len(sections)):
+                        break
+
                 image_path = os.path.join(self.image_dir, f"{sections[pos]['hash']}.jpg")
                 try:
                     image = Image.open(image_path)
                 except (FileNotFoundError, OSError):
                     continue
 
-                n_words = 0
-                for i, par in enumerate(paragraphs):
-                    n_words += len(par.split())
-                    if n_words > 500:
-                        break
+                paragraphs = paragraphs + before + after
 
-                yield self.article_to_instance(paragraphs[:i+1], image, caption, image_path, article['web_url'])
+                yield self.article_to_instance(paragraphs, image, caption, image_path, article['web_url'])
 
         article_cursor.close()
 
