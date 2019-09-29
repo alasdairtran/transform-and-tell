@@ -65,15 +65,15 @@ class NYTimesPositionReader(DatasetReader):
             start = datetime(2019, 5, 1)
             end = datetime(2019, 6, 1)
         elif split == 'test':
-            start = datetime(2018, 6, 1)
+            start = datetime(2019, 6, 1)
             end = datetime(2019, 9, 1)
         else:
             raise ValueError(f'Unknown split: {split}')
 
         # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
-            'parsed': True, # article body is parsed into paragraphs
-            'n_images': {'$gt': 0}, # at least one image is present
+            'parsed': True,  # article body is parsed into paragraphs
+            'n_images': {'$gt': 0},  # at least one image is present
             'pub_date': {'$gte': start, '$lt': end},
         }, no_cursor_timeout=True).batch_size(128)
 
@@ -107,7 +107,7 @@ class NYTimesPositionReader(DatasetReader):
                         before.insert(0, text)
                         n_words += len(text.split())
                     i -= 1
-                    
+
                     if k < j < len(sections) and sections[j]['type'] == 'paragraph':
                         text = sections[j]['text']
                         after.append(text)
@@ -117,7 +117,8 @@ class NYTimesPositionReader(DatasetReader):
                     if n_words > 500 or (i <= k and j >= len(sections)):
                         break
 
-                image_path = os.path.join(self.image_dir, f"{sections[pos]['hash']}.jpg")
+                image_path = os.path.join(
+                    self.image_dir, f"{sections[pos]['hash']}.jpg")
                 try:
                     image = Image.open(image_path)
                 except (FileNotFoundError, OSError):
@@ -148,4 +149,3 @@ class NYTimesPositionReader(DatasetReader):
         fields['metadata'] = MetadataField(metadata)
 
         return Instance(fields)
-

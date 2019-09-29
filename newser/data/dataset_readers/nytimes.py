@@ -65,7 +65,7 @@ class NYTimesReader(DatasetReader):
             start = datetime(2019, 5, 1)
             end = datetime(2019, 6, 1)
         elif split == 'test':
-            start = datetime(2018, 6, 1)
+            start = datetime(2019, 6, 1)
             end = datetime(2019, 9, 1)
         else:
             raise ValueError(f'Unknown split: {split}')
@@ -73,8 +73,8 @@ class NYTimesReader(DatasetReader):
         # Setting the batch size is needed to avoid cursor timing out
         # We collected 1.7M articles
         article_cursor = self.db.articles.find({
-            'parsed': True, # article body is parsed into paragraphs
-            'n_images': {'$gt': 0}, # at least one image is present
+            'parsed': True,  # article body is parsed into paragraphs
+            'n_images': {'$gt': 0},  # at least one image is present
             'pub_date': {'$gte': start, '$lt': end},
         }, no_cursor_timeout=True).batch_size(128)
 
@@ -85,11 +85,13 @@ class NYTimesReader(DatasetReader):
                 title = ''
                 if 'main' in article['headline']:
                     title = article['headline']['main'].strip()
-                paragraphs = [s['text'].strip() for s in sections if s['type'] == 'paragraph']
+                paragraphs = [s['text'].strip()
+                              for s in sections if s['type'] == 'paragraph']
                 if title:
                     paragraphs.insert(0, title)
                 caption = sections[pos]['text'].strip()
-                image_path = os.path.join(self.image_dir, f"{sections[pos]['hash']}.jpg")
+                image_path = os.path.join(
+                    self.image_dir, f"{sections[pos]['hash']}.jpg")
                 try:
                     image = Image.open(image_path)
                 except (FileNotFoundError, OSError):
@@ -124,4 +126,3 @@ class NYTimesReader(DatasetReader):
         fields['metadata'] = MetadataField(metadata)
 
         return Instance(fields)
-
