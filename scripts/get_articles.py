@@ -11,14 +11,16 @@ Options:
 import hashlib
 import json
 import os
+import socket
 import time
 from datetime import datetime
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import urlopen
-import socket
+
 import bs4
 import ptvsd
+import pymongo
 import requests
 from docopt import docopt
 from joblib import Parallel, delayed
@@ -26,7 +28,8 @@ from posixpath import normpath
 from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
-import pymongo
+
+from langdetect import detect
 from newser.utils import setup_logger
 
 logger = setup_logger()
@@ -142,7 +145,7 @@ def extract_text(html):
 def retrieve_articles(root_dir, year, month, db):
     result = db.scraping.find_one({'year': year, 'month': month})
     if result is not None:
-       return
+        return
 
     in_path = os.path.join(root_dir, 'archive', f'{year}_{month:02}.json')
     with open(in_path) as f:
@@ -220,6 +223,10 @@ def retrieve_article(article, root_dir, db):
 
     parsed_sections = extract_text(raw_html)
     data['parsed_section'] = parsed_sections
+
+    text_list = [sec['text'] for sec in article['parsed_section']]
+    text = '\n'.join(text_list)
+    data['language'] = detect(text)
 
     if parsed_sections:
         image_positions = []
@@ -303,6 +310,7 @@ def main():
     # Build indices
     logger.info('Building indices')
     db.articles.create_index([
+        ('language', pymongo.ASCENDING),
         ('parsed', pymongo.ASCENDING),
         ('n_images', pymongo.ASCENDING),
         ('pub_date', pymongo.DESCENDING),

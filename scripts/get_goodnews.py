@@ -21,6 +21,7 @@ from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
+from langdetect import detect
 from newser.utils import setup_logger
 
 logger = setup_logger()
@@ -83,6 +84,7 @@ def get_goodnews_articles(root_dir, db, resume):
                     article['images'][idx] = denoise_text(caption)
 
                 context = article['article'].strip()
+                article['language'] = detect(article['article'])
                 try:
                     title = article['headline']['main'].strip()
                     context = title + '\n\n' + context

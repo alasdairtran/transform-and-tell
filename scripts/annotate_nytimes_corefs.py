@@ -64,7 +64,7 @@ def get_clusters(doc, article):
                 continue
 
             mention = {
-                'text': coref.text,       
+                'text': coref.text,
                 'start': s,
                 'end': e,
                 'pos': [span.pos_ for span in main_span],
@@ -76,7 +76,6 @@ def get_clusters(doc, article):
 
         kept_clusters.append(kept_cluster)
 
-    
     article['coref_clusters'] = kept_clusters
 
 
@@ -87,7 +86,7 @@ def assign_coref(article, coref, i, kind, mention_idx):
 
     for section in article['parsed_section']:
         assign_coref_to_section(section, coref, i, kind, mention_idx)
-        
+
 
 def assign_coref_to_section(section, coref, i, kind, mention_idx):
     s = section['spacy_start']
@@ -103,24 +102,24 @@ def assign_coref_to_section(section, coref, i, kind, mention_idx):
             'pos': coref['pos']
         })
 
+
 def calculate_spacy_positions(article):
     title = ''
     cursor = 0
     if 'main' in article['headline']:
         title = article['headline']['main'].strip()
         article['headline']['spacy_start'] = cursor
-        cursor += len(title) + 1 # newline
+        cursor += len(title) + 1  # newline
         article['headline']['spacy_end'] = cursor
         article['headline']['corefs'] = []
 
     for section in article['parsed_section']:
         text = section['text'].strip()
         section['spacy_start'] = cursor
-        cursor += len(text) + 1 # newline
+        cursor += len(text) + 1  # newline
         section['spacy_end'] = cursor
         section['corefs'] = []
 
-    
 
 def main():
     args = docopt(__doc__, version='0.0.1')
@@ -138,14 +137,14 @@ def main():
     db = client.nytimes
 
     article_cursor = db.articles.find({
-            'parsed': True, # article body is parsed into paragraphs
-            'n_images': {'$gt': 0}, # at least one image is present
+        'parsed': True,  # article body is parsed into paragraphs
+        'n_images': {'$gt': 0},  # at least one image is present
     }, no_cursor_timeout=True).batch_size(128)
 
     logger.info('Annotating articles.')
     for article in tqdm(article_cursor):
-        # if 'coref_clusters' in article:
-        #     continue
+        if 'coref_clusters' in article:
+            continue
 
         calculate_spacy_positions(article)
 
@@ -163,7 +162,8 @@ def main():
         doc = nlp(combined)
         get_clusters(doc, article)
 
-        db.articles.find_one_and_update({'_id': article['_id']}, {'$set': article})
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
 
 
 if __name__ == '__main__':
