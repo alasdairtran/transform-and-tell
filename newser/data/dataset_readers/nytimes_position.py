@@ -75,6 +75,7 @@ class NYTimesPositionReader(DatasetReader):
             'parsed': True,  # article body is parsed into paragraphs
             'n_images': {'$gt': 0},  # at least one image is present
             'pub_date': {'$gte': start, '$lt': end},
+            'language': 'en',
         }, no_cursor_timeout=True).batch_size(128)
 
         for article in article_cursor:
@@ -91,6 +92,8 @@ class NYTimesPositionReader(DatasetReader):
                     n_words += len(title.split())
 
                 caption = sections[pos]['text'].strip()
+                if not caption:
+                    continue
 
                 before = []
                 after = []
