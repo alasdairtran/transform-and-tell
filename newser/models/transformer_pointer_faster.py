@@ -1,3 +1,4 @@
+import logging
 import math
 import re
 import warnings
@@ -29,6 +30,7 @@ from newser.modules.criteria import Criterion
 from .decoder_flattened import Decoder
 from .resnet import resnext101_32x16d_wsl
 
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 LSTM = _Seq2SeqWrapper(nn.LSTM)
 
 
@@ -144,6 +146,7 @@ class TransformerPointerModelFaster(Model):
                  sampling_topk: int = 1,
                  sampling_temp: float = 1.0,
                  weigh_bert: bool = False,
+                 model_path: str = None,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
         self.decoder = decoder
@@ -186,6 +189,12 @@ class TransformerPointerModelFaster(Model):
 
         initializer(self)
         self.vocab_size = vocab_size
+
+        if model_path is not None:
+            logger.info(f'Recovering weights from {model_path}.')
+            model_state = torch.load(model_path)
+            self.load_state_dict(model_state)
+
         # Initialize the weight with first layer of BERT
         # self.fc.weight.data.copy_(
         #     self.roberta.model.decoder.sentence_encoder.embed_tokens.weight)
