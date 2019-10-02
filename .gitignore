@@ -31,6 +31,7 @@ __pycache__
 *.run.xml
 *.synctex.gz
 *-blx.bib
+*.brf
 
 *.pdf
 /data
