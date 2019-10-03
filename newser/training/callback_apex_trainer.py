@@ -3,10 +3,10 @@ The ``CallbackTrainer`` should be considered experimental code.
 Its API may change at any time, and it may disappear altogether.
 """
 import datetime
+import functools
 import logging
 import math
 import time
-import functools
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
@@ -195,7 +195,7 @@ class CallbackApexTrainer(TrainerBase):
 
         try:
             loss = output_dict["loss"]
-            if for_training:
+            if loss is not None and for_training:
                 loss += self.model.get_regularization_penalty()
         except KeyError:
             if for_training:
@@ -218,6 +218,9 @@ class CallbackApexTrainer(TrainerBase):
 
         self.handler.fire_event(Events.FORWARD)
         loss = self.batch_loss(batch_group, for_training=True)
+
+        if loss is None:
+            return
 
         if torch.isnan(loss):
             logger.warning("NaN loss encountered.")
