@@ -7,4 +7,5 @@ from .beam import BeamableMM
 from .convolutions import (ConvTBC, DynamicConv1dTBC, LightweightConv1d,
                            LightweightConv1dTBC, LinearizedConvolution)
 from .linear import GehringLinear
+from .mixins import LoadStateDictWithPrefix
 from .softmax import AdaptiveSoftmax
