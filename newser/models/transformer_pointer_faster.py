@@ -24,7 +24,8 @@ from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
 from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 
-from newser.modules import GehringLinear, multi_head_attention_score_forward
+from newser.modules import (GehringLinear, LoadStateDictWithPrefix,
+                            SelfAttention, multi_head_attention_score_forward)
 from newser.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
@@ -97,7 +98,7 @@ class SequenceSummaryConfig:
 
 
 @Model.register("transformer_pointer_faster")
-class TransformerPointerModelFaster(Model):
+class TransformerPointerModelFaster(LoadStateDictWithPrefix, Model):
     """
     An AllenNLP Model that runs pretrained BERT,
     takes the pooled output, and adds a Linear layer on top.
@@ -178,7 +179,7 @@ class TransformerPointerModelFaster(Model):
         self.entity_loss = nn.CrossEntropyLoss(ignore_index=-1)
         # self.copy_loss = nn.CrossEntropyLoss(ignore_index=padding_value)
 
-        # Attention-related modules
+        # Copy-related modules
         self.in_proj_weight = nn.Parameter(torch.empty(2 * 1024, 1024))
         self.in_proj_bias = nn.Parameter(torch.empty(2 * 1024))
         self.out_proj = GehringLinear(1024, 1024, bias=True)
@@ -186,6 +187,10 @@ class TransformerPointerModelFaster(Model):
         xavier_uniform_(self.in_proj_weight)
         constant_(self.in_proj_bias, 0.)
         xavier_normal_(self.bias_k)
+
+        # Entity-related modules
+        self.entity_attn = SelfAttention(
+            out_channels=1024, embed_dim=1024, num_heads=16, gated=True)
 
         initializer(self)
         self.vocab_size = vocab_size
@@ -210,20 +215,24 @@ class TransformerPointerModelFaster(Model):
         decoder_out = self.decoder(caption, contexts)
 
         # Assume we're using adaptive loss
-        gen_loss, sample_size = self.criterion(
-            self.decoder.adaptive_softmax, decoder_out, target_ids)
+        # gen_loss, sample_size = self.criterion(
+        #     self.decoder.adaptive_softmax, decoder_out, target_ids)
 
         entity_loss, copy_loss = self.pointer_loss(
             decoder_out, context, caption, target_ids, X_sections_hiddens, article_padding_mask)
 
-        gen_loss = gen_loss / sample_size / math.log(2)
+        # gen_loss = gen_loss / sample_size / math.log(2)
         entity_loss = entity_loss / math.log(2)
         copy_loss = copy_loss / math.log(2)
 
-        loss = gen_loss + entity_loss + copy_loss
+        # loss = gen_loss + entity_loss + copy_loss
+        loss = entity_loss + copy_loss
 
-        if not torch.isnan(gen_loss):
-            self.batch_history['gen_loss'] += gen_loss.item()
+        if loss.item() < 1e-6:
+            loss = None
+
+        # if not torch.isnan(gen_loss):
+        #     self.batch_history['gen_loss'] += gen_loss.item()
         if not torch.isnan(entity_loss):
             self.batch_history['entity_loss'] += entity_loss.item()
         if not torch.isnan(copy_loss):
@@ -258,7 +267,7 @@ class TransformerPointerModelFaster(Model):
 
         output_dict = {
             'loss': loss,
-            'sample_size': sample_size,
+            'sample_size': caption_ids.shape[0],
         }
 
         return output_dict
@@ -277,17 +286,6 @@ class TransformerPointerModelFaster(Model):
 
         context_copy_masks = context[f'{self.index}_copy_masks']
         # context_copy_masks.shape == [batch_size, source_len]
-
-        entity_logits = self.entity_fc(X)
-        # entity_logits.shape == [batch_size, target_len, 2]
-
-        entity_logits = entity_logits.view(-1, 2)
-        # entity_logits.shape == [batch_size * target_len, 2]
-
-        targets = caption_copy_masks.reshape(-1)
-        # targets.shape == [batch_size * target_len]
-
-        entity_loss = self.entity_loss(entity_logits, targets)
 
         if self.weigh_bert:
             X_article = torch.stack(X_sections_hiddens, dim=2)
@@ -308,6 +306,23 @@ class TransformerPointerModelFaster(Model):
         # X.shape == [target_len, batch_size, embed_size]
 
         X_article = X_article.transpose(0, 1)
+
+        X_entity = self.entity_attn(X)
+        # X_entity.shape == [target_len, batch_size, embed_size]
+
+        X_entity = X_entity.transpose(0, 1)
+        # X_entity.shape == [batch_size, target_len, embed_size]
+
+        entity_logits = self.entity_fc(X_entity)
+        # entity_logits.shape == [batch_size, target_len, 2]
+
+        entity_logits = entity_logits.view(-1, 2)
+        # entity_logits.shape == [batch_size * target_len, 2]
+
+        targets = caption_copy_masks.reshape(-1)
+        # targets.shape == [batch_size * target_len]
+
+        entity_loss = self.entity_loss(entity_logits, targets)
 
         copy_attn = multi_head_attention_score_forward(
             X, X_article, 1024, 16,
