@@ -1,3 +1,4 @@
+import logging
 import os
 
 import torch
@@ -11,6 +12,8 @@ from allennlp.nn.util import move_to_device
 from allennlp.training.util import datasets_from_params
 
 from .train import yaml_to_params
+
+logger = logging.getLogger(__name__)
 
 
 def generate(archive_path, model_path, overrides=None, device=0):
@@ -39,6 +42,7 @@ def generate(archive_path, model_path, overrides=None, device=0):
     model = Model.from_params(vocab=vocab, params=config.pop('model'))
 
     if model_path:
+        logger.info(f'Loading best model from {model_path}')
         best_model_state = torch.load(model_path)
         model.load_state_dict(best_model_state)
 
