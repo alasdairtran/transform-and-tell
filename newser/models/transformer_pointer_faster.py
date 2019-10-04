@@ -542,6 +542,8 @@ class TransformerPointerModelFaster(LoadStateDictWithPrefix, Model):
         X_article = X_article.transpose(0, 1)
         # X_article.shape == [seq_len, batch_size, embed_size]
 
+        Xs = []
+
         for i in range(gen_len):
             if i == 0:
                 prev_target = {self.index: seed_input}
@@ -578,10 +580,21 @@ class TransformerPointerModelFaster(LoadStateDictWithPrefix, Model):
             X = decoder_out[0]
             # X.shape == [batch_size, 1, embed_size]
 
-            entity_logits = self.entity_fc(X)
-            # entity_logits.shape == [batch_size, 1, 2]
+            Xs.append(X)
 
-            entity_logits = entity_logits.squeeze(1)
+            X_full = torch.cat(Xs, dim=1)
+            # X.shape == [batch_size_i, target_len, embed_size]
+
+            X_full = X_full.transpose(0, 1)
+            # X.shape == [target_len, batch_size_i, embed_size]
+
+            X_entity = self.entity_attn(X_full)
+            # X_entity.shape == [target_len, batch_size_i, embed_size]
+
+            X_entity = X_entity.transpose(0, 1)
+            # X_entity.shape == [batch_size_i, target_len, embed_size]
+
+            entity_logits = self.entity_fc(X_entity[:, -1])
             # entity_logits.shape == [batch_size, 2]
 
             should_copy = entity_logits.argmax(dim=-1) == 1
@@ -724,6 +737,8 @@ class TransformerPointerModelFaster(LoadStateDictWithPrefix, Model):
             active_idx = ~is_eos
 
             full_active_idx[full_active_idx.nonzero()[~active_idx]] = 0
+
+            Xs = [x[active_idx] for x in Xs]
 
             seed_input = seed_input[active_idx]
 
