@@ -67,7 +67,7 @@ def get_clusters(doc, article):
                 'text': coref.text,
                 'start': s,
                 'end': e,
-                'pos': [span.pos_ for span in main_span],
+                'pos': [span.pos_ for span in coref],
             }
 
             kept_cluster['mentions'].append(mention)
@@ -139,12 +139,13 @@ def main():
     article_cursor = db.articles.find({
         'parsed': True,  # article body is parsed into paragraphs
         'n_images': {'$gt': 0},  # at least one image is present
+        'language': 'en',
     }, no_cursor_timeout=True).batch_size(128)
 
     logger.info('Annotating articles.')
     for article in tqdm(article_cursor):
-        if 'coref_clusters' in article:
-            continue
+        # if 'coref_clusters' in article:
+        #     continue
 
         calculate_spacy_positions(article)
 
