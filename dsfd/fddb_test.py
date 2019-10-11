@@ -71,7 +71,7 @@ def detect_face(image, shrink):
     x = torch.from_numpy(x).permute(2, 0, 1)
     x = x.unsqueeze(0)
     with torch.no_grad():
-        x = Variable(x.cuda())
+        x = x.cuda()
 
         #net.priorbox = PriorBoxLayer(width,height)
         y = net(x)

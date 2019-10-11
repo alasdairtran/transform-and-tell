@@ -205,12 +205,11 @@ class SSD(nn.Module):
 
         if phase == 'test':
             self.softmax = nn.Softmax(dim=-1)
-            self.detect = Detect(
-                num_classes, 0, cfg['num_thresh'], cfg['conf_thresh'], cfg['nms_thresh'])
 
     def init_priors(self, cfg, min_size=cfg['min_sizes'], max_size=cfg['max_sizes']):
-        priorbox = PriorBox(cfg, min_size, max_size)
-        prior = Variable(priorbox.forward(), volatile=True)
+        with torch.no_grad():
+            priorbox = PriorBox(cfg, min_size, max_size)
+            prior = priorbox.forward()
         return prior
 
     def forward(self, x):
@@ -367,23 +366,31 @@ class SSD(nn.Module):
             self.cfg['min_dim'] = image_size
             self.priors = self.init_priors(self.cfg)
             if refine:
-                output = self.detect(
+                output = Detect.apply(
                     face_loc.view(face_loc.size(0), -1, 4),         # loc preds
                     self.softmax(face_conf.view(face_conf.size(
                         0), -1, self.num_classes)),  # conf preds
                     # default boxes
-                    self.priors.type(type(x.data)),
+                    self.priors.type_as(x),
+                    self.num_classes,
+                    0, cfg['num_thresh'],
+                    cfg['conf_thresh'],
+                    cfg['nms_thresh'],
                     arm_loc.view(arm_loc.size(0), -1, 4),
                     self.softmax(arm_conf.view(
                         arm_conf.size(0), -1, self.num_classes)),
                 )
             else:
-                output = self.detect(
+                output = Detect.apply(
                     face_loc.view(face_loc.size(0), -1, 4),         # loc preds
                     self.softmax(face_conf.view(face_conf.size(
                         0), -1, self.num_classes)),  # conf preds
                     # default boxes
-                    self.priors.type(type(x.data))
+                    self.priors.type_as(x),
+                    self.num_classes,
+                    0, cfg['num_thresh'],
+                    cfg['conf_thresh'],
+                    cfg['nms_thresh'],
                 )
         else:
             self.cfg['feature_maps'] = featuremap_size
@@ -443,7 +450,7 @@ class SSD(nn.Module):
 
     def _upsample_add(self, x, y):
         _, _, H, W = y.size()
-        return F.upsample(x, size=(H, W), mode='bilinear') + y
+        return F.interpolate(x, size=(H, W), mode='bilinear', align_corners=True) + y
 
     def _upsample_product(self, x, y):
         '''Upsample and add two feature maps.
@@ -453,7 +460,7 @@ class SSD(nn.Module):
         Returns:
           (Variable) added feature map.
         Note in PyTorch, when input size is odd, the upsampled feature map
-        with `F.upsample(..., scale_factor=2, mode='nearest')`
+        with `F.interpolate(..., scale_factor=2, mode='nearest')`
         maybe not equal to the lateral feature map size.
         e.g.
         original input size: [N,_,15,15] ->
@@ -462,7 +469,7 @@ class SSD(nn.Module):
         So we choose bilinear upsample which supports arbitrary output sizes.
         '''
         _, _, H, W = y.size()
-        return F.upsample(x, size=(H, W), mode='bilinear') * y
+        return F.interpolate(x, size=(H, W), mode='bilinear', align_corners=True) * y
 
 # This function is derived from torchvision VGG make_layers()
 # https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py
@@ -608,7 +615,7 @@ def pa_multibox(output_channels, mbox_cfg, num_classes):
         loc_layers += [nn.Conv2d(input_channels, mbox_cfg[k] * loc_output, kernel_size=3, padding=1)]
         if mio:
             conf_layers += [nn.Conv2d(input_channels, mbox_cfg[k] * (2+conf_output), kernel_size=3, padding=1)]
-        else:  
+        else:
             conf_layers += [nn.Conv2d(input_channels, mbox_cfg[k] * conf_output, kernel_size=3, padding=1)]
     return (loc_layers, conf_layers)
 '''

@@ -135,8 +135,10 @@ class MultiBoxLoss(nn.Module):
         print(self.tmp[1]/self.tmp[0])
         '''
         # wrap targets
-        loc_t = Variable(loc_t, requires_grad=False)
-        conf_t = Variable(conf_t, requires_grad=False)
+        loc_t = loc_t
+        loc_t.requires_grad = False
+        conf_t = conf_t
+        conf_t.requires_grad = False
         pos = conf_t > 0
         num_pos = pos.sum(dim=1, keepdim=True)
         '''
@@ -198,7 +200,7 @@ class focalLoss(nn.Module):
             examples are down-weighted.
             alpha may be set by inverse class frequency or treated as a hyper-param
             If you don't want to balance factor, set alpha to 1
-            If you don't want to focusing factor, set gamma to 1 
+            If you don't want to focusing factor, set gamma to 1
             which is same as normal cross entropy loss
         """
         super(focalLoss, self).__init__()
@@ -269,8 +271,10 @@ class focalLoss(nn.Module):
             loc_t = loc_t.cuda()
             conf_t = conf_t.cuda()
         # wrap targets
-        loc_targets = Variable(loc_t, requires_grad=False)
-        conf_targets = Variable(conf_t, requires_grad=False)
+        loc_targets = loc_t
+        loc_targets.requires_grad = False
+        conf_targets = conf_t
+        conf_targets.requires_grad = False
 
         ############# Localization Loss part ##############
         pos = conf_targets > 0  # ignore background

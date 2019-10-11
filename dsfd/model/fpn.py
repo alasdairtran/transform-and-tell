@@ -98,7 +98,7 @@ class _FPN(nn.Module):
         Returns:
           (Variable) added feature map.
         Note in PyTorch, when input size is odd, the upsampled feature map
-        with `F.upsample(..., scale_factor=2, mode='nearest')`
+        with `F.interpolate(..., scale_factor=2, mode='nearest')`
         maybe not equal to the lateral feature map size.
         e.g.
         original input size: [N,_,15,15] ->
@@ -107,7 +107,7 @@ class _FPN(nn.Module):
         So we choose bilinear upsample which supports arbitrary output sizes.
         '''
         _, _, H, W = y.size()
-        return F.upsample(x, size=(H, W), mode='bilinear') + y
+        return F.interpolate(x, size=(H, W), mode='bilinear', align_corners=True) + y
 
     def _PyramidRoI_Feat(self, feat_maps, rois, im_info):
         ''' roi pool on pyramid feature maps'''
@@ -133,7 +133,7 @@ class _FPN(nn.Module):
             grid_yx = torch.stack(
                 [grid_xy.data[:, :, :, 1], grid_xy.data[:, :, :, 0]], 3).contiguous()
             roi_pool_feat = self.RCNN_roi_crop(
-                feat_maps, Variable(grid_yx).detach())
+                feat_maps, grid_yx.detach())
             if cfg.CROP_RESIZE_WITH_MAX_POOL:
                 roi_pool_feat = F.max_pool2d(roi_pool_feat, 2, 2)
 
@@ -221,15 +221,13 @@ class _FPN(nn.Module):
             rois_label_pos = rois_label[pos_id]
             rois_label_pos_ids = pos_id
 
-            rois_pos = Variable(rois[pos_id])
-            rois = Variable(rois)
-            rois_label = Variable(rois_label)
+            rois_pos = rois[pos_id]
+            rois = rois
+            rois_label = rois_label
 
-            rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
-            rois_inside_ws = Variable(
-                rois_inside_ws.view(-1, rois_inside_ws.size(2)))
-            rois_outside_ws = Variable(
-                rois_outside_ws.view(-1, rois_outside_ws.size(2)))
+            rois_target = rois_target.view(-1, rois_target.size(2))
+            rois_inside_ws = rois_inside_ws.view(-1, rois_inside_ws.size(2))
+            rois_outside_ws = rois_outside_ws.view(-1, rois_outside_ws.size(2))
         else:
             # NOTE: additionally, normalize proposals to range [0, 1],
             #        this is necessary so that the following roi pooling
@@ -247,8 +245,8 @@ class _FPN(nn.Module):
             rois = rois.view(-1, 5)
             pos_id = torch.arange(0, rois.size(0)).long().type_as(rois).long()
             rois_label_pos_ids = pos_id
-            rois_pos = Variable(rois[pos_id])
-            rois = Variable(rois)
+            rois_pos = rois[pos_id]
+            rois = rois
 
         # print('before pooling, cfg', cfg.POOLING_MODE)
         # print('before pooling, get_cfg', get_cfg().POOLING_MODE)

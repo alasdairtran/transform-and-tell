@@ -11,6 +11,7 @@ import time
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import ptvsd
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -41,6 +42,8 @@ parser.add_argument('--img_root', default='./dsfd/data/worlds-largest-selfie.jpg
                     help='Location of test images directory')
 parser.add_argument('--widerface_root', default=WIDERFace_ROOT,
                     help='Location of WIDERFACE root directory')
+parser.add_argument('--ptvsd', type=int,
+                    help='Port for ptvsd debugging mode.')
 args = parser.parse_args()
 
 if args.cuda and torch.cuda.is_available():
@@ -103,7 +106,7 @@ def infer(net, img, transform, thresh, cuda, shrink):
         img = cv2.resize(img, None, None, fx=shrink, fy=shrink,
                          interpolation=cv2.INTER_LINEAR)
     x = torch.from_numpy(transform(img)[0]).permute(2, 0, 1)
-    x = Variable(x.unsqueeze(0), volatile=True)
+    x = x.unsqueeze(0)
     if cuda:
         x = x.cuda()
     #print (shrink , x.shape)
@@ -120,7 +123,7 @@ def infer(net, img, transform, thresh, cuda, shrink):
             #label_name = labelmap[i-1]
             pt = (detections[0, i, j, 1:]*scale).cpu().numpy()
             coords = (pt[0], pt[1], pt[2], pt[3])
-            det.append([pt[0], pt[1], pt[2], pt[3], score])
+            det.append([pt[0], pt[1], pt[2], pt[3], score.item()])
             j += 1
     if (len(det)) == 0:
         det = [[0.1, 0.1, 0.2, 0.2, 0.01]]
@@ -271,4 +274,9 @@ def test_oneimage():
 
 
 if __name__ == '__main__':
-    test_oneimage()
+    if args.ptvsd:
+        address = ('0.0.0.0', args.ptvsd)
+        ptvsd.enable_attach(address)
+        ptvsd.wait_for_attach()
+    with torch.no_grad():
+        test_oneimage()
