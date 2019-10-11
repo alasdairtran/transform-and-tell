@@ -1,20 +1,23 @@
-from __future__ import division , print_function
+from __future__ import division, print_function
+
+import os.path as osp
+import pdb
+import sys
+from collections import defaultdict
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+#from utils.augmentations import SSDAugmentation
+import scipy.io
+import torch
+import torch.utils.data as data
+
 """WIDER Face Dataset Classes
 author: swordli
 """
 #from .config import HOME
-import os.path as osp
-import sys
-import torch
-import torch.utils.data as data
-import cv2
-import numpy as np
 sys.path.append("/f/home/jianli/code/s3fd.180716/")
-#from utils.augmentations import SSDAugmentation
-import scipy.io
-import pdb
-from collections import defaultdict
-import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
 WIDERFace_CLASSES = ['face']  # always index 0
@@ -55,10 +58,10 @@ class WIDERFaceAnnotationTransform(object):
             if target[i][2] > width-2 : target[i][2] = width - 2
             if target[i][3] > height-2 : target[i][3] = height - 2
             '''
-            target[i][0] = float(target[i][0]) / width 
-            target[i][1] = float(target[i][1]) / height  
-            target[i][2] = float(target[i][2]) / width 
-            target[i][3] = float(target[i][3]) / height  
+            target[i][0] = float(target[i][0]) / width
+            target[i][1] = float(target[i][1]) / height
+            target[i][2] = float(target[i][2]) / width
+            target[i][3] = float(target[i][3]) / height
             '''
             if target[i][0] < 0.0001:
                 target[i][0] = 0.0001 
@@ -70,10 +73,10 @@ class WIDERFaceAnnotationTransform(object):
                 target[i][3] = 0.9999
             '''
             # filter error bbox
-            
-            #if target[i][0] >= target[i][2] or target[i][1] >= target[i][3] or target[i][0] < 0 or target[i][1] < 0 or target[i][2] > 1 or target[i][3] > 1 :
+
+            # if target[i][0] >= target[i][2] or target[i][1] >= target[i][3] or target[i][0] < 0 or target[i][1] < 0 or target[i][2] > 1 or target[i][3] > 1 :
             #    print ("error bbox: " ,  target[i])
-            
+
             '''
             assert target[i][0] >= 0.001
             assert target[i][1] >= 0.001
@@ -84,6 +87,7 @@ class WIDERFaceAnnotationTransform(object):
             '''
             #res.append( [ target[i][0], target[i][1], target[i][2], target[i][3], target[i][4] ] )
         return target  # [[xmin, ymin, xmax, ymax, label_ind], ... ]
+
 
 class WIDERFaceDetection(data.Dataset):
     """WIDERFace Detection Dataset Object   
@@ -127,18 +131,18 @@ class WIDERFaceDetection(data.Dataset):
                 self.ids.append((rootpath, line.strip()))
         '''
         if self.image_set == 'train':
-            path_to_label = osp.join ( self.root , 'wider_face_split' ) 
-            path_to_image = osp.join ( self.root , 'WIDER_train/images' )
+            path_to_label = osp.join(self.root, 'wider_face_split')
+            path_to_image = osp.join(self.root, 'WIDER_train/images')
             fname = "wider_face_train.mat"
 
         if self.image_set == 'val':
-            path_to_label = osp.join ( self.root , 'wider_face_split' ) 
-            path_to_image = osp.join ( self.root , 'WIDER_val/images' )
+            path_to_label = osp.join(self.root, 'wider_face_split')
+            path_to_image = osp.join(self.root, 'WIDER_val/images')
             fname = "wider_face_val.mat"
 
         if self.image_set == 'test':
-            path_to_label = osp.join ( self.root , 'wider_face_split' ) 
-            path_to_image = osp.join ( self.root , 'WIDER_test/images' )
+            path_to_label = osp.join(self.root, 'wider_face_split')
+            path_to_image = osp.join(self.root, 'WIDER_test/images')
             fname = "wider_face_test.mat"
 
         self.path_to_label = path_to_label
@@ -148,21 +152,22 @@ class WIDERFaceDetection(data.Dataset):
         self.event_list = self.f.get('event_list')
         self.file_list = self.f.get('file_list')
         self.face_bbx_list = self.f.get('face_bbx_list')
- 
+
         self._load_widerface()
 
     def _load_widerface(self):
 
-        error_bbox = 0 
+        error_bbox = 0
         train_bbox = 0
         for event_idx, event in enumerate(self.event_list):
             directory = event[0][0]
             for im_idx, im in enumerate(self.file_list[event_idx][0]):
                 im_name = im[0][0]
 
-                if self.image_set in [ 'test' , 'val']:
-                    self.img_ids.append( osp.join(self.path_to_image, directory,  im_name + '.jpg') )
-                    self.event_ids.append( directory )
+                if self.image_set in ['test', 'val']:
+                    self.img_ids.append(
+                        osp.join(self.path_to_image, directory,  im_name + '.jpg'))
+                    self.event_ids.append(directory)
                     self.label_ids.append([])
                     continue
 
@@ -171,24 +176,25 @@ class WIDERFaceDetection(data.Dataset):
                 for i in range(face_bbx.shape[0]):
                     # filter bbox
                     if face_bbx[i][2] < 2 or face_bbx[i][3] < 2 or face_bbx[i][0] < 0 or face_bbx[i][1] < 0:
-                        error_bbox +=1
+                        error_bbox += 1
                         #print (face_bbx[i])
-                        continue 
-                    train_bbox += 1 
+                        continue
+                    train_bbox += 1
                     xmin = float(face_bbx[i][0])
                     ymin = float(face_bbx[i][1])
-                    xmax = float(face_bbx[i][2]) + xmin -1 	
-                    ymax = float(face_bbx[i][3]) + ymin -1
+                    xmax = float(face_bbx[i][2]) + xmin - 1
+                    ymax = float(face_bbx[i][3]) + ymin - 1
                     bboxes.append([xmin, ymin, xmax, ymax, 0])
 
-                if ( len(bboxes)==0 ):  #  filter bbox will make bbox none
+                if (len(bboxes) == 0):  # filter bbox will make bbox none
                     continue
-                self.img_ids.append( osp.join(self.path_to_image, directory,  im_name + '.jpg') )
-                self.event_ids.append( directory )
-                self.label_ids.append( bboxes )
-                #yield DATA(os.path.join(self.path_to_image, directory,  im_name + '.jpg'), bboxes)
-        print("Error bbox number to filter : %d,  bbox number: %d"  %(error_bbox , train_bbox))
-        
+                self.img_ids.append(
+                    osp.join(self.path_to_image, directory,  im_name + '.jpg'))
+                self.event_ids.append(directory)
+                self.label_ids.append(bboxes)
+                # yield DATA(os.path.join(self.path_to_image, directory,  im_name + '.jpg'), bboxes)
+        print("Error bbox number to filter : %d,  bbox number: %d" %
+              (error_bbox, train_bbox))
 
     def __getitem__(self, index):
         im, gt, h, w = self.pull_item(index)
@@ -209,7 +215,8 @@ class WIDERFaceDetection(data.Dataset):
         if self.transform is not None:
             target = np.array(target)
             # data augmentation
-            img, boxes, labels = self.transform(img, target[:, :4], target[:, 4])
+            img, boxes, labels = self.transform(
+                img, target[:, :4], target[:, 4])
             #self.vis_detections_v2(img , boxes , index)
             # to rgb
             #img = img[:, :, (2, 1, 0)]
@@ -219,10 +226,10 @@ class WIDERFaceDetection(data.Dataset):
         return torch.from_numpy(img).permute(2, 0, 1), target, height, width
         # return torch.from_numpy(img), target, height, width
 
-    def vis_detections(self , im,  dets, image_name ):
+    def vis_detections(self, im,  dets, image_name):
 
-        cv2.imwrite("./tmp_res/"+str(image_name)+"ori.jpg" , im)
-        print (im)
+        cv2.imwrite("./tmp_res/"+str(image_name)+"ori.jpg", im)
+        print(im)
         size = im.shape[0]
         dets = dets*size
         """Draw detected bounding boxes."""
@@ -238,12 +245,12 @@ class WIDERFaceDetection(data.Dataset):
                               bbox[2] - bbox[0] + 1,
                               bbox[3] - bbox[1] + 1, fill=False,
                               edgecolor='red', linewidth=2.5)
-                )
+            )
         plt.axis('off')
         plt.tight_layout()
         plt.savefig('./tmp_res/'+str(image_name)+".jpg", dpi=fig.dpi)
 
-    def vis_detections_v2(self , im,  dets, image_name ):
+    def vis_detections_v2(self, im,  dets, image_name):
         size = im.shape[0]
         dets = dets*size
         """Draw detected bounding boxes."""
@@ -251,7 +258,8 @@ class WIDERFaceDetection(data.Dataset):
         for i in range(len(dets)):
             bbox = dets[i, :4]
             #print ((bbox[0],bbox[1]), (bbox[2],bbox[3]) )
-            cv2.rectangle( im , (int(bbox[0]),int(bbox[1])), (int(bbox[2]),int(bbox[3])), (0,255,0),5 )
+            cv2.rectangle(im, (int(bbox[0]), int(bbox[1])), (int(
+                bbox[2]), int(bbox[3])), (0, 255, 0), 5)
         cv2.imwrite('./tmp_res/'+str(image_name)+".jpg", im)
 
     def pull_image(self, index):
@@ -299,6 +307,7 @@ class WIDERFaceDetection(data.Dataset):
             tensorized version of img, squeezed
         '''
         return torch.Tensor(self.pull_image(index)).unsqueeze_(0)
+
 
 '''
 from utils.augmentations import SSDAugmentation

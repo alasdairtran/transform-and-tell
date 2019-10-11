@@ -1,25 +1,29 @@
+import pdb
 import random
+import time
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models as models
+import torchvision.utils as vutils
 from torch.autograd import Variable, gradcheck
 from torch.autograd.gradcheck import gradgradcheck
-import torchvision.models as models
-from torch.autograd import Variable
-import numpy as np
-import torchvision.utils as vutils
-from model.utils.config import cfg    # rm 'lib.', or cfg will create a new copy
-from model.rpn.rpn_fpn import _RPN_FPN
-from model.roi_pooling.modules.roi_pool import _RoIPooling
-from model.roi_crop.modules.roi_crop import _RoICrop
+
 from model.roi_align.modules.roi_align import RoIAlignAvg
+from model.roi_crop.modules.roi_crop import _RoICrop
+from model.roi_pooling.modules.roi_pool import _RoIPooling
 from model.rpn.proposal_target_layer import _ProposalTargetLayer
-from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_grid_gen, _affine_theta
-import time
-import pdb
+from model.rpn.rpn_fpn import _RPN_FPN
+from model.utils.config import cfg  # rm 'lib.', or cfg will create a new copy
+from model.utils.net_utils import (_affine_grid_gen, _affine_theta,
+                                   _crop_pool_layer, _smooth_l1_loss)
+
 
 class _FPN(nn.Module):
     """ FPN """
+
     def __init__(self, classes, class_agnostic):
         super(_FPN, self).__init__()
         self.classes = classes
@@ -35,9 +39,12 @@ class _FPN(nn.Module):
 
         # NOTE: the original paper used pool_size = 7 for cls branch, and 14 for mask branch, to save the
         # computation time, we first use 14 as the pool_size, and then do stride=2 pooling for cls branch.
-        self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
-        self.RCNN_roi_align = RoIAlignAvg(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
-        self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
+        self.RCNN_roi_pool = _RoIPooling(
+            cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+        self.RCNN_roi_align = RoIAlignAvg(
+            cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
+        self.grid_size = cfg.POOLING_SIZE * \
+            2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
         self.RCNN_roi_crop = _RoICrop()
 
     def _init_weights(self):
@@ -47,7 +54,8 @@ class _FPN(nn.Module):
             """
             # x is a parameter
             if truncated:
-                m.weight.data.normal_().fmod_(2).mul_(stddev).add_(mean) # not a perfect approximation
+                m.weight.data.normal_().fmod_(2).mul_(stddev).add_(
+                    mean)  # not a perfect approximation
             else:
                 m.weight.data.normal_(mean, stddev)
                 m.bias.data.zero_()
@@ -70,7 +78,6 @@ class _FPN(nn.Module):
         normal_init(self.RCNN_latlayer2, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_latlayer3, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_latlayer4, 0, 0.01, cfg.TRAIN.TRUNCATED)
-
 
         normal_init(self.RCNN_rpn.RPN_Conv, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
@@ -99,8 +106,8 @@ class _FPN(nn.Module):
         upsampled feature map size: [N,_,16,16]
         So we choose bilinear upsample which supports arbitrary output sizes.
         '''
-        _,_,H,W = y.size()
-        return F.upsample(x, size=(H,W), mode='bilinear') + y
+        _, _, H, W = y.size()
+        return F.upsample(x, size=(H, W), mode='bilinear') + y
 
     def _PyramidRoI_Feat(self, feat_maps, rois, im_info):
         ''' roi pool on pyramid feature maps'''
@@ -121,9 +128,12 @@ class _FPN(nn.Module):
             # pdb.set_trace()
             # pooled_feat_anchor = _crop_pool_layer(base_feat, rois.view(-1, 5))
             # NOTE: need to add pyrmaid
-            grid_xy = _affine_grid_gen(rois, feat_maps.size()[2:], self.grid_size)  ##
-            grid_yx = torch.stack([grid_xy.data[:,:,:,1], grid_xy.data[:,:,:,0]], 3).contiguous()
-            roi_pool_feat = self.RCNN_roi_crop(feat_maps, Variable(grid_yx).detach()) ##
+            grid_xy = _affine_grid_gen(
+                rois, feat_maps.size()[2:], self.grid_size)
+            grid_yx = torch.stack(
+                [grid_xy.data[:, :, :, 1], grid_xy.data[:, :, :, 0]], 3).contiguous()
+            roi_pool_feat = self.RCNN_roi_crop(
+                feat_maps, Variable(grid_yx).detach())
             if cfg.CROP_RESIZE_WITH_MAX_POOL:
                 roi_pool_feat = F.max_pool2d(roi_pool_feat, 2, 2)
 
@@ -158,7 +168,7 @@ class _FPN(nn.Module):
             box_to_level = torch.cat(box_to_levels, 0)
             idx_sorted, order = torch.sort(box_to_level)
             roi_pool_feat = roi_pool_feat[order]
-            
+
         return roi_pool_feat
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
@@ -189,14 +199,15 @@ class _FPN(nn.Module):
         rpn_feature_maps = [p2, p3, p4, p5, p6]
         mrcnn_feature_maps = [p2, p3, p4, p5]
 
-        rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(rpn_feature_maps, im_info, gt_boxes, num_boxes)
+        rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(
+            rpn_feature_maps, im_info, gt_boxes, num_boxes)
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
             roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
             rois, rois_label, gt_assign, rois_target, rois_inside_ws, rois_outside_ws = roi_data
 
-            ## NOTE: additionally, normalize proposals to range [0, 1],
+            # NOTE: additionally, normalize proposals to range [0, 1],
             #        this is necessary so that the following roi pooling
             #        is correct on different feature maps
             # rois[:, :, 1::2] /= im_info[0][1]
@@ -215,10 +226,12 @@ class _FPN(nn.Module):
             rois_label = Variable(rois_label)
 
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
-            rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
-            rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
+            rois_inside_ws = Variable(
+                rois_inside_ws.view(-1, rois_inside_ws.size(2)))
+            rois_outside_ws = Variable(
+                rois_outside_ws.view(-1, rois_outside_ws.size(2)))
         else:
-            ## NOTE: additionally, normalize proposals to range [0, 1],
+            # NOTE: additionally, normalize proposals to range [0, 1],
             #        this is necessary so that the following roi pooling
             #        is correct on different feature maps
             # rois[:, :, 1::2] /= im_info[0][1]
@@ -240,18 +253,20 @@ class _FPN(nn.Module):
         # print('before pooling, cfg', cfg.POOLING_MODE)
         # print('before pooling, get_cfg', get_cfg().POOLING_MODE)
         # pooling features based on rois, output 14x14 map
-        roi_pool_feat = self._PyramidRoI_Feat(mrcnn_feature_maps, rois, im_info)
+        roi_pool_feat = self._PyramidRoI_Feat(
+            mrcnn_feature_maps, rois, im_info)
 
         # feed pooled features to top model
         pooled_feat = self._head_to_tail(roi_pool_feat)
-
 
         # compute bbox offset
         bbox_pred = self.RCNN_bbox_pred(pooled_feat)
         if self.training and not self.class_agnostic:
             # select the corresponding columns according to roi labels
-            bbox_pred_view = bbox_pred.view(bbox_pred.size(0), int(bbox_pred.size(1) / 4), 4)
-            bbox_pred_select = torch.gather(bbox_pred_view, 1, rois_label.long().view(rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4))
+            bbox_pred_view = bbox_pred.view(
+                bbox_pred.size(0), int(bbox_pred.size(1) / 4), 4)
+            bbox_pred_select = torch.gather(bbox_pred_view, 1, rois_label.long().view(
+                rois_label.size(0), 1, 1).expand(rois_label.size(0), 1, 4))
             bbox_pred = bbox_pred_select.squeeze(1)
 
         # compute object classification probability
@@ -265,7 +280,8 @@ class _FPN(nn.Module):
             # loss (cross entropy) for object classification
             RCNN_loss_cls = F.cross_entropy(cls_score, rois_label)
             # loss (l1-norm) for bounding box regression
-            RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
+            RCNN_loss_bbox = _smooth_l1_loss(
+                bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
 
         rois = rois.view(batch_size, -1, rois.size(1))
         cls_prob = cls_prob.view(batch_size, -1, cls_prob.size(1))

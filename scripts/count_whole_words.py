@@ -13,6 +13,7 @@ import pickle
 from collections import Counter
 
 import ptvsd
+import regex
 import torch
 from docopt import docopt
 from pymongo import MongoClient
@@ -20,7 +21,6 @@ from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
 from newser.utils import setup_logger
-import regex
 
 logger = setup_logger()
 
@@ -35,6 +35,7 @@ def validate(args):
     })
     args = schema.validate(args)
     return args
+
 
 def to_tokens(text, pat):
     tokens = regex.findall(pat, text)
@@ -58,7 +59,8 @@ def main():
     db = client.goodnews
 
     # Should haved added re.IGNORECASE so BPE merges can happen for capitalized versions of contractions
-    pat = regex.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+    pat = regex.compile(
+        r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 
     out_dict = {}
     for split in ['train', 'val', 'test']:

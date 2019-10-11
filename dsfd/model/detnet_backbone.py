@@ -1,13 +1,13 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
+
+import math
+
+import torch
+import torch.nn as nn
 
 #from model.utils.config import cfg
 #from model.fpn.fpn import _FPN
 
-import torch
-import torch.nn as nn
-import math
 
 __all__ = ['DetNet', 'detnet59']
 
@@ -97,7 +97,8 @@ class BottleneckA(nn.Module):
         assert inplanes == (planes * 4), 'inplanes != planes * 4'
         assert stride == 1, 'stride != 1'
         assert downsample is None, 'downsample is not None'
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)  # inplanes = 1024, planes = 256
+        # inplanes = 1024, planes = 256
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, dilation=2,
                                padding=2, bias=False)  # stride = 1, dilation = 2
@@ -139,7 +140,8 @@ class BottleneckB(nn.Module):
         assert inplanes == (planes * 4), 'inplanes != planes * 4'
         assert stride == 1, 'stride != 1'
         assert downsample is None, 'downsample is not None'
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)  # inplanes = 1024, planes = 256
+        # inplanes = 1024, planes = 256
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, dilation=2,
                                padding=2, bias=False)  # stride = 1, dilation = 2
@@ -226,7 +228,8 @@ class DetNet(nn.Module):
         block_a = BottleneckA
 
         layers = []
-        layers.append(block_b(self.inplanes, planes, stride=1, downsample=downsample))
+        layers.append(block_b(self.inplanes, planes,
+                              stride=1, downsample=downsample))
         self.inplanes = planes * block_b.expansion
         for i in range(1, blocks):
             layers.append(block_a(self.inplanes, planes))
@@ -281,7 +284,7 @@ def detnet59(pretrained=False):
     """
     model = DetNet(Bottleneck, [3, 4, 6, 3, 3])
     if pretrained:
-        print ("loading pretrained detnet")
+        print("loading pretrained detnet")
         path = './weights/detnet59.pth'
         state_dict = torch.load(path)
         model.load_state_dict(state_dict)

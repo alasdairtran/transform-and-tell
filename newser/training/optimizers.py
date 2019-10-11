@@ -1,6 +1,5 @@
 from allennlp.common import Registrable
 from allennlp.training.optimizers import Optimizer
-
 from pytorch_transformers.optimization import AdamW
 
 Registrable._registry[Optimizer]['adam_w'] = AdamW

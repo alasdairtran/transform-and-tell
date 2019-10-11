@@ -1,10 +1,11 @@
 from typing import Dict, List
-from allennlp.nn import util
+
 import torch
 from allennlp.data.fields import TextField
 from allennlp.data.token_indexers.token_indexer import TokenIndexer, TokenType
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.vocabulary import Vocabulary
+from allennlp.nn import util
 from overrides import overrides
 
 TokenList = List[TokenType]  # pylint: disable=invalid-name
@@ -42,7 +43,7 @@ class RareTextField(TextField):
         # pylint: disable=no-self-use
         # This is creating a dict of {token_indexer_key: batch_tensor} for each token indexer used
         # to index this field.
-        
+
         rare_list = [tensor['rare_tokens'] for tensor in tensor_list]
         for tensor in tensor_list:
             del tensor['rare_tokens']

@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
-import torch
+
 import math
 import pdb
+
 import numpy as np
+import torch
+
 
 def point_form(boxes):
     """ Convert prior_boxes to (xmin, ymin, xmax, ymax)
@@ -14,7 +17,7 @@ def point_form(boxes):
         boxes: (tensor) Converted xmin, ymin, xmax, ymax form of boxes.
     """
     return torch.cat((boxes[:, :2] - boxes[:, 2:]/2,     # xmin, ymin
-                     boxes[:, :2] + boxes[:, 2:]/2), 1)  # xmax, ymax
+                      boxes[:, :2] + boxes[:, 2:]/2), 1)  # xmax, ymax
 
 
 def center_size(boxes):
@@ -25,8 +28,8 @@ def center_size(boxes):
     Return:
         boxes: (tensor) Converted xmin, ymin, xmax, ymax form of boxes.
     """
-    return torch.cat([  (boxes[:, 2:] + boxes[:, :2])/2,  # cx, cy
-                     boxes[:, 2:] - boxes[:, :2]], 1)  # w, h
+    return torch.cat([(boxes[:, 2:] + boxes[:, :2])/2,  # cx, cy
+                      boxes[:, 2:] - boxes[:, :2]], 1)  # w, h
 
 
 def intersect(box_a, box_b):
@@ -71,7 +74,7 @@ def jaccard(box_a, box_b):
     return inter / union  # [A,B]
 
 
-def refine_match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx , arm_loc):
+def refine_match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx, arm_loc):
     """Match each prior box with the ground truth box of the highest jaccard
     overlap, encode the bounding boxes, then return the matched indices
     corresponding to both confidence and location preds.
@@ -88,8 +91,8 @@ def refine_match(threshold, truths, priors, variances, labels, loc_t, conf_t, id
     Return:
         The matched indices corresponding to 1)location and 2)confidence preds.
     """
-    # decode arm_loc 
-    decode_arm_loc = decode(arm_loc , priors = priors, variances = variances)
+    # decode arm_loc
+    decode_arm_loc = decode(arm_loc, priors=priors, variances=variances)
     # jaccard index
     overlaps = jaccard(
         truths,
@@ -114,10 +117,11 @@ def refine_match(threshold, truths, priors, variances, labels, loc_t, conf_t, id
 
     matches = truths[best_truth_idx]          # Shape: [num_priors,4]
 
-    conf = labels[best_truth_idx] + 1         # Shape: [num_priors] , init conf with all 1a
+    # Shape: [num_priors] , init conf with all 1a
+    conf = labels[best_truth_idx] + 1
     conf[best_truth_overlap < threshold] = 0  # label as background
     loc = encode(matches, center_size(decode_arm_loc), variances)
-     
+
     loc_t[idx] = loc    # [num_priors,4] encoded offsets to learn
     conf_t[idx] = conf  # [num_priors] top class label for each prior
 
@@ -163,16 +167,18 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
 
     matches = truths[best_truth_idx]          # Shape: [num_priors,4]
 
-    conf = labels[best_truth_idx] + 1         # Shape: [num_priors] , init conf with all 1a
+    # Shape: [num_priors] , init conf with all 1a
+    conf = labels[best_truth_idx] + 1
     if len(threshold) > 1:
-        conf[best_truth_overlap < threshold[1]] = -1  #ignore
+        conf[best_truth_overlap < threshold[1]] = -1  # ignore
         conf[best_truth_overlap < threshold[0]] = 0
     else:
         conf[best_truth_overlap < threshold[0]] = 0  # label as background
     loc = encode(matches, priors, variances)
-     
+
     loc_t[idx] = loc    # [num_priors,4] encoded offsets to learn
     conf_t[idx] = conf  # [num_priors] top class label for each prior
+
 
 def pa_sfd_match(part, threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     '''
@@ -225,18 +231,18 @@ def pa_sfd_match(part, threshold, truths, priors, variances, labels, loc_t, conf
         anchors_of_gt = condition.sum()
         if anchors_of_gt < average_onestage:   # set N as average number of anchor of each truths
             num_plus = 0
-            for ac_id in range( priors.shape[0] ):
+            for ac_id in range(priors.shape[0]):
                 if sort_overlaps[gt_id][ac_id] < 0.1:
                     break
                 elif not conf[sort_id[gt_id][ac_id]]:
                     #print (sort_overlaps[gt_id][ac_id] )
-                    best_truth_idx[ sort_id[gt_id][ac_id] ]=gt_id
-                    conf[ sort_id[gt_id][ac_id] ] = 1    # face is 1
-                    num_plus+=1
+                    best_truth_idx[sort_id[gt_id][ac_id]] = gt_id
+                    conf[sort_id[gt_id][ac_id]] = 1    # face is 1
+                    num_plus += 1
                 if num_plus == average_onestage - anchors_of_gt:
                     break
     matches = truths[best_truth_idx]          # Shape: [num_priors,4]
-    loc = encode(matches, priors, variances)   
+    loc = encode(matches, priors, variances)
     '''
     if part =='head':
         part_k = 1
@@ -310,20 +316,21 @@ def sfd_match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
         anchors_of_gt = condition.sum()
         if anchors_of_gt < average_onestage:   # set N as average number of anchor of each truths
             num_plus = 0
-            for ac_id in range( priors.shape[0] ):
+            for ac_id in range(priors.shape[0]):
                 if sort_overlaps[gt_id][ac_id] < 0.1:
                     break
                 elif not conf[sort_id[gt_id][ac_id]]:
                     #print (sort_overlaps[gt_id][ac_id] )
-                    best_truth_idx[ sort_id[gt_id][ac_id] ]=gt_id
-                    conf[ sort_id[gt_id][ac_id] ] = 1    # face is 1
-                    num_plus+=1
+                    best_truth_idx[sort_id[gt_id][ac_id]] = gt_id
+                    conf[sort_id[gt_id][ac_id]] = 1    # face is 1
+                    num_plus += 1
                 if num_plus == average_onestage - anchors_of_gt:
                     break
     matches = truths[best_truth_idx]          # Shape: [num_priors,4]
     loc = encode(matches, priors, variances)
     loc_t[idx] = loc    # [num_priors,4] encoded offsets to learn
     conf_t[idx] = conf  # [num_priors] top class label for each prior
+
 
 def encode(matched, priors, variances):
     """Encode the variances from the priorbox layers into the ground truth boxes
@@ -367,7 +374,7 @@ def decode(loc, priors, variances):
         priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],
         priors[:, 2:] * torch.exp(loc[:, 2:] * variances[1])), 1)
     boxes[:, :2] -= boxes[:, 2:] / 2
-    boxes[:, 2:] += boxes[:, :2]    
+    boxes[:, 2:] += boxes[:, :2]
     # (cx,cy,w,h)->(x0,y0,x1,y1)
     return boxes
 

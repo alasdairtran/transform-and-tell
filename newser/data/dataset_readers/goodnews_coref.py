@@ -18,7 +18,7 @@ from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 from tqdm import tqdm
 
-from newser.data.fields import ImageField, ListTextField, CorefTextField
+from newser.data.fields import CorefTextField, ImageField, ListTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -86,7 +86,8 @@ class CorefGoodNewsReader(DatasetReader):
                 continue
 
             # Find coref annotation
-            clusters = self.db.corefs.find_one({'_id': sample['_id']})['clusters']
+            clusters = self.db.corefs.find_one(
+                {'_id': sample['_id']})['clusters']
 
             yield self.article_to_instance(article, image, sample['image_index'], clusters)
 
@@ -111,7 +112,7 @@ class CorefGoodNewsReader(DatasetReader):
                                if c['pos'] == 'PROPN']
             if not relevant_corefs:
                 continue
-            
+
             caption_copy_pos.append((cluster['start'], cluster['end']))
             for c in cluster['caption_corefs']:
                 if c['pos'] == 'PROPN':

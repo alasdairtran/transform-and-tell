@@ -1,13 +1,16 @@
-from __future__ import division , print_function
-from .config import HOME
+from __future__ import division, print_function
+
 import os
 import os.path as osp
 import sys
+
+import cv2
+import numpy as np
 import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
-import cv2
-import numpy as np
+
+from .config import HOME
 
 COCO_ROOT = osp.join(HOME, 'data/coco/')
 IMAGES = 'images'
@@ -46,6 +49,7 @@ class COCOAnnotationTransform(object):
     """Transforms a COCO annotation into a Tensor of bbox coords and label index
     Initilized with a dictionary lookup of classnames to indexes
     """
+
     def __init__(self):
         self.label_map = get_label_map(osp.join(COCO_ROOT, 'coco_labels.txt'))
 
@@ -177,7 +181,9 @@ class COCODetection(data.Dataset):
         fmt_str += '    Number of datapoints: {}\n'.format(self.__len__())
         fmt_str += '    Root Location: {}\n'.format(self.root)
         tmp = '    Transforms (if any): '
-        fmt_str += '{0}{1}\n'.format(tmp, self.transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+        fmt_str += '{0}{1}\n'.format(
+            tmp, self.transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         tmp = '    Target Transforms (if any): '
-        fmt_str += '{0}{1}'.format(tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
+        fmt_str += '{0}{1}'.format(
+            tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         return fmt_str

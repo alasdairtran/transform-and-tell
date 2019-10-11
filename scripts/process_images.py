@@ -41,6 +41,7 @@ def process_images(in_dir, out_dir):
         except OSError:
             continue
 
+
 def validate(args):
     """Validate command line arguments."""
     args = {k.lstrip('-').lower().replace('-', '_'): v

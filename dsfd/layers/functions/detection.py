@@ -1,9 +1,14 @@
 from __future__ import division
+
+import pdb
+
 import torch
 from torch.autograd import Function
-from ..box_utils import decode, nms, center_size
+
 from data import widerface_640 as cfg
-import pdb
+
+from ..box_utils import center_size, decode, nms
+
 
 class Detect(Function):
     """At test time, Detect is the final layer of SSD.  Decode location preds,
@@ -11,6 +16,7 @@ class Detect(Function):
     scores and threshold to a top_k number of output predictions for both
     confidence score and locations.
     """
+
     def __init__(self, num_classes, bkg_label, top_k, conf_thresh, nms_thresh):
         self.num_classes = num_classes
         self.background_label = bkg_label
@@ -22,7 +28,7 @@ class Detect(Function):
         self.conf_thresh = conf_thresh
         self.variance = cfg['variance']
 
-    def forward(self, loc_data, conf_data, prior_data, arm_loc_data=None , arm_conf_data=None):
+    def forward(self, loc_data, conf_data, prior_data, arm_loc_data=None, arm_conf_data=None):
         """
         Args:
             loc_data: (tensor) Loc preds from loc layers
@@ -34,32 +40,36 @@ class Detect(Function):
         """
         num = loc_data.size(0)  # batch size
         num_priors = prior_data.size(0)
-        
-        #swordli
+
+        # swordli
         #num_priors = loc_data.size(1)
-       
+
         output = torch.zeros(num, self.num_classes, self.top_k, 5)
-        conf_preds = conf_data.view(num, num_priors,  self.num_classes).transpose(2, 1)
+        conf_preds = conf_data.view(
+            num, num_priors,  self.num_classes).transpose(2, 1)
         if cfg['refinedet']:
             conf_preds_arm = arm_conf_data.view(num, num_priors,
-                                    self.num_classes).transpose(2, 1)
-        
+                                                self.num_classes).transpose(2, 1)
+
         # Decode predictions into bboxes.
         for i in range(num):
-           if cfg['refinedet']:
-              #default  = center_size(decode(arm_loc_data[i] , prior_data , self.variance))
-              decoded_boxes_arm = decode(arm_loc_data[i] , prior_data , self.variance)
-              default = center_size(decoded_boxes_arm)
-              decoded_boxes_odm = decode(loc_data[i], default, self.variance)
-              decoded_boxes = torch.cat((decoded_boxes_odm , decoded_boxes_arm),dim=0)
-              conf_scores = torch.cat((conf_preds[i].clone(),conf_preds_arm[i].clone()),dim=1)
-           else:
+            if cfg['refinedet']:
+                #default  = center_size(decode(arm_loc_data[i] , prior_data , self.variance))
+                decoded_boxes_arm = decode(
+                    arm_loc_data[i], prior_data, self.variance)
+                default = center_size(decoded_boxes_arm)
+                decoded_boxes_odm = decode(loc_data[i], default, self.variance)
+                decoded_boxes = torch.cat(
+                    (decoded_boxes_odm, decoded_boxes_arm), dim=0)
+                conf_scores = torch.cat(
+                    (conf_preds[i].clone(), conf_preds_arm[i].clone()), dim=1)
+            else:
                 default = prior_data
                 decoded_boxes = decode(loc_data[i], default, self.variance)
                 # For each class, perform nms
                 conf_scores = conf_preds[i].clone()
 
-           for cl in range(1, self.num_classes):
+            for cl in range(1, self.num_classes):
                 c_mask = conf_scores[cl].gt(self.conf_thresh)
                 scores = conf_scores[cl][c_mask]
                 if scores.dim() == 0:
