@@ -13,6 +13,7 @@ __pycache__
 
 # Experimental files
 *.th
+*.pth
 
 # Packaging
 /dist
