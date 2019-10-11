@@ -5,7 +5,7 @@ import pdb
 import torch
 from torch.autograd import Function
 
-from data import widerface_640 as cfg
+from newser.dsfd.data import widerface_640 as cfg
 
 from ..box_utils import center_size, decode, nms
 

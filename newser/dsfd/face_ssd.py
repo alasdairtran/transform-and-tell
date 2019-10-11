@@ -9,9 +9,9 @@ import torch.nn.functional as F
 import torchvision
 from torch.autograd import Variable
 
-from data import widerface_640
-from layers import *
-from model.detnet_backbone import *
+from .data import widerface_640
+from .layers import *
+from .model.detnet_backbone import *
 
 #import pretrainedmodels
 

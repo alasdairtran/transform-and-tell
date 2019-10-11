@@ -19,10 +19,10 @@ from PIL import Image
 from scipy.misc import imread, imresize, imsave, imshow
 from torch.autograd import Variable
 
-from data import *
-from data import BaseTransform, TestBaseTransform
-from data import WIDERFace_CLASSES as labelmap
-from data import (WIDERFace_ROOT, WIDERFaceAnnotationTransform,
+from newser.dsfd.data import *
+from newser.dsfd.data import BaseTransform, TestBaseTransform
+from newser.dsfd.data import WIDERFace_CLASSES as labelmap
+from newser.dsfd.data import (WIDERFace_ROOT, WIDERFaceAnnotationTransform,
                   WIDERFaceDetection)
 from face_ssd import build_ssd
 from utils import draw_toolbox
