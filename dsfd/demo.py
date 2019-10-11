@@ -37,7 +37,7 @@ parser.add_argument('--visual_threshold', default=0.1, type=float,
                     help='Final confidence threshold')
 parser.add_argument('--cuda', default=True, type=bool,
                     help='Use cuda to train model')
-parser.add_argument('--img_root', default='./data/worlds-largest-selfie.jpg',
+parser.add_argument('--img_root', default='./dsfd/data/worlds-largest-selfie.jpg',
                     help='Location of test images directory')
 parser.add_argument('--widerface_root', default=WIDERFace_ROOT,
                     help='Location of WIDERFACE root directory')
