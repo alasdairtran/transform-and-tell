@@ -313,6 +313,7 @@ def main():
         ('language', pymongo.ASCENDING),
         ('parsed', pymongo.ASCENDING),
         ('n_images', pymongo.ASCENDING),
+        ('n_images_with_faces', pymongo.ASCENDING),
         ('pub_date', pymongo.DESCENDING),
     ])
 
