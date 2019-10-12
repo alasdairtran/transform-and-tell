@@ -56,13 +56,18 @@ Australian National University\\
 Our main contributions are as follows:
 
 \begin{itemize}
-   \item We scraped articles and images from the New York Times to create the
-   largest news image captioning with 794K images, each with an associated
-   caption and article.
-   \item We use the transformer architecture and Byte Pair Encoding to develop
-   an end-to-end encoder-decoder model that achieves state-of-the-art results
-   on news image captioning.
-   \item
+   \item We show that combining article attention with pre-trained contextualized
+   word piece embeddings allows our model to generate captions containing
+   relevant words that were not seen during training.
+
+   \item We demonstrate that the location of the image within the article is an
+   important signal for generating relevant news captions.
+
+   \item We build on the “Good News” dataset to produce a larger and more complete
+   news captioning dataset consisting of * articles from the New York Times and
+   their 794K images with captions. In contrast to “Good News” our dataset
+   contains the full article text, and the location of the image within the
+   page.
 \end{itemize}
 
 
