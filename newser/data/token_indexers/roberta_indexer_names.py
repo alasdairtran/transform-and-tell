@@ -50,8 +50,8 @@ class RobertaTokenizer2(RobertaTokenizer):
         return ids
 
 
-@TokenIndexer.register("roberta_coref")
-class RobertaCorefTokenIndexer(TokenIndexer[int]):
+@TokenIndexer.register("roberta_names")
+class RobertaNamesTokenIndexer(TokenIndexer[int]):
     def __init__(self,
                  model_name: str = 'roberta-base',
                  namespace: str = 'bpe',
@@ -94,12 +94,14 @@ class RobertaCorefTokenIndexer(TokenIndexer[int]):
             self._add_encoding_to_vocabulary(vocabulary)
             self._added_to_vocabulary = True
 
+        copy_pos = copy_pos if copy_pos is not None else []
+
         text = ' '.join([token.text for token in tokens])
-        indices, copy_masks = self.encode(text, copy_pos)
+        indices, name_spans = self.encode(text, copy_pos)
 
         return {
             index_name: indices,
-            f'{index_name}_copy_masks': copy_masks,
+            f'name_spans': name_spans,
         }
 
     def encode(self, sentence, copy_pos):
@@ -119,7 +121,24 @@ class RobertaCorefTokenIndexer(TokenIndexer[int]):
             idx = self.source_dictionary.indices[word]
             token_ids.append(idx)
 
-        return token_ids, copy_masks
+        name_spans = []
+
+        start = None
+        end = None
+        is_middle = False
+
+        for i, mask in enumerate(copy_masks):
+            if mask == 1 and not is_middle:
+                start = i
+                end = i  # Note that span ends are inclusive
+                is_middle = True
+            elif mask == 1 and is_middle:
+                end = i  # Note that span ends are inclusive
+            elif mask == 0 and is_middle:
+                name_spans.append((start, end))
+                is_middle = False
+
+        return token_ids, name_spans
 
     def _byte_pair_encode(self, text, copy_pos):
         bpe_tokens = []
@@ -192,8 +211,8 @@ class RobertaCorefTokenIndexer(TokenIndexer[int]):
                          padding_lengths: Dict[str, int]) -> Dict[str, torch.Tensor]:  # pylint: disable=unused-argument
         padded_dict: Dict[str, torch.Tensor] = {}
         for key, val in tokens.items():
-            if 'copy_masks' in key:
-                def default_value(): return -1
+            if 'name_spans' in key:
+                def default_value(): return [-1, -1]
             else:
                 def default_value(): return self._padding_value
             padded_val = pad_sequence_to_length(sequence=val,

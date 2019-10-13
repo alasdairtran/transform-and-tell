@@ -89,11 +89,11 @@ class CorefGoodNewsReader(DatasetReader):
             clusters = self.db.corefs.find_one(
                 {'_id': sample['_id']})['clusters']
 
-            yield self.article_to_instance(article, image, sample['image_index'], clusters)
+            yield self.article_to_instance(article, image, sample['image_index'], clusters, image_path)
 
         sample_cursor.close()
 
-    def article_to_instance(self, article, image, image_index, clusters) -> Instance:
+    def article_to_instance(self, article, image, image_index, clusters, image_path) -> Instance:
         context = article['context'].strip()
 
         caption = article['images'][image_index]
@@ -129,7 +129,9 @@ class CorefGoodNewsReader(DatasetReader):
 
         metadata = {'context': context,
                     'caption': caption,
-                    'web_url': article['web_url']}
+                    'web_url': article['web_url'],
+                    'image_path': image_path,
+                    }
         fields['metadata'] = MetadataField(metadata)
 
         return Instance(fields)

@@ -1,3 +1,4 @@
+import newser.modules.span_extractors
 import newser.modules.token_embedders
 
 from .attention import (AttentionLayer, DownsampledMultiHeadAttention,
