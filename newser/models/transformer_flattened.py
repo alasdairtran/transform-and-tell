@@ -188,6 +188,11 @@ class TransformerFlattenedModel(Model):
 
         loss = loss / math.log(2)
 
+        output_dict = {
+            'loss': loss / sample_size,
+            'sample_size': sample_size,
+        }
+
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
             _, gen_ids = self._generate(caption_ids, contexts)
@@ -195,11 +200,15 @@ class TransformerFlattenedModel(Model):
             gen_texts = [self.roberta.decode(x[x > 1]) for x in gen_ids.cpu()]
             captions = [m['caption'] for m in metadata]
 
-            # Remove punctuation
-            gen_texts = [re.sub(r'[^\w\s]', '', t) for t in gen_texts]
-            captions = [re.sub(r'[^\w\s]', '', t) for t in captions]
+            output_dict['captions'] = captions
+            output_dict['generations'] = gen_texts
+            output_dict['metadata'] = metadata
 
-            for gen, ref in zip(gen_texts, captions):
+            # Remove punctuation
+            gen_texts_2 = [re.sub(r'[^\w\s]', '', t) for t in gen_texts]
+            captions_2 = [re.sub(r'[^\w\s]', '', t) for t in captions]
+
+            for gen, ref in zip(gen_texts_2, captions_2):
                 bleu_scorer = BleuScorer(n=4)
                 bleu_scorer += (gen, [ref])
                 score, _ = bleu_scorer.compute_score(option='closest')
@@ -208,12 +217,12 @@ class TransformerFlattenedModel(Model):
                 self.sample_history['bleu-3'] += score[2] * 100
                 self.sample_history['bleu-4'] += score[3] * 100
 
-                rogue_scorer = Rouge()
-                score = rogue_scorer.calc_score([gen], [ref])
-                self.sample_history['rogue'] += score * 100
+                # rogue_scorer = Rouge()
+                # score = rogue_scorer.calc_score([gen], [ref])
+                # self.sample_history['rogue'] += score * 100
 
             if 'rare_tokens' in caption:
-                for gen, ref, rare_list in zip(gen_texts, captions, caption['rare_tokens']):
+                for gen, ref, rare_list in zip(gen_texts_2, captions_2, caption['rare_tokens']):
                     bleu_scorer = BleuScorer(n=4)
                     rare_words = ' '.join(rare_list)
                     gen = gen + ' ' + rare_words
@@ -229,11 +238,6 @@ class TransformerFlattenedModel(Model):
 
         self.n_samples += caption_ids.shape[0]
         self.n_batches += 1
-
-        output_dict = {
-            'loss': loss / sample_size,
-            'sample_size': sample_size,
-        }
 
         return output_dict
 
