@@ -236,7 +236,7 @@ our NYTimes+ dataset.
 		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr \\
 		\midrule
       Transformer & 17.2\% & 10.2\% & 6.55\% & 4.55\% & 19.1\% & 8.41\% & 40.4\% \\
-      Transformer + Surrounding Text & 18.4\% & 11.2\% & 7.35\% & 5.16\% & 20.5\% & 9.21\% & 47.6\% \\
+      Transformer (location-aware) & 18.4\% & 11.2\% & 7.35\% & 5.16\% & 20.5\% & 9.21\% & 47.6\% \\
       \\
 		\bottomrule
 	\end{tabular}
@@ -246,13 +246,13 @@ our NYTimes+ dataset.
 	\caption {Proper name metrics on the NYTimes+ dataset}
 	\label{tab:results-names}
 	\centering
-	\begin{tabular}{llllll}
+	\begin{tabular}{lllllll}
 		\toprule
-		  & Recall  & Precision \\
+        & \multicolumn{2}{c}{All names} & \multicolumn{2}{c}{Rare names in caption } & \multicolumn{2}{c}{Rare names in article } \\
+        & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
 		\midrule
-      Transformer & 28.3\% & 32.5\%  \\
-      Transformer + Surrounding Text & 32.4\% & 36.4\%  \\
-      \\
+      Transformer & 26.2\% & 31.5\% & 19.6\% & 29.3\% & 17.2\% & 21.3\%  \\
+      Transformer (location-aware) & 30.1\% & 35.4\% & 23.6\% & 32.6\% & 22.1\% & 25.4\%   \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
