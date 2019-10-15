@@ -228,7 +228,7 @@ our NYTimes+ dataset.
 \end{table*}
 
 \begin{table*}[t]
-	\caption {Results on the NYTimes+ dataset}
+	\caption {Results on the NYTimes+ test set}
 	\label{tab:results-nytimes}
 	\centering
 	\begin{tabular}{llllllll}
@@ -243,7 +243,7 @@ our NYTimes+ dataset.
 \end{table*}
 
 \begin{table*}[t]
-	\caption {Proper name metrics on the NYTimes+ dataset}
+	\caption {Proper name metrics on the NYTimes+ test set}
 	\label{tab:results-names}
 	\centering
 	\begin{tabular}{lllllll}
@@ -253,6 +253,21 @@ our NYTimes+ dataset.
 		\midrule
       Transformer & 26.2\% & 31.5\% & 19.6\% & 29.3\% & 17.2\% & 21.3\%  \\
       Transformer (location-aware) & 30.1\% & 35.4\% & 23.6\% & 32.6\% & 22.1\% & 25.4\%   \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+	\caption {Word statistics on the NYTimes+ test set}
+	\label{tab:results-stats}
+	\centering
+	\begin{tabular}{lllllll}
+		\toprule
+        & Caption length  & Unique words \\
+      \midrule
+      Ground Truths & 18.4 & 17.1 \\
+      Transformer  & 12.8 & 11.5 \\
+      Transformer (location-aware) & 12.9 & 11.6  \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
