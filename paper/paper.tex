@@ -216,12 +216,12 @@ our NYTimes+ dataset.
 	\caption {Results on the GoodNews dataset}
 	\label{tab:results-goodnews}
 	\centering
-	\begin{tabular}{llllll}
+	\begin{tabular}{llllllll}
 		\toprule
-		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE \\
+		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr\\
 		\midrule
-      Biten \etal \cite{Biten2019GoodNews} & 8.92\% & 3.54\% & 1.60\% & 0.83\% & 12.1\% \\
-      Transformer & 19.2\% & 10.3\% & 5.40\% & 3.13\% & 21.4\% \\
+      Biten \etal \cite{Biten2019GoodNews} & 8.92\% & 3.54\% & 1.60\% & 0.83\% & 12.1\% & 4.34\% & 12.8\% \\
+      Transformer & 22.6\% & 13.7\% & 8.90\% & 6.15\% & 21.4\% & 10.3\% & 53.3\% \\
       \\
 		\bottomrule
 	\end{tabular}
@@ -231,12 +231,27 @@ our NYTimes+ dataset.
 	\caption {Results on the NYTimes+ dataset}
 	\label{tab:results-nytimes}
 	\centering
+	\begin{tabular}{llllllll}
+		\toprule
+		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr \\
+		\midrule
+      Transformer & 17.2\% & 10.2\% & 6.55\% & 4.55\% & 19.1\% & 8.41\% & 40.4\% \\
+      Transformer + Surrounding Text & 18.4\% & 11.2\% & 7.35\% & 5.16\% & 20.5\% & 9.21\% & 47.6\% \\
+      \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+	\caption {Proper name metrics on the NYTimes+ dataset}
+	\label{tab:results-names}
+	\centering
 	\begin{tabular}{llllll}
 		\toprule
-		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE \\
+		  & Recall  & Precision \\
 		\midrule
-      Transformer & 15.4\% & 7.90\% & 3.93\% & 2.26\% & 19.1\% \\
-      Transformer + Surrounding Text & 16.8\% & 9.09\% & 4.55\% & 2.62\% & 20.5\% \\
+      Transformer & 28.3\% & 32.5\%  \\
+      Transformer + Surrounding Text & 32.4\% & 36.4\%  \\
       \\
 		\bottomrule
 	\end{tabular}
