@@ -1,9 +1,11 @@
 import logging
 import os
 import random
+import re
 from datetime import datetime
 from typing import Dict
 
+import torch
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import MetadataField, TextField
 from allennlp.data.instance import Instance
@@ -18,6 +20,14 @@ from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
 from newser.data.fields import ImageField, ListTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
+SPACE_NORMALIZER = re.compile(r"\s+")
+
+
+def tokenize_line(line):
+    line = SPACE_NORMALIZER.sub(" ", line)
+    line = line.strip()
+    return line.split()
 
 
 @DatasetReader.register('nytimes_position')
@@ -54,6 +64,10 @@ class NYTimesPositionReader(DatasetReader):
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         random.seed(1234)
 
+        roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
+        self.bpe = roberta.bpe
+        self.indices = roberta.task.source_dictionary.indices
+
     @overrides
     def _read(self, split: str):
         # split can be either train, valid, or test
@@ -89,7 +103,7 @@ class NYTimesPositionReader(DatasetReader):
                 n_words = 0
                 if title:
                     paragraphs.append(title)
-                    n_words += len(title.split())
+                    n_words += len(self.to_token_ids(title))
 
                 caption = sections[pos]['text'].strip()
                 if not caption:
@@ -108,16 +122,16 @@ class NYTimesPositionReader(DatasetReader):
                     if i > k and sections[i]['type'] == 'paragraph':
                         text = sections[i]['text']
                         before.insert(0, text)
-                        n_words += len(text.split())
+                        n_words += len(self.to_token_ids(text))
                     i -= 1
 
                     if k < j < len(sections) and sections[j]['type'] == 'paragraph':
                         text = sections[j]['text']
                         after.append(text)
-                        n_words += len(text.split())
+                        n_words += len(self.to_token_ids(text))
                     j += 1
 
-                    if n_words > 500 or (i <= k and j >= len(sections)):
+                    if n_words >= 510 or (i <= k and j >= len(sections)):
                         break
 
                 image_path = os.path.join(
@@ -129,11 +143,11 @@ class NYTimesPositionReader(DatasetReader):
 
                 paragraphs = paragraphs + before + after
 
-                yield self.article_to_instance(paragraphs, image, caption, image_path, article['web_url'])
+                yield self.article_to_instance(paragraphs, image, caption, image_path, article['web_url'], pos)
 
         article_cursor.close()
 
-    def article_to_instance(self, paragraphs, image, caption, image_path, web_url) -> Instance:
+    def article_to_instance(self, paragraphs, image, caption, image_path, web_url, pos) -> Instance:
         context = '\n'.join(paragraphs).strip()
 
         context_tokens = self._tokenizer.tokenize(context)
@@ -148,7 +162,18 @@ class NYTimesPositionReader(DatasetReader):
         metadata = {'context': context,
                     'caption': caption,
                     'web_url': web_url,
-                    'image_path': image_path}
+                    'image_path': image_path,
+                    'image_pos': pos}
         fields['metadata'] = MetadataField(metadata)
 
         return Instance(fields)
+
+    def to_token_ids(self, sentence):
+        bpe_tokens = self.bpe.encode(sentence)
+        words = tokenize_line(bpe_tokens)
+
+        token_ids = []
+        for word in words:
+            idx = self.indices[word]
+            token_ids.append(idx)
+        return token_ids
