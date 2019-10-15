@@ -13,6 +13,7 @@ import json
 import os
 import pickle
 import re
+import types
 from datetime import datetime
 
 import numpy as np
@@ -29,6 +30,18 @@ from tqdm import tqdm
 from newser.utils import setup_logger
 
 logger = setup_logger()
+
+
+# Patch meteor scorer. See https://github.com/tylin/coco-caption/issues/25
+def _stat(self, hypothesis_str, reference_list):
+    # SCORE ||| reference 1 words ||| reference n words ||| hypothesis words
+    hypothesis_str = hypothesis_str.replace('|||', '').replace('  ', ' ')
+    score_line = ' ||| '.join(
+        ('SCORE', ' ||| '.join(reference_list), hypothesis_str))
+    score_line = score_line.replace('\n', '').replace('\r', '')
+    self.meteor_p.stdin.write('{}\n'.format(score_line).encode())
+    self.meteor_p.stdin.flush()
+    return self.meteor_p.stdout.readline().decode().strip()
 
 
 def validate(args):
@@ -63,6 +76,7 @@ def main():
     rouge_scores = []
     cider_scorer = CiderScorer(n=4, sigma=6.0)
     meteor_scorer = Meteor()
+    meteor_scorer._stat = types.MethodType(_stat, meteor_scorer)
     meteor_scores = []
     eval_line = 'EVAL'
     meteor_scorer.lock.acquire()
