@@ -86,6 +86,7 @@ class LSTMDecoder(Decoder):
                  vocab_size=None, adaptive_softmax_cutoff=None,
                  tie_adaptive_weights=False, adaptive_softmax_dropout=0,
                  tie_adaptive_proj=False, adaptive_softmax_factor=0,
+                 article_embed_size=1024, image_embed_size=2048,
                  namespace='target_tokens'):
         super().__init__()
         self.vocab = vocab
@@ -109,10 +110,10 @@ class LSTMDecoder(Decoder):
             self.c.append(nn.Parameter(torch.zeros(1, hidden_size)))
 
         self.image_attention = AttentionLayer(
-            hidden_size, 2048, hidden_size, bias=True)
+            hidden_size, image_embed_size, hidden_size, bias=True)
 
         self.article_attention = AttentionLayer(
-            hidden_size, 1024, hidden_size, bias=True)
+            hidden_size, article_embed_size, hidden_size, bias=True)
 
         self.attn_proj = GehringLinear(hidden_size * 2, hidden_size)
 
