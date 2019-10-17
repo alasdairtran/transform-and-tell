@@ -13,7 +13,7 @@ pip install git+https://github.com/salaniz/pycocoevalcap
 ```sh
 # Start local MongoDB server on port 27017
 mkdir data/mongodb
-mongod --bind_ip_all --dbpath data/mongodb
+mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10
 
 # Get article URLs from New York Times
 python scripts/get_urls.py API_KEY
