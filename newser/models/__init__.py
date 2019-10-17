@@ -1,4 +1,5 @@
 from .baseline import BaselineModel
+from .decoder_flattened_lstm import LSTMDecoder
 from .decoder_gpt2 import GPT2Decoder
 from .decoder_interact import DynamicConvInteractDecoder
 from .decoder_join import DynamicConvJoinDecoder

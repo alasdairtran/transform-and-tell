@@ -43,7 +43,7 @@ class FlattenedGoodNewsReader(DatasetReader):
                  tokenizer: Tokenizer,
                  token_indexers: Dict[str, TokenIndexer],
                  image_dir: str,
-                 annotation_path: str,
+                 annotation_path: str = None,
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
@@ -78,7 +78,7 @@ class FlattenedGoodNewsReader(DatasetReader):
             # Find the corresponding article
             article = self.db.articles.find_one({
                 '_id': {'$eq': sample['article_id']},
-            })
+            }, projection=['_id', 'context', 'images', 'web_url'])
 
             # Load the image
             image_path = os.path.join(self.image_dir, f"{sample['_id']}.jpg")
