@@ -15,6 +15,10 @@ pip install git+https://github.com/salaniz/pycocoevalcap
 mkdir data/mongodb
 mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10
 
+# Back up database
+mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-10-19
+mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2019-10-19
+
 # Get article URLs from New York Times
 python scripts/get_urls.py API_KEY
 
