@@ -85,13 +85,17 @@ class NYTimesNamesReader(DatasetReader):
         else:
             raise ValueError(f'Unknown split: {split}')
 
+        projection = ['_id', 'parsed_section.type', 'parsed_section.text',
+                      'parsed_section.hash', 'parsed_section.parts_of_speech',
+                      'image_positions', 'headline', 'web_url']
+
         # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
             'parsed': True,  # article body is parsed into paragraphs
             'n_images': {'$gt': 0},  # at least one image is present
             'pub_date': {'$gte': start, '$lt': end},
             'language': 'en',
-        }, no_cursor_timeout=True).batch_size(128)
+        }, no_cursor_timeout=True, projection=projection).batch_size(128)
 
         for article in article_cursor:
             sections = article['parsed_section']
