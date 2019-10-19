@@ -56,3 +56,18 @@ CUDA_VISIBLE_DEVICES=0 newser generate expt/1_baseline/config.yaml -m expt/1_bas
 
 CUDA_VISIBLE_DEVICES=1 newser evaluate expt/1_baseline/config.yaml -m expt/1_baseline/serialization/best.th --overrides '{"validation_iterator": {"batch_size": 8}}'
 ```
+
+
+## Original Results
+
+```sh
+# To reproduce the original results, first request the output template captions
+# from the authors and put the files in data/goodnews/original_results. Then
+# run this command to generate the caption file in our format. In our recollected
+# Good News dataset, we're missing 162 image-caption pairs in the test set.
+# We will remove this
+python scripts/goodnews_insert.py --output ./data/goodnews/original_results/with\ article/vis_show_attend_tell_full_TBB.json
+python scripts/goodnews_insert.py --output ./data/goodnews/original_results/with\ article/vis_show_attend_tell_full_avg.json
+python scripts/goodnews_insert.py --output ./data/goodnews/original_results/with\ article/vis_show_attend_tell_full_wavg.json
+
+```
