@@ -5,9 +5,11 @@ from .decoder_gpt2 import GPT2Decoder
 from .decoder_interact import DynamicConvInteractDecoder
 from .decoder_join import DynamicConvJoinDecoder
 from .decoder_names import DynamicConvNameDecoder
+from .decoder_names_faces import DynamicConvNameFacesDecoder
 from .pointer import PointerModel
 from .transformer import TransformerModel
 from .transformer_flattened import TransformerFlattenedModel
 from .transformer_names import TransformerNamesModel
+from .transformer_names_faces import TransformerNamesFacesModel
 from .transformer_pointer import TransformerPointerModel
 from .transformer_pointer_faster import TransformerPointerModelFaster

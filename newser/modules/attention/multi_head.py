@@ -346,20 +346,32 @@ class MultiHeadAttention(nn.Module):
 
         else:
             q = self.in_proj_q(query)
-            k = self.in_proj_k(key)
-            v = self.in_proj_v(value)
+            if key.shape[2] > 0:
+                k = self.in_proj_k(key)
+            if value.shape[2] > 0:
+                v = self.in_proj_v(value)
         q *= self.scaling
 
         if self.bias_k is not None:
             assert self.bias_v is not None
-            k = torch.cat([k, self.bias_k.repeat(1, bsz, 1)])
-            v = torch.cat([v, self.bias_v.repeat(1, bsz, 1)])
+            if key.shape[2] > 0:
+                k = torch.cat([k, self.bias_k.repeat(1, bsz, 1)])
+            else:
+                k = self.bias_k.repeat(1, bsz, 1)
+            if key.shape[2] > 0:
+                v = torch.cat([v, self.bias_v.repeat(1, bsz, 1)])
+            else:
+                v = self.bias_v.repeat(1, bsz, 1)
             if attn_mask is not None:
                 attn_mask = torch.cat(
                     [attn_mask, attn_mask.new_zeros(attn_mask.size(0), 1)], dim=1)
             if key_padding_mask is not None:
-                key_padding_mask = torch.cat(
-                    [key_padding_mask, key_padding_mask.new_zeros(key_padding_mask.size(0), 1)], dim=1)
+                if key.shape[2] > 0:
+                    key_padding_mask = torch.cat(
+                        [key_padding_mask, key_padding_mask.new_zeros(key_padding_mask.size(0), 1)], dim=1)
+                else:
+                    key_padding_mask = key_padding_mask.new_zeros(
+                        key_padding_mask.size(0), 1)
 
         q = q.contiguous().view(tgt_len, bsz * self.num_heads, self.head_dim).transpose(0, 1)
         if k is not None:
