@@ -1,5 +1,6 @@
 from .baseline import BaselineModel
 from .baseline_glove import BaselineGloveModel
+from .decoder_faces import DynamicConvFacesDecoder
 from .decoder_flattened_lstm import LSTMDecoder
 from .decoder_gpt2 import GPT2Decoder
 from .decoder_interact import DynamicConvInteractDecoder
@@ -8,6 +9,7 @@ from .decoder_names import DynamicConvNameDecoder
 from .decoder_names_faces import DynamicConvNameFacesDecoder
 from .pointer import PointerModel
 from .transformer import TransformerModel
+from .transformer_faces import TransformerFacesModel
 from .transformer_flattened import TransformerFlattenedModel
 from .transformer_names import TransformerNamesModel
 from .transformer_names_faces import TransformerNamesFacesModel
