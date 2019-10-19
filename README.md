@@ -14,6 +14,9 @@ pip install git+https://github.com/salaniz/pycocoevalcap
 # Start local MongoDB server on port 27017
 mkdir data/mongodb
 mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10
+# The cache size can be changed dynamically without restarting the server:
+db.adminCommand( { "setParameter": 1, "wiredTigerEngineRuntimeConfig":
+   "cache_size=20G"})
 
 # Back up database
 mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-10-19
