@@ -46,7 +46,7 @@ class DynamicConvFacesDecoder(Decoder):
                  tie_adaptive_weights=False, adaptive_softmax_dropout=0,
                  tie_adaptive_proj=False, adaptive_softmax_factor=0, decoder_layers=6,
                  final_norm=True, padding_idx=0, namespace='target_tokens',
-                 vocab_size=None, section_attn=False):
+                 vocab_size=None, section_attn=False, swap=False):
         super().__init__()
         self.vocab = vocab
         vocab_size = vocab_size or vocab.get_vocab_size(namespace)
@@ -71,6 +71,7 @@ class DynamicConvFacesDecoder(Decoder):
                                     decoder_conv_type, weight_softmax, decoder_attention_heads,
                                     weight_dropout, dropout, relu_dropout, input_dropout,
                                     decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
+                                    swap,
                                     kernel_size=decoder_kernel_size_list[i])
             for i in range(decoder_layers)
         ])
@@ -458,7 +459,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
                  decoder_conv_type, weight_softmax, decoder_attention_heads,
                  weight_dropout, dropout, relu_dropout, input_dropout,
                  decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                 kernel_size=0):
+                 swap, kernel_size=0):
         super().__init__()
         self.embed_dim = decoder_embed_dim
         self.conv_dim = decoder_conv_dim
@@ -513,6 +514,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
 
         self.final_layer_norm = nn.LayerNorm(self.embed_dim)
         self.need_attn = True
+        self.swap = swap
 
     def forward(self, X, contexts, incremental_state):
         """
@@ -555,41 +557,79 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X = self.maybe_layer_norm(
             self.context_attn_lns['image'], X_image, after=True)
 
-        # Article attention
-        residual = X
-        X_article = self.maybe_layer_norm(
-            self.context_attn_lns['article'], X, before=True)
-        X_article, attn = self.context_attns['article'](
-            query=X_article,
-            key=contexts['article'],
-            value=contexts['article'],
-            key_padding_mask=contexts['article_mask'],
-            incremental_state=None,
-            static_kv=True,
-            need_weights=(not self.training and self.need_attn))
-        X_article = F.dropout(X_article, p=self.dropout,
-                              training=self.training)
-        X_article = residual + X_article
-        X = self.maybe_layer_norm(
-            self.context_attn_lns['article'], X_article, after=True)
+        if not self.swap:
+            # Article attention
+            residual = X
+            X_article = self.maybe_layer_norm(
+                self.context_attn_lns['article'], X, before=True)
+            X_article, attn = self.context_attns['article'](
+                query=X_article,
+                key=contexts['article'],
+                value=contexts['article'],
+                key_padding_mask=contexts['article_mask'],
+                incremental_state=None,
+                static_kv=True,
+                need_weights=(not self.training and self.need_attn))
+            X_article = F.dropout(X_article, p=self.dropout,
+                                  training=self.training)
+            X_article = residual + X_article
+            X = self.maybe_layer_norm(
+                self.context_attn_lns['article'], X_article, after=True)
 
-        # Face attention
-        residual = X
-        X_faces = self.maybe_layer_norm(
-            self.context_attn_lns['faces'], X, before=True)
-        X_faces, attn = self.context_attns['faces'](
-            query=X_faces,
-            key=contexts['faces'],
-            value=contexts['faces'],
-            key_padding_mask=contexts['faces_mask'],
-            incremental_state=None,
-            static_kv=True,
-            need_weights=(not self.training and self.need_attn))
-        X_faces = F.dropout(X_faces, p=self.dropout,
-                            training=self.training)
-        X_faces = residual + X_faces
-        X = self.maybe_layer_norm(
-            self.context_attn_lns['faces'], X_faces, after=True)
+            # Face attention
+            residual = X
+            X_faces = self.maybe_layer_norm(
+                self.context_attn_lns['faces'], X, before=True)
+            X_faces, attn = self.context_attns['faces'](
+                query=X_faces,
+                key=contexts['faces'],
+                value=contexts['faces'],
+                key_padding_mask=contexts['faces_mask'],
+                incremental_state=None,
+                static_kv=True,
+                need_weights=(not self.training and self.need_attn))
+            X_faces = F.dropout(X_faces, p=self.dropout,
+                                training=self.training)
+            X_faces = residual + X_faces
+            X = self.maybe_layer_norm(
+                self.context_attn_lns['faces'], X_faces, after=True)
+
+        else:
+            # Face attention
+            residual = X
+            X_faces = self.maybe_layer_norm(
+                self.context_attn_lns['faces'], X, before=True)
+            X_faces, attn = self.context_attns['faces'](
+                query=X_faces,
+                key=contexts['faces'],
+                value=contexts['faces'],
+                key_padding_mask=contexts['faces_mask'],
+                incremental_state=None,
+                static_kv=True,
+                need_weights=(not self.training and self.need_attn))
+            X_faces = F.dropout(X_faces, p=self.dropout,
+                                training=self.training)
+            X_faces = residual + X_faces
+            X = self.maybe_layer_norm(
+                self.context_attn_lns['faces'], X_faces, after=True)
+
+            # Article attention
+            residual = X
+            X_article = self.maybe_layer_norm(
+                self.context_attn_lns['article'], X, before=True)
+            X_article, attn = self.context_attns['article'](
+                query=X_article,
+                key=contexts['article'],
+                value=contexts['article'],
+                key_padding_mask=contexts['article_mask'],
+                incremental_state=None,
+                static_kv=True,
+                need_weights=(not self.training and self.need_attn))
+            X_article = F.dropout(X_article, p=self.dropout,
+                                  training=self.training)
+            X_article = residual + X_article
+            X = self.maybe_layer_norm(
+                self.context_attn_lns['article'], X_article, after=True)
 
         residual = X
         X = self.maybe_layer_norm(self.final_layer_norm, X, before=True)
