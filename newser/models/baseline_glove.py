@@ -284,7 +284,7 @@ class BaselineGloveModel(Model):
         return caption_ids, target_ids, contexts
 
     def _generate(self, caption_ids, contexts):
-        incremental_state: Dict[str, Any] = {}
+        # incremental_state: Dict[str, Any] = {}
         seed_input = caption_ids[:, 0:1]
         log_prob_list = []
         index_path_list = [seed_input]
@@ -295,13 +295,14 @@ class BaselineGloveModel(Model):
         B = caption_ids.shape[0]
 
         for i in range(gen_len):
-            if i == 0:
-                prev_target = {self.index: seed_input}
-            else:
-                prev_target = {self.index: seed_input[:, -1:]}
+            # if i == 0:
+            #     prev_target = {self.index: seed_input}
+            # else:
+            #     prev_target = {self.index: seed_input[:, -1:]}
+            prev_target = {self.index: seed_input}
 
-            self.decoder.filter_incremental_state(
-                incremental_state, active_idx)
+            # self.decoder.filter_incremental_state(
+            #     incremental_state, active_idx)
 
             contexts_i = {
                 'image': contexts['image'][:, full_active_idx],
@@ -315,7 +316,8 @@ class BaselineGloveModel(Model):
             decoder_out = self.decoder(
                 prev_target,
                 contexts_i,
-                incremental_state=incremental_state)
+                # incremental_state=incremental_state
+            )
 
             # We're only interested in the current final word
             decoder_out = (decoder_out[0][:, -1:], None)
