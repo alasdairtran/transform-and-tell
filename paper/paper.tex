@@ -4,6 +4,7 @@
 \usepackage{times}
 \usepackage{epsfig}
 \usepackage{graphicx}
+\usepackage{multirow} % creates cells that span multiple rows in a table
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{booktabs}
@@ -218,14 +219,74 @@ our NYTimes+ dataset.
 	\centering
 	\begin{tabular}{llllllll}
 		\toprule
-		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr\\
-		\midrule
-      Biten \etal \cite{Biten2019GoodNews} & 8.92\% & 3.54\% & 1.60\% & 0.83\% & 12.1\% & 4.34\% & 12.8\% \\
-      Transformer & 22.6\% & 13.7\% & 8.90\% & 6.15\% & 21.4\% & 10.3\% & 53.3\% \\
-      \\
+		 & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr\\
+      \midrule
+      Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 9.04\% & 3.65\% & 1.71\% & 0.89\% & 12.2\% & 4.37\% & 13.1\% \\
+      Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 8.10\% & 3.33\% & 1.60\% & 0.85\% & 11.9\% & 4.23\% & 12.8\% \\
+      Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 8.44\% & 3.42\% & 1.62\% & 0.87\% & 12.2\% & 4.30\% & 13.1\% \\
+      Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 8.68\% & 3.47\% & 1.58\% & 0.82\% & 12.1\% & 4.23\% & 12.6\% \\
+      Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 7.74\% & 3.15\% & 1.45\% & 0.75\% & 11.9\% & 4.10\% & 12.5\% \\
+      Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 8.10\% & 3.26\% & 1.48\% & 0.76\% & 12.2\% & 4.17\% & 12.7\% \\
+      \midrule
+      LSTM + GloVe & 13.6\% & 6.19\% & 3.13\% & 1.81\% & 13.5\% & 5.26\% & 11.9\% \\
+      LSTM + RoBERTa &  &  &  &  &  &  &  \\
+      Transformer + GloVe &  &  &  &  &  &  &  \\
+      Transformer + RoBERTa & 22.7\% & 13.7\% & 8.93\% & 6.17\% & 21.4\% & 10.3\% & 53.9\% \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
+
+
+\begin{table*}[t]
+   \caption {Proper name metrics on the GoodNews test set. We can't compute rare name statistics
+   since train-test split were created using a random shuffle.}
+	\label{tab:results-names}
+	\centering
+	\begin{tabular}{lll}
+		\toprule
+        & \multicolumn{2}{c}{All names}  \\
+        & Recall  & Precision \\
+      \midrule
+      Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 12.2\% & 16.5\% \\
+      Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 12.0\% & 17.1\% \\
+      Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 11.7\% & 17.1\% \\
+      Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 17.9\% \\
+      Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 19.0\% \\
+      Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 11.0\% & 19.2\% \\
+      \midrule
+      LSTM + GloVe & 10.1\% & 14.9\%  \\
+      LSTM + RoBERTa &  &   \\
+      Transformer + GloVe & &  \\
+      Transformer + RoBERTa & 29.8\% & 34.4\%  \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+	\caption {Word statistics on the GoodNews test set}
+	\label{tab:results-stats}
+	\centering
+	\begin{tabular}{lllllll}
+		\toprule
+        & Caption length  & Unique words \\
+      \midrule
+      Ground Truths & 18.1 & 17.0 \\
+      Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 8.8 \\
+      Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 & 8.4 \\
+      Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 & 8.4 \\
+      Biten (Avg + AttIns) \cite{Biten2019GoodNews}  & 9.7 & 8.4 \\
+      Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 & 7.9 \\
+      Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.3 & 8.5 \\
+      \midrule
+      LSTM + GloVe & 13.9 & 11.4 \\
+      LSTM + RoBERTa &  &  \\
+      Transformer + GloVe & &  \\
+      Transformer + RoBERTa & 15.7 & 13.8 \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+
 
 \begin{table*}[t]
 	\caption {Results on the NYTimes+ test set}
@@ -235,8 +296,8 @@ our NYTimes+ dataset.
 		\toprule
 		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr \\
 		\midrule
-      Transformer & 17.2\% & 10.2\% & 6.55\% & 4.55\% & 19.1\% & 8.41\% & 40.4\% \\
-      Transformer (location-aware) & 18.4\% & 11.2\% & 7.35\% & 5.16\% & 20.5\% & 9.21\% & 47.6\% \\
+      Transformer (first 512 tokens) & 17.6\% & 10.4\% & 6.68\% & 4.65\% & 19.1\% & 8.49\% & 41.1\% \\
+      Transformer (location-aware) & 19.0\% & 11.7\% & 7.76\% & 5.48\% & 21.1\% & 9.51\% & 51.4\% \\
       \\
 		\bottomrule
 	\end{tabular}
@@ -251,8 +312,8 @@ our NYTimes+ dataset.
         & \multicolumn{2}{c}{All names} & \multicolumn{2}{c}{Rare names in caption } & \multicolumn{2}{c}{Rare names in article } \\
         & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
 		\midrule
-      Transformer & 26.2\% & 31.5\% & 19.6\% & 29.3\% & 17.2\% & 21.3\%  \\
-      Transformer (location-aware) & 30.1\% & 35.4\% & 23.6\% & 32.6\% & 22.1\% & 25.4\%   \\
+      Transformer (first 512 tokens) & 26.4\% & 31.5\% & 19.8\% & 29.5\% & 17.7\% & 20.9\%  \\
+      Transformer (location-aware) & 31.5\% & 36.8\% & 25.3\% & 33.2\% & 23.5\% & 25.3\%   \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
@@ -266,8 +327,8 @@ our NYTimes+ dataset.
         & Caption length  & Unique words \\
       \midrule
       Ground Truths & 18.4 & 17.1 \\
-      Transformer  & 12.8 & 11.5 \\
-      Transformer (location-aware) & 12.9 & 11.6  \\
+      Transformer (first 512 tokens)  & 13.1 & 11.7 \\
+      Transformer (location-aware) & 13.0 & 11.7  \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
