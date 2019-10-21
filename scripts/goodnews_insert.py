@@ -324,7 +324,8 @@ if __name__ == '__main__':
                     'raw_caption': raw_captions[i],
                     'generation': h,
                     'image_id': i,
-                    'caption_names': get_proper_nouns(r, nlp),
+                    'caption_names': get_proper_nouns(raw_captions[i], nlp),
+                    'processed_caption_names': get_proper_nouns(r, nlp),
                     'generated_names': get_proper_nouns(h, nlp),
                 }
                 with open(dump_path, 'a') as f:

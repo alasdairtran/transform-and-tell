@@ -7,6 +7,7 @@ Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
     FILE                Path to the json file.
     -c --counters PATH  Path to the word counters.
+    --use_processed     Use processed captions instead of raw captions.
 
 """
 import json
@@ -14,11 +15,9 @@ import os
 import pickle
 import re
 import types
-from datetime import datetime
 
 import numpy as np
 import ptvsd
-import spacy
 from docopt import docopt
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from pycocoevalcap.cider.cider_scorer import CiderScorer
@@ -52,6 +51,7 @@ def validate(args):
         'ptvsd': Or(None, And(Use(int), lambda port: 1 <= port <= 65535)),
         'file': os.path.exists,
         'counters': Or(None, os.path.exists),
+        'use_processed': bool,
     })
     args = schema.validate(args)
     return args
@@ -94,7 +94,12 @@ def main():
     with open(args['file']) as f:
         for line in tqdm(f):
             obj = json.loads(line)
-            caption = obj['raw_caption']
+            if args['use_processed']:
+                caption = obj['caption']
+                obj['caption_names'] = obj['processed_caption_names']
+            else:
+                caption = obj['raw_caption']
+
             generation = obj['generation']
 
             if obj['caption_names']:
