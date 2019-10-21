@@ -159,42 +159,60 @@ def main():
     meteor_scorer.lock.release()
 
     blue_score, _ = bleu_scorer.compute_score(option='closest')
-    print(f'BLEU-1: {blue_score[0]}')
-    print(f'BLEU-2: {blue_score[1]}')
-    print(f'BLEU-3: {blue_score[2]}')
-    print(f'BLEU-4: {blue_score[3]}')
-
     rouge_score = np.mean(np.array(rouge_scores))
-    print(f'ROUGE: {rouge_score}')
-
     cider_score, _ = cider_scorer.compute_score()
-    print(f'CIDEr: {cider_score}')
 
-    print(f'METEOR: {meteor_score}')
+    final_metrics = {
+        'BLEU-1': blue_score[0],
+        'BLEU-2': blue_score[1],
+        'BLEU-3': blue_score[2],
+        'BLEU-4': blue_score[3],
+        'ROUGE': rouge_score,
+        'METEOR': meteor_score,
+        'CIDEr': cider_score,
+        'All names - recall': {
+            'count': full_recall,
+            'total': full_recall_total,
+            'percentage': full_recall / full_recall_total,
+        },
+        'All names - precision': {
+            'count': full_precision,
+            'total': full_precision_total,
+            'percentage': full_precision / full_precision_total,
+        },
+        'Caption rare names - recall': {
+            'count': rare_recall,
+            'total': rare_recall_total,
+            'percentage': rare_recall / rare_recall_total,
+        },
+        'Caption rare names - precision': {
+            'count': rare_precision,
+            'total': rare_precision_total,
+            'percentage': rare_precision / rare_precision_total,
+        },
+        'Article rare names - recall': {
+            'count': full_rare_recall,
+            'total': full_rare_recall_total,
+            'percentage': full_rare_recall / full_rare_recall_total,
+        },
+        'Article rare names - precision': {
+            'count': full_rare_precision,
+            'total': full_rare_precision_total,
+            'percentage': full_rare_precision / full_rare_precision_total,
+        },
+        'Length - generation': sum(lengths) / len(lengths),
+        'Length - reference': sum(gt_lengths) / len(gt_lengths),
+        'Unique words - generation': sum(n_uniques) / len(n_uniques),
+        'Unique words - reference': sum(gt_n_uniques) / len(gt_n_uniques),
+    }
 
-    print(f'Recall: {sum(recalls) / len(recalls)}')
-    print(f'Precision: {sum(precisions) / len(precisions)}')
+    serialization_dir = os.path.dirname(args['file'])
+    output_file = os.path.join(serialization_dir, 'reported_metrics.json')
+    with open(output_file, 'w') as file:
+        json.dump(final_metrics, file, indent=4)
 
-    print(f'Full Recall: {full_recall} / {full_recall_total} = '
-          f'{full_recall / full_recall_total}')
-    print(f'Full Precision: {full_precision} / {full_precision_total} = '
-          f'{full_precision / full_precision_total}')
-
-    print(f'Rare Recall: {rare_recall} / {rare_recall_total} = '
-          f'{rare_recall / rare_recall_total}')
-    print(f'Rare Precision: {rare_precision} / {rare_precision_total} = '
-          f'{rare_precision / rare_precision_total}')
-
-    print(f'Full Rare Recall: {full_rare_recall} / {full_rare_recall_total} = '
-          f'{full_rare_recall / full_rare_recall_total}')
-    print(f'Full Rare Precision: {full_rare_precision} / {full_rare_precision_total} = '
-          f'{full_rare_precision / full_rare_precision_total}')
-
-    print(f'Length - generation: {sum(lengths) / len(lengths)}')
-    print(f'Length - reference: {sum(gt_lengths) / len(gt_lengths)}')
-    print(f'Unique words - generation: {sum(n_uniques) / len(n_uniques)}')
-    print(
-        f'Unique words  - reference: {sum(gt_n_uniques) / len(gt_n_uniques)}')
+    for key, metric in final_metrics.items():
+        print(f"{key}: {metric}")
 
 
 def compute_recall(obj):
