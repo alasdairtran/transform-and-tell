@@ -173,32 +173,32 @@ def main():
         'All names - recall': {
             'count': full_recall,
             'total': full_recall_total,
-            'percentage': full_recall / full_recall_total,
+            'percentage': (full_recall / full_recall_total) if full_recall_total else None,
         },
         'All names - precision': {
             'count': full_precision,
             'total': full_precision_total,
-            'percentage': full_precision / full_precision_total,
+            'percentage': (full_precision / full_precision_total) if full_precision_total else None,
         },
         'Caption rare names - recall': {
             'count': rare_recall,
             'total': rare_recall_total,
-            'percentage': rare_recall / rare_recall_total,
+            'percentage': (rare_recall / rare_recall_total) if rare_recall_total else None,
         },
         'Caption rare names - precision': {
             'count': rare_precision,
             'total': rare_precision_total,
-            'percentage': rare_precision / rare_precision_total,
+            'percentage': (rare_precision / rare_precision_total) if rare_precision_total else None,
         },
         'Article rare names - recall': {
             'count': full_rare_recall,
             'total': full_rare_recall_total,
-            'percentage': full_rare_recall / full_rare_recall_total,
+            'percentage': (full_rare_recall / full_rare_recall_total) if full_rare_recall_total else None,
         },
         'Article rare names - precision': {
             'count': full_rare_precision,
             'total': full_rare_precision_total,
-            'percentage': full_rare_precision / full_rare_precision_total,
+            'percentage': (full_rare_precision / full_rare_precision_total) if full_rare_precision_total else None,
         },
         'Length - generation': sum(lengths) / len(lengths),
         'Length - reference': sum(gt_lengths) / len(gt_lengths),
