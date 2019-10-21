@@ -52,7 +52,7 @@ class DynamicConvDecoder(Decoder):
                  tie_adaptive_weights=False, adaptive_softmax_dropout=0,
                  tie_adaptive_proj=False, adaptive_softmax_factor=0, decoder_layers=6,
                  final_norm=True, padding_idx=0, namespace='target_tokens',
-                 vocab_size=None, section_attn=False):
+                 vocab_size=None, section_attn=False, article_embed_size=1024):
         super().__init__()
         self.vocab = vocab
         vocab_size = vocab_size or vocab.get_vocab_size(namespace)
@@ -77,6 +77,7 @@ class DynamicConvDecoder(Decoder):
                                     decoder_conv_type, weight_softmax, decoder_attention_heads,
                                     weight_dropout, dropout, relu_dropout, input_dropout,
                                     decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
+                                    article_embed_size,
                                     kernel_size=decoder_kernel_size_list[i])
             for i in range(decoder_layers)
         ])
@@ -464,7 +465,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
                  decoder_conv_type, weight_softmax, decoder_attention_heads,
                  weight_dropout, dropout, relu_dropout, input_dropout,
                  decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                 kernel_size=0):
+                 article_embed_size, kernel_size=0):
         super().__init__()
         self.embed_dim = decoder_embed_dim
         self.conv_dim = decoder_conv_dim
@@ -505,7 +506,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         self.context_attn_lns['image'] = nn.LayerNorm(self.embed_dim)
 
         self.context_attns['article'] = MultiHeadAttention(
-            self.embed_dim, decoder_attention_heads, kdim=1024, vdim=1024,
+            self.embed_dim, decoder_attention_heads, kdim=article_embed_size, vdim=article_embed_size,
             dropout=attention_dropout)
         self.context_attn_lns['article'] = nn.LayerNorm(self.embed_dim)
 

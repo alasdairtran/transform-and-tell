@@ -11,6 +11,7 @@ from .pointer import PointerModel
 from .transformer import TransformerModel
 from .transformer_faces import TransformerFacesModel
 from .transformer_flattened import TransformerFlattenedModel
+from .transformer_glove import TransformerGloveModel
 from .transformer_names import TransformerNamesModel
 from .transformer_names_faces import TransformerNamesFacesModel
 from .transformer_pointer import TransformerPointerModel
