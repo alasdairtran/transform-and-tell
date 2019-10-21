@@ -43,12 +43,13 @@ Australian National University\\
 
 %%%%%%%%% ABSTRACT
 \begin{abstract}
-   In this work, we present an end-to-end captioning system for news articles
-   that can handle entity names and out-of-vocabulary words. Our model achieves
-   state-of-the-art results on the existing ``GoodNews" dataset. We also
-   re-collected news articles from the New York Times, which are cleaner and
-   more complete. This dataset allows us to explore approaches involving
-   image positions. The code will be made available on GitHub.
+   We propose an end-to-end model to generate image captions in news articles.
+   By combining the transformer architecture, byte-pair encoding, pretrained
+   text and image embeddings, and bags of attentions, our system is able to
+   describe an image using specific events and names mentioned in the article.
+   Our model achieves state-of-the-art results on the existing GoodNews
+   dataset. We also extend the GoodNews dataset to improve the quality of
+   articles and study the importance of the image location on the page.
 \end{abstract}
 
 %%%%%%%%% BODY TEXT
@@ -57,18 +58,18 @@ Australian National University\\
 Our main contributions are as follows:
 
 \begin{itemize}
-   \item We show that combining article attention with pre-trained contextualized
-   word piece embeddings allows our model to generate captions containing
-   relevant words that were not seen during training.
+   \item We show that combining article attention with pre-trained
+   contextualized word piece embeddings allows our model to generate captions
+   containing relevant words that were not seen during training.
 
    \item We demonstrate that the location of the image within the article is an
    important signal for generating relevant news captions.
 
-   \item We build on the “Good News” dataset to produce a larger and more complete
-   news captioning dataset consisting of * articles from the New York Times and
-   their 794K images with captions. In contrast to “Good News” our dataset
-   contains the full article text, and the location of the image within the
-   page.
+   \item We build on the GoodNews dataset to produce a larger and more
+   complete news captioning dataset consisting of 445,828 articles from the New
+   York Times and their 794K images with captions. In contrast to GoodNews
+   our dataset contains the full article text, and the location of the image
+   within the page.
 \end{itemize}
 
 
@@ -198,6 +199,11 @@ the images. For each generation step, we use the Scalar-Dot-Product attention
 The two attended representations are then concatenated and fed as input to
 the self-attention layer.
 
+We use MTCNN \cite{Zhang2016JointFD} to detect faces and FaceNet
+\cite{Schroff2015FaceNetAU} trained on the VGGFace2 dataset
+\cite{Cao2017VGGFace2AD}
+to classify the faces.
+
 \begin{figure*}[t]
    \begin{center}
    \fbox{\rule{0pt}{2in} \rule{.9\linewidth}{0pt}}
@@ -206,7 +212,12 @@ the self-attention layer.
    \label{fig:short}
    \end{figure*}
 
-\section{Results}
+\section{Experiments}
+
+The training pipeline is written in PyTorch \cite{Paszke2017Automatic} using
+the AllenNLP framework \cite{Gardner2017AllenNLP}. The RoBERTa model and
+dynamic convolution code comes from fairseq \cite{Ott2019Fairseq}. The code
+will made public on GitHub.
 
 Table \ref{tab:results-goodnews} shows the results on the original GoodNews
 dataset. Table \ref{tab:results-nytimes} shows additional results done on
@@ -271,6 +282,7 @@ our NYTimes+ dataset.
         & Caption length  & Unique words \\
       \midrule
       Ground Truths & 18.1 & 17.0 \\
+      \midrule
       Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 8.8 \\
       Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 & 8.4 \\
       Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 & 8.4 \\
