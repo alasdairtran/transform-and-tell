@@ -207,7 +207,12 @@ def main():
     }
 
     serialization_dir = os.path.dirname(args['file'])
-    output_file = os.path.join(serialization_dir, 'reported_metrics.json')
+    filename = os.path.basename(args['file']).split('.')[0]
+    if args['use_processed']:
+        filename += '_processed'
+
+    output_file = os.path.join(
+        serialization_dir, f'{filename}_reported_metrics.json')
     with open(output_file, 'w') as file:
         json.dump(final_metrics, file, indent=4)
 
