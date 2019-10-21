@@ -1,6 +1,7 @@
 from .baseline import BaselineModel
 from .baseline_glove import BaselineGloveModel
 from .decoder_faces import DynamicConvFacesDecoder
+from .decoder_faces_parallel import DynamicConvFacesParallelDecoder
 from .decoder_flattened_lstm import LSTMDecoder
 from .decoder_gpt2 import GPT2Decoder
 from .decoder_interact import DynamicConvInteractDecoder
