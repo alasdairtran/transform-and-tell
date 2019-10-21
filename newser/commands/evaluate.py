@@ -82,6 +82,8 @@ def evaluate(model: Model,
              batch_weight_key: str) -> Dict[str, Any]:
     check_for_gpu(cuda_device)
     nlp = spacy.load("en_core_web_lg", disable=['parser', 'ner'])
+    assert not os.path.exists(os.path.join(
+        serialization_dir, 'generations.jsonl'))
     with torch.no_grad():
         model.eval()
 
