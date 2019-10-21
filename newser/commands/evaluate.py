@@ -135,9 +135,9 @@ def evaluate(model: Model,
         final_metrics = model.get_metrics(reset=True)
         if loss_count > 0:
             # Sanity check
-            if loss_count != batch_count:
-                raise RuntimeError("The model you are trying to evaluate only sometimes " +
-                                   "produced a loss!")
+            # if loss_count != batch_count:
+            #     raise RuntimeError("The model you are trying to evaluate only sometimes " +
+            #                        "produced a loss!")
             final_metrics["loss"] = total_loss / total_weight
 
         return final_metrics
@@ -153,7 +153,9 @@ def write_to_json(output_dict, serialization_dir, nlp):
 
     out_path = os.path.join(serialization_dir, 'generations.jsonl')
     with open(out_path, 'a') as f:
-        for caption, generation, m in zip(captions, generations, metadatas):
+        for i, caption in enumerate(captions):
+            m = metadatas[i]
+            generation = generations[i]
             obj = {
                 'caption': caption,
                 'raw_caption': m['caption'],
@@ -164,6 +166,10 @@ def write_to_json(output_dict, serialization_dir, nlp):
                 'caption_names': get_proper_nouns(m['caption'], nlp),
                 'generated_names': get_proper_nouns(generation, nlp),
             }
+
+            if 'copied_texts' in output_dict:
+                obj['copied_text'] = output_dict['copied_texts'][i]
+
             f.write(f'{json.dumps(obj)}\n')
 
 

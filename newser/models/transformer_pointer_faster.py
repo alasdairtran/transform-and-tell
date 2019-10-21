@@ -245,14 +245,18 @@ class TransformerPointerModelFaster(LoadStateDictWithPrefix, Model):
 
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
-            log_probs, copy_probs, should_copy_probs, gen_ids = self._generate(
+            log_probs, copy_probs, should_copy_mask, gen_ids = self._generate(
                 caption_ids, contexts, X_sections_hiddens, article_padding_mask, context)
             gen_texts = [self.roberta.decode(x[x > 1]) for x in gen_ids.cpu()]
             captions = [m['caption'] for m in metadata]
 
+            copied_texts = [self.roberta.decode(x[should_copy_mask[i]])
+                            for i, x in enumerate(gen_ids.cpu())]
+
             output_dict['captions'] = captions
             output_dict['generations'] = gen_texts
             output_dict['metadata'] = metadata
+            output_dict['copied_texts'] = copied_texts
 
             # Remove punctuation
             gen_texts = [re.sub(r'[^\w\s]', '', t) for t in gen_texts]

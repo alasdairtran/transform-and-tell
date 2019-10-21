@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 import random
 import re
 from datetime import datetime
@@ -51,6 +52,8 @@ class NYTimesNamesCopyReader(DatasetReader):
                  tokenizer: Tokenizer,
                  token_indexers: Dict[str, TokenIndexer],
                  image_dir: str,
+                 name_counters_path: str = None,
+                 threshold: int = 10,
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
                  lazy: bool = True) -> None:
@@ -68,6 +71,15 @@ class NYTimesNamesCopyReader(DatasetReader):
         roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
         self.bpe = roberta.bpe
         self.indices = roberta.task.source_dictionary.indices
+
+        if name_counters_path is not None:
+            with open(name_counters_path, 'rb') as f:
+                counters = pickle.load(f)
+                counter = counters['context'] + counters['caption']
+                self.rare_names = set([w for w in counter
+                                       if counter[w] < threshold])
+        else:
+            self.rare_names = None
 
     @overrides
     def _read(self, split: str):
@@ -200,9 +212,10 @@ class NYTimesNamesCopyReader(DatasetReader):
         parts_of_speech = section['parts_of_speech']
         for pos in parts_of_speech:
             if pos['pos'] == 'PROPN' and not is_middle:
-                start = pos['start']
-                end = pos['end']
-                is_middle = True
+                if not self.rare_names or pos['text'] in self.rare_names:
+                    start = pos['start']
+                    end = pos['end']
+                    is_middle = True
             elif pos['pos'] == 'PROPN' and is_middle:
                 end = pos['end']
             elif pos['pos'] != 'PROPN' and is_middle:
