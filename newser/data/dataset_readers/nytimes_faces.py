@@ -151,7 +151,8 @@ class NYTimesFacesReader(DatasetReader):
                     face_embeds = sections[pos]['facenet']['embeddings']
                 else:
                     face_embeds = [[]]
-                face_embeds = np.array(face_embeds)
+                # Keep only the top 8 faces (sorted by detection probabilities)
+                face_embeds = np.array(face_embeds[:8])
 
                 paragraphs = paragraphs + before + after
 
