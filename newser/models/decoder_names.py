@@ -508,6 +508,9 @@ class DynamicConvDecoderLayer(DecoderLayer):
             dropout=attention_dropout)
         self.context_attn_lns['names'] = nn.LayerNorm(self.embed_dim)
 
+        context_size = self.embed_dim * 3
+        self.context_fc = GehringLinear(context_size, self.embed_dim)
+
         self.fc1 = GehringLinear(self.embed_dim, decoder_ffn_embed_dim)
         self.fc2 = GehringLinear(decoder_ffn_embed_dim, self.embed_dim)
 
@@ -537,6 +540,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X = self.maybe_layer_norm(self.conv_layer_norm, X, after=True)
 
         attn = None
+        X_contexts = []
 
         # Image attention
         residual = X
@@ -552,8 +556,9 @@ class DynamicConvDecoderLayer(DecoderLayer):
             need_weights=(not self.training and self.need_attn))
         X_image = F.dropout(X_image, p=self.dropout, training=self.training)
         X_image = residual + X_image
-        X = self.maybe_layer_norm(
+        X_image = self.maybe_layer_norm(
             self.context_attn_lns['image'], X_image, after=True)
+        X_contexts.append(X_image)
 
         # Article attention
         residual = X
@@ -570,8 +575,9 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_article = F.dropout(X_article, p=self.dropout,
                               training=self.training)
         X_article = residual + X_article
-        X = self.maybe_layer_norm(
+        X_article = self.maybe_layer_norm(
             self.context_attn_lns['article'], X_article, after=True)
+        X_contexts.append(X_article)
 
         # Name attention
         residual = X
@@ -588,8 +594,12 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_names = F.dropout(X_names, p=self.dropout,
                             training=self.training)
         X_names = residual + X_names
-        X = self.maybe_layer_norm(
+        X_names = self.maybe_layer_norm(
             self.context_attn_lns['article'], X_names, after=True)
+        X_contexts.append(X_names)
+
+        X_context = torch.cat(X_contexts, dim=-1)
+        X = self.context_fc(X_context)
 
         residual = X
         X = self.maybe_layer_norm(self.final_layer_norm, X, before=True)

@@ -9,4 +9,5 @@ from .nytimes_faces import NYTimesFacesReader
 from .nytimes_names import NYTimesNamesReader
 from .nytimes_names_copy import NYTimesNamesCopyReader
 from .nytimes_names_faces import NYTimesNamesFacesReader
+from .nytimes_names_set import NYTimesNamesSetReader
 from .nytimes_position import NYTimesPositionReader

@@ -15,5 +15,6 @@ from .transformer_flattened import TransformerFlattenedModel
 from .transformer_glove import TransformerGloveModel
 from .transformer_names import TransformerNamesModel
 from .transformer_names_faces import TransformerNamesFacesModel
+from .transformer_names_set import TransformerNamesSetModel
 from .transformer_pointer import TransformerPointerModel
 from .transformer_pointer_faster import TransformerPointerModelFaster
