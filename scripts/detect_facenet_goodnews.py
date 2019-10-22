@@ -5,7 +5,7 @@ Usage:
 
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
-    -d --image-dir DIR  Image directory [default: ./data/goodnews/images_processed].
+    -d --image-dir DIR  Image directory [default: ./data/goodnews/images].
     -f --face-dir DIR   Image directory [default: ./data/goodnews/facenet].
     -h --host HOST      Mongo host name [default: localhost]
 
@@ -42,12 +42,13 @@ def validate(args):
 
 
 def detect_faces(sample, goodnews, image_dir, face_dir, mtcnn, resnet):
-    if 'facenet' in sample:
+    if 'facenet_details' in sample:
         return
 
     image_path = os.path.join(image_dir, f"{sample['_id']}.jpg")
     try:
         image = Image.open(image_path)
+        image = image.convert('RGB')
     except (FileNotFoundError, OSError):
         return
 
@@ -64,11 +65,12 @@ def detect_faces(sample, goodnews, image_dir, face_dir, mtcnn, resnet):
             return
         embeddings, face_probs = resnet(faces)
 
-    sample['facenet'] = {
-        'n_faces': len(faces),
-        'embeddings': embeddings.cpu().tolist(),
-        'detect_probs': probs.tolist(),
-        'face_probs': face_probs.cpu().tolist(),
+    # We keep only top 10 faces
+    sample['facenet_details'] = {
+        'n_faces': len(faces[:10]),
+        'embeddings': embeddings.cpu().tolist()[:10],
+        'detect_probs': probs.tolist()[:10],
+        'face_probs': face_probs.cpu().tolist()[:10],
     }
 
     try:

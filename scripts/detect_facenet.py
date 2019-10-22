@@ -5,7 +5,7 @@ Usage:
 
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
-    -d --image-dir DIR  Image directory [default: ./data/nytimes/images_processed].
+    -d --image-dir DIR  Image directory [default: ./data/nytimes/images].
     -f --face-dir DIR   Image directory [default: ./data/nytimes/facenet].
     -b --batch INT      Batch number [default: 1]
     -h --host HOST      Mongo host name [default: localhost]
@@ -45,12 +45,12 @@ def validate(args):
 
 
 def detect_faces(article, nytimes, image_dir, face_dir, mtcnn, resnet):
-    if 'facenet_positions' in article:
+    if 'detected_face_positions' in article:
         return
 
     sections = article['parsed_section']
     image_positions = article['image_positions']
-    article['facenet_positions'] = []
+    article['detected_face_positions'] = []
 
     for pos in image_positions:
         section = sections[pos]
@@ -60,7 +60,13 @@ def detect_faces(article, nytimes, image_dir, face_dir, mtcnn, resnet):
                            f"{article['_id']} at position {pos}")
             continue
 
-        img = Image.open(image_path)
+        try:
+            img = Image.open(image_path)
+            img = img.convert('RGB')
+        except OSError:
+            logger.warning(f"OSError on image: {image_path} from article "
+                           f"{article['_id']} at position {pos}")
+            continue
         face_path = os.path.join(face_dir, f"{section['hash']}_{pos:02}.jpg")
         with torch.no_grad():
             try:
@@ -74,16 +80,16 @@ def detect_faces(article, nytimes, image_dir, face_dir, mtcnn, resnet):
                 continue
             embeddings, face_probs = resnet(faces)
 
-        section['facenet'] = {
-            'n_faces': len(faces),
-            'embeddings': embeddings.cpu().tolist(),
-            'detect_probs': probs.tolist(),
-            'face_probs': face_probs.cpu().tolist(),
+        section['facenet_details'] = {
+            'n_faces': len(faces[:10]),
+            'embeddings': embeddings.cpu().tolist()[:10],
+            'detect_probs': probs.tolist()[:10],
+            'face_probs': face_probs.cpu().tolist()[:10],
         }
 
-        article['facenet_positions'].append(pos)
+        article['detected_face_positions'].append(pos)
 
-    article['n_images_with_faces'] = len(article['facenet_positions'])
+    article['n_images_with_faces'] = len(article['detected_face_positions'])
 
     try:
         nytimes.articles.find_one_and_update(
@@ -108,26 +114,32 @@ def main():
     client = MongoClient(host=args['host'], port=27017)
     nytimes = client.nytimes
 
-    if args['batch'] == 1:  # 38K
+    # if args['batch'] == 1:  # 38K
+    #     start = datetime(2000, 1, 1)
+    #     end = datetime(2007, 8, 1)
+    # elif args['batch'] == 2:  # 42K
+    #     start = datetime(2007, 8, 1)
+    #     end = datetime(2009, 1, 1)
+    # elif args['batch'] == 3:  # 41K
+    #     start = datetime(2009, 1, 1)
+    #     end = datetime(2010, 5, 1)
+    # elif args['batch'] == 4:  # 79K
+    #     start = datetime(2010, 5, 1)
+    #     end = datetime(2012, 11, 1)
+    # elif args['batch'] == 5:  # 80K
+    #     start = datetime(2012, 11, 1)
+    #     end = datetime(2015, 5, 1)
+    # elif args['batch'] == 6:  # 80K
+    #     start = datetime(2015, 5, 1)
+    #     end = datetime(2017, 5, 1)
+    # elif args['batch'] == 7:  # 81K
+    #     start = datetime(2017, 5, 1)
+    #     end = datetime(2019, 9, 1)
+    if args['batch'] == 1:
         start = datetime(2000, 1, 1)
-        end = datetime(2007, 8, 1)
-    elif args['batch'] == 2:  # 42K
-        start = datetime(2007, 8, 1)
-        end = datetime(2009, 1, 1)
-    elif args['batch'] == 3:  # 41K
-        start = datetime(2009, 1, 1)
-        end = datetime(2010, 5, 1)
-    elif args['batch'] == 4:  # 79K
-        start = datetime(2010, 5, 1)
-        end = datetime(2012, 11, 1)
-    elif args['batch'] == 5:  # 80K
-        start = datetime(2012, 11, 1)
-        end = datetime(2015, 5, 1)
-    elif args['batch'] == 6:  # 80K
-        start = datetime(2015, 5, 1)
-        end = datetime(2017, 5, 1)
-    elif args['batch'] == 7:  # 81K
-        start = datetime(2017, 5, 1)
+        end = datetime(2013, 2, 1)
+    elif args['batch'] == 2:
+        start = datetime(2013, 2, 1)
         end = datetime(2019, 9, 1)
     else:
         raise ValueError(f"Unknown batch: {args['batch']}")
