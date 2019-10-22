@@ -98,6 +98,12 @@ sentence. They also created the ``GoodNews" dataset, which contains more
 samples than MSCOCO \cite{Lin2014MicrosoftCC} and BreakingNews
 \cite{Ramisa2016BreakingNewsAA} datasets.
 
+Zhu \etal \cite{Zhu2018CaptioningTW} used transformers to achieve competitive
+results on the MSCOCO dataset. Li \etal \cite{Li2019Boosted} added attention
+over image regions and semantic concepts using Faster-RCNN
+\cite{Ren2015FasterRCNN}. Both of these works, however, used the MSCOCO dataset
+which contains generic captions with no named entities.
+
 \begin{figure}[t]
    \begin{center}
    \fbox{\rule{0pt}{2in} \rule{0.9\linewidth}{0pt}}
@@ -127,7 +133,7 @@ following observations about the original GoodNews dataset:
 \end{itemize}
 
 This motivates us to recollect data from the New York Times in a more careful
-manner. We call this NYTimes+.
+manner, using our own parser. We call this NYTimes+.
 
 \begin{table}[t]
 	\caption {Summary of datasets}
