@@ -26,6 +26,7 @@ from newser.modules import GehringLinear
 from newser.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
+from .decoder_flattened_lstm import LSTMDecoder
 from .resnet import resnext101_32x16d_wsl
 
 LSTM = _Seq2SeqWrapper(nn.LSTM)
@@ -195,7 +196,10 @@ class TransformerFlattenedModel(Model):
 
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
-            _, gen_ids = self._generate(caption_ids, contexts)
+            if isinstance(self.decoder, LSTMDecoder):
+                _, gen_ids = self._generate_full(caption_ids, contexts)
+            else:
+                _, gen_ids = self._generate(caption_ids, contexts)
             # We ignore <s> and <pad>
             gen_texts = [self.roberta.decode(x[x > 1]) for x in gen_ids.cpu()]
             captions = [m['caption'] for m in metadata]
@@ -372,6 +376,98 @@ class TransformerFlattenedModel(Model):
                 prev_target,
                 contexts_i,
                 incremental_state=incremental_state)
+
+            # We're only interested in the current final word
+            decoder_out = (decoder_out[0][:, -1:], None)
+
+            lprobs = self.decoder.get_normalized_probs(
+                decoder_out, log_probs=True)
+            # lprobs.shape == [batch_size, 1, vocab_size]
+
+            lprobs = lprobs.squeeze(1)
+            # lprobs.shape == [batch_size, vocab_size]
+
+            topk_lprobs, topk_indices = lprobs.topk(self.sampling_topk)
+            topk_lprobs = topk_lprobs.div_(self.sampling_temp)
+            # topk_lprobs.shape == [batch_size, topk]
+
+            # Take a random sample from those top k
+            topk_probs = topk_lprobs.exp()
+            sampled_index = torch.multinomial(topk_probs, num_samples=1)
+            # sampled_index.shape == [batch_size, 1]
+
+            selected_lprob = topk_lprobs.gather(
+                dim=-1, index=sampled_index)
+            # selected_prob.shape == [batch_size, 1]
+
+            selected_index = topk_indices.gather(
+                dim=-1, index=sampled_index)
+            # selected_index.shape == [batch_size, 1]
+
+            log_prob = selected_lprob.new_zeros(B, 1)
+            log_prob[full_active_idx] = selected_lprob
+
+            index_path = selected_index.new_full((B, 1), self.padding_idx)
+            index_path[full_active_idx] = selected_index
+
+            log_prob_list.append(log_prob)
+            index_path_list.append(index_path)
+
+            seed_input = torch.cat([seed_input, selected_index], dim=-1)
+
+            is_eos = selected_index.squeeze(-1) == eos
+            active_idx = ~is_eos
+
+            full_active_idx[full_active_idx.nonzero()[~active_idx]] = 0
+
+            seed_input = seed_input[active_idx]
+
+            if active_idx.sum().item() == 0:
+                break
+
+        log_probs = torch.cat(log_prob_list, dim=-1)
+        # log_probs.shape == [batch_size * beam_size, generate_len]
+
+        token_ids = torch.cat(index_path_list, dim=-1)
+        # token_ids.shape == [batch_size * beam_size, generate_len]
+
+        return log_probs, token_ids
+
+    def _generate_full(self, caption_ids, contexts):
+        # incremental_state: Dict[str, Any] = {}
+        seed_input = caption_ids[:, 0:1]
+        log_prob_list = []
+        index_path_list = [seed_input]
+        eos = 2
+        active_idx = seed_input[:, -1] != eos
+        full_active_idx = active_idx
+        gen_len = 100
+        B = caption_ids.shape[0]
+
+        for i in range(gen_len):
+            # if i == 0:
+            #     prev_target = {self.index: seed_input}
+            # else:
+            #     prev_target = {self.index: seed_input[:, -1:]}
+            prev_target = {self.index: seed_input}
+
+            # self.decoder.filter_incremental_state(
+            #     incremental_state, active_idx)
+
+            contexts_i = {
+                'image': contexts['image'][:, full_active_idx],
+                'image_mask': contexts['image_mask'][full_active_idx],
+                'article': contexts['article'][:, full_active_idx],
+                'article_mask': contexts['article_mask'][full_active_idx],
+                'sections':  None,
+                'sections_mask': None,
+            }
+
+            decoder_out = self.decoder(
+                prev_target,
+                contexts_i,
+                # incremental_state=incremental_state
+            )
 
             # We're only interested in the current final word
             decoder_out = (decoder_out[0][:, -1:], None)
