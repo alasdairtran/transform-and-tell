@@ -15,7 +15,7 @@ from newser.modules import AdaptiveSoftmax, GehringLinear
 from newser.modules.token_embedders import AdaptiveEmbedding
 from newser.utils import eval_str_list
 
-from .decoder_flattened import Decoder
+from .decoder_base import Decoder
 
 
 def LSTMCell(input_size, hidden_size, **kwargs):

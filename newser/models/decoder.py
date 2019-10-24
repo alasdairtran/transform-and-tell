@@ -17,13 +17,7 @@ from newser.modules import (AdaptiveSoftmax, DynamicConv1dTBC, GehringLinear,
 from newser.modules.token_embedders import AdaptiveEmbedding
 from newser.utils import eval_str_list, fill_with_neg_inf, softmax
 
-
-class Decoder(Registrable, nn.Module):
-    pass
-
-
-class DecoderLayer(Registrable, nn.Module):
-    pass
+from .decoder_base import Decoder, DecoderLayer
 
 
 @Decoder.register('dynamic_conv_decoder')
@@ -52,7 +46,7 @@ class DynamicConvDecoder(Decoder):
                  tie_adaptive_weights=False, adaptive_softmax_dropout=0,
                  tie_adaptive_proj=False, adaptive_softmax_factor=0, decoder_layers=6,
                  final_norm=True, padding_idx=0, namespace='target_tokens',
-                 vocab_size=None, section_attn=False):
+                 vocab_size=None):
         super().__init__()
         self.vocab = vocab
         vocab_size = vocab_size or vocab.get_vocab_size(namespace)
@@ -77,8 +71,7 @@ class DynamicConvDecoder(Decoder):
                                     decoder_conv_type, weight_softmax, decoder_attention_heads,
                                     weight_dropout, dropout, relu_dropout, input_dropout,
                                     decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                                    kernel_size=decoder_kernel_size_list[i],
-                                    section_attn=section_attn)
+                                    kernel_size=decoder_kernel_size_list[i])
             for i in range(decoder_layers)
         ])
 
@@ -465,7 +458,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
                  decoder_conv_type, weight_softmax, decoder_attention_heads,
                  weight_dropout, dropout, relu_dropout, input_dropout,
                  decoder_normalize_before, attention_dropout, decoder_ffn_embed_dim,
-                 kernel_size=0, section_attn=False):
+                 kernel_size=0):
         super().__init__()
         self.embed_dim = decoder_embed_dim
         self.conv_dim = decoder_conv_dim
@@ -510,11 +503,10 @@ class DynamicConvDecoderLayer(DecoderLayer):
             dropout=attention_dropout)
         self.context_attn_lns['article'] = nn.LayerNorm(self.embed_dim)
 
-        if section_attn:
-            self.section_attn = SectionAttention(
-                self.embed_dim, decoder_attention_heads, self.embed_dim,
-                1024, 1024, dropout=0)
-            self.section_attn_ln = nn.LayerNorm(self.embed_dim)
+        self.section_attn = SectionAttention(
+            self.embed_dim, decoder_attention_heads, self.embed_dim,
+            1024, 1024, dropout=0)
+        self.section_attn_ln = nn.LayerNorm(self.embed_dim)
         context_size = self.embed_dim * 2
 
         self.context_fc = GehringLinear(context_size, self.embed_dim)
@@ -587,23 +579,20 @@ class DynamicConvDecoderLayer(DecoderLayer):
             self.context_attn_lns['article'], X_article, after=True)
 
         # Section attention
-        if hasattr(self, 'section_attn'):
-            residual = X
-            X_section = self.maybe_layer_norm(
-                self.section_attn_ln, X, before=True)
-            X_section, attn = self.section_attn(
-                query=X_section,
-                contexts=contexts,
-                attn_scores=attn,
-                need_weights=(not self.training and self.need_attn))
-            X_section = F.dropout(X_section, p=self.dropout,
-                                  training=self.training)
-            X_section = residual + X_section
-            X_section = self.maybe_layer_norm(
-                self.section_attn_ln, X_section, after=True)
-            X_contexts.append(X_section)
-        else:
-            X_contexts.append(X_article)
+        residual = X
+        X_section = self.maybe_layer_norm(
+            self.section_attn_ln, X, before=True)
+        X_section, attn = self.section_attn(
+            query=X_section,
+            contexts=contexts,
+            attn_scores=attn,
+            need_weights=(not self.training and self.need_attn))
+        X_section = F.dropout(X_section, p=self.dropout,
+                              training=self.training)
+        X_section = residual + X_section
+        X_section = self.maybe_layer_norm(
+            self.section_attn_ln, X_section, after=True)
+        X_contexts.append(X_section)
 
         X_context = torch.cat(X_contexts, dim=-1)
         X = self.context_fc(X_context)

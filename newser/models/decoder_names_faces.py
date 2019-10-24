@@ -17,7 +17,7 @@ from newser.modules import (AdaptiveSoftmax, DynamicConv1dTBC, GehringLinear,
 from newser.modules.token_embedders import AdaptiveEmbedding
 from newser.utils import eval_str_list, fill_with_neg_inf, softmax
 
-from .decoder_flattened import Decoder, DecoderLayer
+from .decoder_base import Decoder, DecoderLayer
 
 
 @Decoder.register('dynamic_conv_decoder_names_faces')
