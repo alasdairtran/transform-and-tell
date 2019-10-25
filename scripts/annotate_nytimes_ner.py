@@ -6,13 +6,17 @@ Usage:
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
     -h --host HOST      MongoDB host [default: localhost].
+    -b --batch INT      Batch number [default: 1]
 
 """
+
+import functools
+from datetime import datetime
+from multiprocessing import Pool
 
 import ptvsd
 import spacy
 from docopt import docopt
-from joblib import Parallel, delayed
 from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
@@ -29,6 +33,7 @@ def validate(args):
     schema = Schema({
         'ptvsd': Or(None, And(Use(int), lambda port: 1 <= port <= 65535)),
         'host': str,
+        'batch': Use(int),
     })
     args = schema.validate(args)
     return args
@@ -38,8 +43,23 @@ def parse_article(article, nlp, db):
     sections = article['parsed_section']
     changed = False
 
+    if 'main' in article['headline'] and 'named_entities' not in article['headline']:
+        section = article['headline']
+        title = section['main'].strip()
+        doc = nlp(title)
+        section['named_entities'] = []
+        for ent in doc.ents:
+            changed = True
+            ent_info = {
+                'start': ent.start_char,
+                'end': ent.end_char,
+                'text': ent.text,
+                'label': ent.label_,
+            }
+            section['named_entities'].append(ent_info)
+
     for section in sections:
-        if section['type'] == 'caption':
+        if 'named_entities' not in section:
             doc = nlp(section['text'].strip())
             section['named_entities'] = []
             for ent in doc.ents:
@@ -57,6 +77,20 @@ def parse_article(article, nlp, db):
             {'_id': article['_id']}, {'$set': article})
 
 
+def annotate_with_host(host, period):
+    start, end = period
+    nlp = spacy.load("en_core_web_lg")
+    client = MongoClient(host=host, port=27017)
+    db = client.nytimes
+
+    article_cursor = db.articles.find({
+        'pub_date': {'$gte': start, '$lt': end},
+    }, no_cursor_timeout=True).batch_size(128)
+
+    for article in tqdm(article_cursor):
+        parse_article(article, nlp, db)
+
+
 def main():
     args = docopt(__doc__, version='0.0.1')
     args = validate(args)
@@ -66,21 +100,23 @@ def main():
         ptvsd.enable_attach(address)
         ptvsd.wait_for_attach()
 
-    logger.info('Loading spacy.')
-    nlp = spacy.load("en_core_web_lg")
-    client = MongoClient(host=args['host'], port=27017)
-    db = client.nytimes
+    periods = [(datetime(2000, 1, 1), datetime(2007, 8, 1)),
+               (datetime(2007, 8, 1), datetime(2009, 1, 1)),
+               (datetime(2009, 1, 1), datetime(2010, 5, 1)),
+               (datetime(2010, 5, 1), datetime(2011, 7, 1)),
+               (datetime(2011, 7, 1), datetime(2012, 11, 1)),
+               (datetime(2012, 11, 1), datetime(2014, 2, 1)),
+               (datetime(2014, 2, 1), datetime(2015, 5, 1)),
+               (datetime(2015, 5, 1), datetime(2016, 5, 1)),
+               (datetime(2016, 5, 1), datetime(2017, 5, 1)),
+               (datetime(2017, 5, 1), datetime(2018, 8, 1)),
+               (datetime(2018, 8, 1), datetime(2019, 9, 1)),
+               ]
 
-    article_cursor = db.articles.find({
-        'parsed': True,  # article body is parsed into paragraphs
-        'n_images': {'$gt': 0},  # at least one image is present
-        'language': 'en',
-    }, no_cursor_timeout=True).batch_size(128)
+    annotate = functools.partial(annotate_with_host, args['host'])
 
-    logger.info('Annotating articles.')
-    with Parallel(n_jobs=4, backend='threading') as parallel:
-        parallel(delayed(parse_article)(article, nlp, db)
-                 for article in tqdm(article_cursor))
+    pool = Pool(processes=11)
+    pool.map(annotate, periods)
 
 
 if __name__ == '__main__':
