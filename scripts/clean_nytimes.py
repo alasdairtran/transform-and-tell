@@ -11,6 +11,7 @@ Options:
 import os
 from datetime import datetime
 
+import numpy as np
 import ptvsd
 import pymongo
 import torch
@@ -49,6 +50,33 @@ def main():
         ptvsd.wait_for_attach()
 
     client = MongoClient(host=args['host'], port=27017)
+    nytimes = client.nytimes
+
+    article_cursor = nytimes.articles.find({
+    }, no_cursor_timeout=True).batch_size(128)
+
+    for article in tqdm(article_cursor):
+        sections = article['parsed_section']
+        image_positions = article['image_positions']
+        for pos in image_positions:
+            s = sections[pos]
+            if 'facenet_details' in s:
+                face_probs = np.array(s['facenet_details']['face_probs'])
+                face_prob_list = []
+                for face_prob in face_probs:
+                    top10_idx = np.argpartition(face_prob, -10)[-10:]
+                    top10 = face_prob[top10_idx]
+                    top10_idx_sorted = top10_idx[np.argsort(top10)[
+                        ::-1]].tolist()
+                    top10_sorted = face_prob[top10_idx_sorted].tolist()
+                    fpl = [[i, p]
+                           for i, p in zip(top10_idx_sorted, top10_sorted)]
+                    face_prob_list.append(fpl)
+
+                s['facenet_details']['face_probs'] = face_prob_list
+
+        nytimes.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
 
 
 if __name__ == '__main__':
