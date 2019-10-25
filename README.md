@@ -26,7 +26,7 @@ mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobac
 python scripts/get_urls.py API_KEY
 
 # Get articles, images, and captions from New York Times
-python scripts/get_articles.py
+python scripts/get_articles_nytimes.py
 python scripts/process_images.py -i data/nytimes/images -o data/nytimes/images_processed # takes 6h
 python scripts/annotate_nytimes_corefs.py # takes
 
@@ -37,7 +37,7 @@ wget 'https://drive.google.com/uc?export=download&id=1rl-3DgMRNV8g0AptwKRoYonNkY
 wget 'https://drive.google.com/uc?export=download&id=18078qCfdjOHuu75SjBLGNUSiIeq6zxJ-' -O data/goodnews/image_urls.json
 URL="https://docs.google.com/uc?export=download&id=1rswGdNNfl4HoP9trslP0RUrcmSbg1_RD"
 wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $URL -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1rswGdNNfl4HoP9trslP0RUrcmSbg1_RD" -O data/goodnews/article_caption.json && rm -rf /tmp/cookies.txt
-python scripts/get_goodnews.py
+python scripts/get_articles_goodnews.py
 python scripts/spacize.py # takes 2-3h
 python scripts/annotate_corefs.py # takes about 4.8 days
 python scripts/count_words.py # takes 35m

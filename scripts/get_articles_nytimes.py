@@ -160,8 +160,8 @@ def retrieve_article(article, root_dir, db):
     if article['_id'].startswith('nyt://article/'):
         article['_id'] = article['_id'][14:]
 
-    result = db.articles.find_one({'_id': article['_id']})
-    if result is not None and result['scraped']:
+    result = db.source.find_one({'_id': article['_id']})
+    if result is not None:
         return
 
     data = article
@@ -170,9 +170,6 @@ def retrieve_article(article, root_dir, db):
     data['error'] = False
     data['pub_date'] = datetime.strptime(article['pub_date'],
                                          '%Y-%m-%dT%H:%M:%S%z')
-
-    if result is None:
-        db.articles.insert_one(data)
 
     if not article['web_url']:
         return
@@ -185,41 +182,25 @@ def retrieve_article(article, root_dir, db):
         except (ValueError, HTTPError):
             # ValueError: unknown url type: '/interactive/2018/12/05/business/05Markets.html'
             # urllib.error.HTTPError: HTTP Error 404: Not Found
-            data['error'] = True
-            db.articles.find_one_and_update(
-                {'_id': article['_id']}, {'$set': data})
             return
         except (URLError, ConnectionResetError):
-            if i == 9:
-                # urllib.error.URLError: <urlopen error [Errno 110] Connection timed out>
-                data['error'] = True
-                data['timeout'] = True
-                db.articles.find_one_and_update(
-                    {'_id': article['_id']}, {'$set': data})
-                return
-            else:
-                time.sleep(60)
-                continue
+            time.sleep(60)
+            continue
         except socket.timeout:
             pass
         # urllib.error.URLError: <urlopen error [Errno 110] Connection timed out>
-        data['error'] = True
-        data['timeout'] = True
-        db.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': data})
         return
 
     data['web_url'] = url
     try:
         raw_html = response.read().decode('utf-8')
     except UnicodeDecodeError:
-        data['error'] = True
-        data['decode_error'] = True
-        db.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': data})
         return
 
-    data['raw_html'] = raw_html
+    raw_data = {
+        '_id': article['_id'],
+        'raw_html': raw_html,
+    }
 
     parsed_sections = extract_text(raw_html)
     data['parsed_section'] = parsed_sections
@@ -262,7 +243,13 @@ def retrieve_article(article, root_dir, db):
         article['n_images'] = 0
 
     data['scraped'] = True
-    db.articles.find_one_and_update({'_id': article['_id']}, {'$set': data})
+
+    db.source.insert_one({'_id': raw_data['_id']}, {'$set': raw_data})
+
+    if not article['parsed'] or article['n_images'] == 0 or article['language'] != 'en':
+        db.text_articles.insert_one(article)
+    else:
+        db.articles.insert_one({'_id': article['_id']}, {'$set': data})
 
 
 def validate(args):
@@ -309,9 +296,11 @@ def main():
 
     # Build indices
     logger.info('Building indices')
-    db.articles.create_index([
-        ('language', pymongo.ASCENDING),
-        ('parsed', pymongo.ASCENDING),
+    nytimes.articles.create_index([
+        ('pub_date', pymongo.DESCENDING),
+    ])
+
+    nytimes.articles.create_index([
         ('n_images', pymongo.ASCENDING),
         ('n_images_with_faces', pymongo.ASCENDING),
         ('pub_date', pymongo.DESCENDING),
