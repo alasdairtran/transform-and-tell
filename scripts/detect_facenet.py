@@ -145,9 +145,9 @@ def main():
         raise ValueError(f"Unknown batch: {args['batch']}")
 
     article_cursor = nytimes.articles.find({
-        'parsed': True,  # article body is parsed into paragraphs
-        'n_images': {'$gt': 0},  # at least one image is present
-        'language': 'en',
+        # 'parsed': True,  # article body is parsed into paragraphs
+        # 'n_images': {'$gt': 0},  # at least one image is present
+        # 'language': 'en',
         'pub_date': {'$gte': start, '$lt': end},
     }, no_cursor_timeout=True).batch_size(128)
 

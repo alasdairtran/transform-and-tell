@@ -45,6 +45,8 @@ python scripts/count_whole_words.py # takes 22m
 
 # Statistics and analysis
 python scripts/compute_data_statistics.py
+
+# There are 445,870 articles in nytimes.articles
 ```
 
 ## Training and Evaluation
@@ -56,7 +58,6 @@ CUDA_VISIBLE_DEVICES=0 newser generate expt/1_baseline/config.yaml -m expt/1_bas
 
 CUDA_VISIBLE_DEVICES=1 newser evaluate expt/1_baseline/config.yaml -m expt/1_baseline/serialization/best.th --overrides '{"validation_iterator": {"batch_size": 8}}'
 ```
-
 
 ## Original Results
 

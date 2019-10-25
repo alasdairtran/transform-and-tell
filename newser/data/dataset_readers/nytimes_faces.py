@@ -87,15 +87,15 @@ class NYTimesFacesReader(DatasetReader):
 
         projection = ['_id', 'parsed_section.type', 'parsed_section.text',
                       'parsed_section.hash', 'parsed_section.parts_of_speech',
-                      'parsed_section.facenet', 'image_positions', 'headline',
+                      'parsed_section.facenet_details', 'image_positions', 'headline',
                       'web_url', 'n_images_with_faces']
 
         # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
-            'parsed': True,  # article body is parsed into paragraphs
-            'n_images': {'$gt': 0},  # at least one image is present
+            # 'parsed': True,  # article body is parsed into paragraphs
+            # 'n_images': {'$gt': 0},  # at least one image is present
             'pub_date': {'$gte': start, '$lt': end},
-            'language': 'en',
+            # 'language': 'en',
         }, no_cursor_timeout=True, projection=projection).batch_size(128)
 
         for article in article_cursor:
@@ -147,8 +147,8 @@ class NYTimesFacesReader(DatasetReader):
                 except (FileNotFoundError, OSError):
                     continue
 
-                if 'facenet' in sections[pos]:
-                    face_embeds = sections[pos]['facenet']['embeddings']
+                if 'facenet_details' in sections[pos]:
+                    face_embeds = sections[pos]['facenet_details']['embeddings']
                 else:
                     face_embeds = [[]]
                 # Keep only the top 8 faces (sorted by detection probabilities)
