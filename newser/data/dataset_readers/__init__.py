@@ -13,3 +13,4 @@ from .nytimes_names_copy import NYTimesNamesCopyReader
 from .nytimes_names_faces import NYTimesNamesFacesReader
 from .nytimes_names_set import NYTimesNamesSetReader
 from .nytimes_position import NYTimesPositionReader
+from .nytimes_summary import NYTimesSummaryReader

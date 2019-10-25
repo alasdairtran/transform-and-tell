@@ -9,6 +9,7 @@ from .decoder_interact import DynamicConvInteractDecoder
 from .decoder_join import DynamicConvJoinDecoder
 from .decoder_names import DynamicConvNameDecoder
 from .decoder_names_faces import DynamicConvNameFacesDecoder
+from .decoder_summary import DynamicConvSummaryDecoder
 from .pointer import PointerModel
 from .transformer import TransformerModel
 from .transformer_faces import TransformerFacesModel
@@ -20,3 +21,4 @@ from .transformer_names_faces import TransformerNamesFacesModel
 from .transformer_names_set import TransformerNamesSetModel
 from .transformer_pointer import TransformerPointerModel
 from .transformer_pointer_faster import TransformerPointerModelFaster
+from .transformer_summary import TransformerSummaryModel

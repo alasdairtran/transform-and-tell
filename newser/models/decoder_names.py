@@ -594,7 +594,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
                             training=self.training)
         X_names = residual + X_names
         X_names = self.maybe_layer_norm(
-            self.context_attn_lns['article'], X_names, after=True)
+            self.context_attn_lns['names'], X_names, after=True)
         X_contexts.append(X_names)
 
         X_context = torch.cat(X_contexts, dim=-1)

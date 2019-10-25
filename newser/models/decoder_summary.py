@@ -9,7 +9,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from allennlp.common.registrable import Registrable
 from allennlp.modules.text_field_embedders import TextFieldEmbedder
 
 from newser.modules import (AdaptiveSoftmax, DynamicConv1dTBC, GehringLinear,
@@ -20,8 +19,8 @@ from newser.utils import eval_str_list, fill_with_neg_inf, softmax
 from .decoder_base import Decoder, DecoderLayer
 
 
-@Decoder.register('dynamic_conv_decoder_names_faces')
-class DynamicConvNameFacesDecoder(Decoder):
+@Decoder.register('dynamic_conv_decoder_summary')
+class DynamicConvSummaryDecoder(Decoder):
     """
     DynamicConv decoder consisting of *args.decoder_layers* layers. Each layer
     is a :class:`DynamicConvDecoderLayer`.
@@ -443,7 +442,7 @@ class SectionAttention(nn.Module):
         return attn, attn_weights
 
 
-@DecoderLayer.register('dynamic_conv_names_faces')
+@DecoderLayer.register('dynamic_conv_summary')
 class DynamicConvDecoderLayer(DecoderLayer):
     """Decoder layer block.
 
@@ -503,15 +502,13 @@ class DynamicConvDecoderLayer(DecoderLayer):
             dropout=attention_dropout)
         self.context_attn_lns['article'] = nn.LayerNorm(self.embed_dim)
 
-        self.context_attns['names'] = MultiHeadAttention(
+        self.context_attns['summary'] = MultiHeadAttention(
             self.embed_dim, decoder_attention_heads, kdim=1024, vdim=1024,
             dropout=attention_dropout)
-        self.context_attn_lns['names'] = nn.LayerNorm(self.embed_dim)
+        self.context_attn_lns['summary'] = nn.LayerNorm(self.embed_dim)
 
-        self.context_attns['faces'] = MultiHeadAttention(
-            self.embed_dim, decoder_attention_heads, kdim=512, vdim=512,
-            dropout=attention_dropout)
-        self.context_attn_lns['faces'] = nn.LayerNorm(self.embed_dim)
+        context_size = self.embed_dim * 3
+        self.context_fc = GehringLinear(context_size, self.embed_dim)
 
         self.fc1 = GehringLinear(self.embed_dim, decoder_ffn_embed_dim)
         self.fc2 = GehringLinear(decoder_ffn_embed_dim, self.embed_dim)
@@ -542,6 +539,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X = self.maybe_layer_norm(self.conv_layer_norm, X, after=True)
 
         attn = None
+        X_contexts = []
 
         # Image attention
         residual = X
@@ -557,8 +555,9 @@ class DynamicConvDecoderLayer(DecoderLayer):
             need_weights=(not self.training and self.need_attn))
         X_image = F.dropout(X_image, p=self.dropout, training=self.training)
         X_image = residual + X_image
-        X = self.maybe_layer_norm(
+        X_image = self.maybe_layer_norm(
             self.context_attn_lns['image'], X_image, after=True)
+        X_contexts.append(X_image)
 
         # Article attention
         residual = X
@@ -575,44 +574,31 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_article = F.dropout(X_article, p=self.dropout,
                               training=self.training)
         X_article = residual + X_article
-        X = self.maybe_layer_norm(
+        X_article = self.maybe_layer_norm(
             self.context_attn_lns['article'], X_article, after=True)
+        X_contexts.append(X_article)
 
-        # Face attention
+        # Summary attention
         residual = X
-        X_faces = self.maybe_layer_norm(
-            self.context_attn_lns['faces'], X, before=True)
-        X_faces, attn = self.context_attns['faces'](
-            query=X_faces,
-            key=contexts['faces'],
-            value=contexts['faces'],
-            key_padding_mask=contexts['faces_mask'],
+        X_summary = self.maybe_layer_norm(
+            self.context_attn_lns['summary'], X, before=True)
+        X_summary, attn = self.context_attns['summary'](
+            query=X_summary,
+            key=contexts['summary'],
+            value=contexts['summary'],
+            key_padding_mask=contexts['summary_mask'],
             incremental_state=None,
             static_kv=True,
             need_weights=(not self.training and self.need_attn))
-        X_faces = F.dropout(X_faces, p=self.dropout,
-                            training=self.training)
-        X_faces = residual + X_faces
-        X = self.maybe_layer_norm(
-            self.context_attn_lns['faces'], X_faces, after=True)
+        X_summary = F.dropout(X_summary, p=self.dropout,
+                              training=self.training)
+        X_summary = residual + X_summary
+        X_summary = self.maybe_layer_norm(
+            self.context_attn_lns['summary'], X_summary, after=True)
+        X_contexts.append(X_summary)
 
-        # Name attention
-        residual = X
-        X_names = self.maybe_layer_norm(
-            self.context_attn_lns['names'], X, before=True)
-        X_names, attn = self.context_attns['names'](
-            query=X_names,
-            key=contexts['names'],
-            value=contexts['names'],
-            key_padding_mask=contexts['names_mask'],
-            incremental_state=None,
-            static_kv=True,
-            need_weights=(not self.training and self.need_attn))
-        X_names = F.dropout(X_names, p=self.dropout,
-                            training=self.training)
-        X_names = residual + X_names
-        X = self.maybe_layer_norm(
-            self.context_attn_lns['names'], X_names, after=True)
+        X_context = torch.cat(X_contexts, dim=-1)
+        X = self.context_fc(X_context)
 
         residual = X
         X = self.maybe_layer_norm(self.final_layer_norm, X, before=True)
