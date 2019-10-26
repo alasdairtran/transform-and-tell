@@ -18,9 +18,9 @@ mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10
 db.adminCommand( { "setParameter": 1, "wiredTigerEngineRuntimeConfig":
    "cache_size=20G"})
 
-# Back up database
-mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-10-19
-mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2019-10-19
+# Back up database (takes 5h to dump and 1h to restore)
+mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-10-26
+mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2019-10-26
 
 # Get article URLs from New York Times
 python scripts/get_urls.py API_KEY
