@@ -318,7 +318,8 @@ our NYTimes+ dataset.
 	\begin{tabular}{llllllll}
 		\toprule
 		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr \\
-		\midrule
+      \midrule
+      GloVe + LSTM & 14.0 & 6.09 & 2.98 & 1.67 & 13.0 & 5.15 & 9.96 \\
       Transformer (first 512 tokens) & 17.6 & 10.4 & 6.68 & 4.65 & 19.1 & 8.49 & 41.1 \\
       Transformer (location-aware) & 19.0 & 11.7 & 7.76 & 5.48 & 21.1 & 9.51 & 51.4 \\
       \\
@@ -334,7 +335,8 @@ our NYTimes+ dataset.
 		\toprule
         & \multicolumn{2}{c}{All names} & \multicolumn{2}{c}{Rare names in caption } & \multicolumn{2}{c}{Rare names in article } \\
         & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
-		\midrule
+      \midrule
+      GloVe + LSTM & 10.5\% & 13.1\% & 0\% & 0\% & 0\% & 0\%  \\
       Transformer (first 512 tokens) & 26.4\% & 31.5\% & 19.8\% & 29.5\% & 17.7\% & 20.9\%  \\
       Transformer (location-aware) & 31.5\% & 36.8\% & 25.3\% & 33.2\% & 23.5\% & 25.3\%   \\
 		\bottomrule
@@ -350,6 +352,7 @@ our NYTimes+ dataset.
         & Caption length  & Unique words \\
       \midrule
       Ground Truths & 18.4 & 17.1 \\
+      GloVe + LSTM  & 15.3 & 12.3 \\
       Transformer (first 512 tokens)  & 13.1 & 11.7 \\
       Transformer (location-aware) & 13.0 & 11.7  \\
 		\bottomrule
