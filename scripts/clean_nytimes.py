@@ -8,8 +8,10 @@ Options:
     -h --host HOST      Mongo host name [default: localhost]
 
 """
+import functools
 import os
 from datetime import datetime
+from multiprocessing import Pool
 
 import numpy as np
 import ptvsd
@@ -40,6 +42,27 @@ def validate(args):
     return args
 
 
+def clean_with_host(host, period):
+    start, end = period
+    client = MongoClient(host=host, port=27017)
+    db = client.nytimes
+
+    article_cursor = db.articles.find({
+        'pub_date': {'$gte': start, '$lt': end},
+    }, no_cursor_timeout=True).batch_size(128)
+
+    for article in tqdm(article_cursor):
+        sections = article['parsed_section']
+        image_positions = article['image_positions']
+        for pos in image_positions:
+            s = sections[pos]
+            if 'facenet_details' in s and 'face_probs' in s['facenet_details']:
+                del s['facenet_details']['face_probs']
+
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
+
+
 def main():
     args = docopt(__doc__, version='0.0.1')
     args = validate(args)
@@ -49,34 +72,23 @@ def main():
         ptvsd.enable_attach(address)
         ptvsd.wait_for_attach()
 
-    client = MongoClient(host=args['host'], port=27017)
-    nytimes = client.nytimes
+    periods = [(datetime(2000, 1, 1), datetime(2007, 8, 1)),
+               (datetime(2007, 8, 1), datetime(2009, 1, 1)),
+               (datetime(2009, 1, 1), datetime(2010, 5, 1)),
+               (datetime(2010, 5, 1), datetime(2011, 7, 1)),
+               (datetime(2011, 7, 1), datetime(2012, 11, 1)),
+               (datetime(2012, 11, 1), datetime(2014, 2, 1)),
+               (datetime(2014, 2, 1), datetime(2015, 5, 1)),
+               (datetime(2015, 5, 1), datetime(2016, 5, 1)),
+               (datetime(2016, 5, 1), datetime(2017, 5, 1)),
+               (datetime(2017, 5, 1), datetime(2018, 8, 1)),
+               (datetime(2018, 8, 1), datetime(2019, 9, 1)),
+               ]
 
-    article_cursor = nytimes.articles.find({
-    }, no_cursor_timeout=True).batch_size(128)
+    clean = functools.partial(clean_with_host, args['host'])
 
-    for article in tqdm(article_cursor):
-        sections = article['parsed_section']
-        image_positions = article['image_positions']
-        for pos in image_positions:
-            s = sections[pos]
-            if 'facenet_details' in s:
-                face_probs = np.array(s['facenet_details']['face_probs'])
-                face_prob_list = []
-                for face_prob in face_probs:
-                    top10_idx = np.argpartition(face_prob, -10)[-10:]
-                    top10 = face_prob[top10_idx]
-                    top10_idx_sorted = top10_idx[np.argsort(top10)[
-                        ::-1]].tolist()
-                    top10_sorted = face_prob[top10_idx_sorted].tolist()
-                    fpl = [[i, p]
-                           for i, p in zip(top10_idx_sorted, top10_sorted)]
-                    face_prob_list.append(fpl)
-
-                s['facenet_details']['face_probs'] = face_prob_list
-
-        nytimes.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': article})
+    pool = Pool(processes=11)
+    pool.map(clean, periods)
 
 
 if __name__ == '__main__':
