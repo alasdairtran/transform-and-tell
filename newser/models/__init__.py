@@ -13,6 +13,7 @@ from .decoder_summary import DynamicConvSummaryDecoder
 from .pointer import PointerModel
 from .transformer import TransformerModel
 from .transformer_faces import TransformerFacesModel
+from .transformer_faces_ner import TransformerFacesNERModel
 from .transformer_flattened import TransformerFlattenedModel
 from .transformer_glove import TransformerGloveModel
 from .transformer_hierarchical import TransformerHierarchicalModel
