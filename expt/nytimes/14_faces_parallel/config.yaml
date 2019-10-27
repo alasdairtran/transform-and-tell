@@ -156,7 +156,7 @@ trainer:
       checkpointer:
         num_serialized_models_to_keep: 10
     - type: track_metrics
-      patience: 10
+      patience: 30
     - type: validate
     - type: log_to_tensorboard
       summary_interval: 512
