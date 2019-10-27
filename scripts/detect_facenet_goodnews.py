@@ -45,6 +45,9 @@ def detect_faces(sample, goodnews, image_dir, face_dir, mtcnn, resnet):
     if 'facenet_details' in sample:
         return
 
+    if 'facenet' in sample:
+        del sample['facenet']
+
     image_path = os.path.join(image_dir, f"{sample['_id']}.jpg")
     try:
         image = Image.open(image_path)
@@ -70,7 +73,6 @@ def detect_faces(sample, goodnews, image_dir, face_dir, mtcnn, resnet):
         'n_faces': len(faces[:10]),
         'embeddings': embeddings.cpu().tolist()[:10],
         'detect_probs': probs.tolist()[:10],
-        'face_probs': face_probs.cpu().tolist()[:10],
     }
 
     try:
