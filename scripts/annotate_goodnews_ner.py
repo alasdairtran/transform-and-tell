@@ -59,14 +59,24 @@ def main():
             '_id': {'$eq': sample['article_id']},
         })
 
-        article['caption_ner'] = {}
-        for idx, caption in article['images'].items():
-            caption = caption.strip()
-            caption_doc = nlp(caption)
-            get_caption_ner(caption_doc, article, idx)
+        changed = False
+        if 'caption_ner' not in article:
+            changed = True
+            article['caption_ner'] = {}
+            for idx, caption in article['images'].items():
+                caption = caption.strip()
+                caption_doc = nlp(caption)
+                get_caption_ner(caption_doc, article, idx)
 
-        db.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': article})
+        if 'context_ner' not in article:
+            changed = True
+            context = article['context'].strip()
+            context_doc = nlp(context)
+            get_context_ner(context_doc, article)
+
+        if changed:
+            db.articles.find_one_and_update(
+                {'_id': article['_id']}, {'$set': article})
 
 
 def get_caption_ner(doc, article, idx):
@@ -81,6 +91,19 @@ def get_caption_ner(doc, article, idx):
         ner.append(ent_info)
 
     article['caption_ner'][idx] = ner
+
+def get_context_ner(doc, article):
+    ner = []
+    for ent in doc.ents:
+        ent_info = {
+            'start': ent.start_char,
+            'end': ent.end_char,
+            'text': ent.text,
+            'label': ent.label_,
+        }
+        ner.append(ent_info)
+
+    article['context_ner'] = ner
 
 
 if __name__ == '__main__':
