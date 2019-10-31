@@ -24,6 +24,7 @@ Options:
     -i --include-package PACKAGE
                         Additional packages to include.
     -q --quiet          Print less info
+    -s --eval-suffix S  Evaluation generation file name [default: ]
     PARAM_PATH          Path to file describing the model parameters.
     -m --model-path PATH Path the the best model.
 
@@ -56,6 +57,7 @@ def validate(args):
         'param_path': Or(None, os.path.exists),
         'model_path': Or(None, os.path.exists),
         'ptvsd': Or(None, And(Use(int), lambda port: 1 <= port <= 65535)),
+        'eval_suffix': str,
         object: object,
     })
     args = schema.validate(args)
@@ -97,8 +99,8 @@ def main():
         generate(args['param_path'], args['model_path'], args['overrides'])
 
     elif args['evaluate']:
-        evaluate_from_file(args['param_path'],
-                           args['model_path'], args['overrides'])
+        evaluate_from_file(args['param_path'], args['model_path'],
+                           args['overrides'], args['eval_suffix'])
 
 
 if __name__ == '__main__':

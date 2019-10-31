@@ -22,7 +22,7 @@ from .train import yaml_to_params
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-def evaluate_from_file(archive_path, model_path, overrides=None, device=0):
+def evaluate_from_file(archive_path, model_path, overrides=None, eval_suffix='', device=0):
     if archive_path.endswith('gz'):
         archive = load_archive(archive_path, device, overrides)
         config = archive.config
@@ -60,14 +60,15 @@ def evaluate_from_file(archive_path, model_path, overrides=None, device=0):
     model.evaluate_mode = True
 
     metrics = evaluate(model, instances, iterator,
-                       device, serialization_dir, batch_weight_key='')
+                       device, serialization_dir, eval_suffix, batch_weight_key='')
 
     logger.info("Finished evaluating.")
     logger.info("Metrics:")
     for key, metric in metrics.items():
         logger.info("%s: %s", key, metric)
 
-    output_file = os.path.join(serialization_dir, "evaluate-metrics.json")
+    output_file = os.path.join(
+        serialization_dir, f"evaluate-metrics{eval_suffix}.json")
     if output_file:
         with open(output_file, "w") as file:
             json.dump(metrics, file, indent=4)
@@ -79,11 +80,12 @@ def evaluate(model: Model,
              data_iterator: DataIterator,
              cuda_device: int,
              serialization_dir: str,
+             eval_suffix: str,
              batch_weight_key: str) -> Dict[str, Any]:
     check_for_gpu(cuda_device)
     nlp = spacy.load("en_core_web_lg", disable=['parser', 'ner'])
     assert not os.path.exists(os.path.join(
-        serialization_dir, 'generations.jsonl'))
+        serialization_dir, f'generations{eval_suffix}.jsonl'))
     with torch.no_grad():
         model.eval()
 
@@ -109,7 +111,7 @@ def evaluate(model: Model,
             output_dict = model(**batch)
             loss = output_dict.get("loss")
 
-            write_to_json(output_dict, serialization_dir, nlp)
+            write_to_json(output_dict, serialization_dir, nlp, eval_suffix)
 
             metrics = model.get_metrics()
 
@@ -145,7 +147,7 @@ def evaluate(model: Model,
         return final_metrics
 
 
-def write_to_json(output_dict, serialization_dir, nlp):
+def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
     if 'captions' not in output_dict:
         return
 
@@ -153,7 +155,8 @@ def write_to_json(output_dict, serialization_dir, nlp):
     generations = output_dict['generations']
     metadatas = output_dict['metadata']
 
-    out_path = os.path.join(serialization_dir, 'generations.jsonl')
+    out_path = os.path.join(
+        serialization_dir, f'generations{eval_suffix}.jsonl')
     with open(out_path, 'a') as f:
         for i, caption in enumerate(captions):
             m = metadatas[i]
