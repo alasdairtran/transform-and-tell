@@ -121,6 +121,7 @@ class TransformerFacesModel(Model):
     def forward(self,  # type: ignore
                 context: Dict[str, torch.LongTensor],
                 image: torch.Tensor,
+                names: Dict[str, torch.LongTensor],
                 caption: Dict[str, torch.LongTensor],
                 face_embeds: torch.Tensor,
                 metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
