@@ -195,7 +195,8 @@ class NYTimesNERSetReader(DatasetReader):
         if 'named_entities' in section:
             ners = section['named_entities']
             for ner in ners:
-                names.add(ner['text'])
+                if ner['label'] in ['PERSON', 'ORG', 'GPE']:
+                    names.add(ner['text'])
 
         return names
 

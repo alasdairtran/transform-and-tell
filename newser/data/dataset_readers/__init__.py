@@ -6,8 +6,8 @@ from .goodnews_flattened_glove import FlattenedGloveGoodNewsReader
 from .goodnews_rare import RareGoodNewsReader
 from .nytimes import NYTimesReader
 from .nytimes_faces import NYTimesFacesReader
-from .nytimes_faces_ner import NYTimesFacesNERReader
 from .nytimes_faces_ner_matched import NYTimesFacesNERMatchedReader
+from .nytimes_faces_person_ner import NYTimesFacesNERReader
 from .nytimes_glove import NYTimesGloveReader
 from .nytimes_hierarchical import NYTimesHierarchicalReader
 from .nytimes_names import NYTimesNamesReader

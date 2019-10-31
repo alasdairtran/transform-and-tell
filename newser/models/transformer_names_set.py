@@ -255,11 +255,11 @@ class TransformerNamesSetModel(Model):
 
         if self.weigh_bert:
             X_article = torch.stack(X_sections_hiddens, dim=2)
-            # X_article.shape == [batch_size, seq_len, 13, embed_size]
+            # X_article.shape == [batch_size, seq_len, 25, embed_size]
 
             weight = F.softmax(self.bert_weight, dim=0)
             weight = weight.unsqueeze(0).unsqueeze(1).unsqueeze(3)
-            # weight.shape == [1, 1, 13, 1]
+            # weight.shape == [1, 1, 25, 1]
 
             X_article = (X_article * weight).sum(dim=2)
             # X_article.shape == [batch_size, seq_len, embed_size]
@@ -279,10 +279,10 @@ class TransformerNamesSetModel(Model):
         name_embeds = self.roberta.extract_features(name_ids)
         # name_embeds.shape == [B * N, L, 1024]
 
-        name_embeds = name_embeds.view(B, N, L, -1)
+        name_embeds = name_embeds.view(B, N, L, 1024)
         # name_embeds.shape == [B, N, L, 1024]
 
-        name_embeds = name_embeds[:, :, 0]
+        name_embeds = name_embeds[:, :, 1]
         # name_embeds.shape == [B, N, 1024]
 
         # If a row contains only padding indices, roberta returns nan

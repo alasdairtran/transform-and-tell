@@ -157,7 +157,7 @@ class NYTimesFacesNERMatchedReader(DatasetReader):
                     continue
 
                 if 'facenet_details' not in sections[pos] or n_persons == 0:
-                    face_embeds = [[]]
+                    face_embeds = np.array([[]])
                 else:
                     face_embeds = sections[pos]['facenet_details']['embeddings']
                     # Keep only the top faces (sorted by size)

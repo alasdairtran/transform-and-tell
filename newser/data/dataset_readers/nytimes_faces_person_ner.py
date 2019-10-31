@@ -31,7 +31,7 @@ def tokenize_line(line):
     return line.split()
 
 
-@DatasetReader.register('nytimes_faces_ner')
+@DatasetReader.register('nytimes_faces_person_ner')
 class NYTimesFacesNERReader(DatasetReader):
     """Read from the New York Times dataset.
 
@@ -119,6 +119,8 @@ class NYTimesFacesNERReader(DatasetReader):
                 if not caption:
                     continue
 
+                n_persons = len(self._get_person_names(sections[pos]))
+
                 before = []
                 after = []
                 i = pos - 1
@@ -154,12 +156,12 @@ class NYTimesFacesNERReader(DatasetReader):
                 except (FileNotFoundError, OSError):
                     continue
 
-                if 'facenet_details' in sections[pos]:
-                    face_embeds = sections[pos]['facenet_details']['embeddings']
+                if 'facenet_details' not in sections[pos] or n_persons == 0:
+                    face_embeds = np.array([[]])
                 else:
-                    face_embeds = [[]]
-                # Keep only the top 8 faces (sorted by detection probabilities)
-                face_embeds = np.array(face_embeds[:8])
+                    face_embeds = sections[pos]['facenet_details']['embeddings']
+                    # Keep only the top faces (sorted by size)
+                    face_embeds = np.array(face_embeds[:n_persons])
 
                 paragraphs = paragraphs + before + after
                 named_entities = sorted(named_entities)
@@ -208,7 +210,20 @@ class NYTimesFacesNERReader(DatasetReader):
         if 'named_entities' in section:
             ners = section['named_entities']
             for ner in ners:
-                names.add(ner['text'])
+                if ner['label'] in ['PERSON']:
+                    names.add(ner['text'])
+
+        return names
+
+    def _get_person_names(self, section):
+        # These name indices have the right end point excluded
+        names = set()
+
+        if 'named_entities' in section:
+            ners = section['named_entities']
+            for ner in ners:
+                if ner['label'] in ['PERSON']:
+                    names.add(ner['text'])
 
         return names
 
