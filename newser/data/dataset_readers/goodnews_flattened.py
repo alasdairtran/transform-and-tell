@@ -4,6 +4,7 @@ import pickle
 import random
 from typing import Dict
 
+import pymongo
 import spacy
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import MetadataField, TextField
@@ -72,7 +73,7 @@ class FlattenedGoodNewsReader(DatasetReader):
         limit = self.eval_limit if split == 'val' else 0
         sample_cursor = self.db.splits.find({
             'split': {'$eq': split},
-        }, no_cursor_timeout=True, limit=limit).batch_size(128)
+        }, no_cursor_timeout=True, limit=limit).sort('_id', pymongo.ASCENDING).batch_size(128)
 
         for sample in sample_cursor:
             # Find the corresponding article
