@@ -296,11 +296,15 @@ def main():
 
     # Build indices
     logger.info('Building indices')
-    nytimes.articles.create_index([
+    db.articles.create_index([
         ('pub_date', pymongo.DESCENDING),
     ])
+    db.articles.create_index([
+        ('pub_date', pymongo.DESCENDING),
+        ('_id', pymongo.ASCENDING),
+    ])
 
-    nytimes.articles.create_index([
+    db.articles.create_index([
         ('n_images', pymongo.ASCENDING),
         ('n_images_with_faces', pymongo.ASCENDING),
         ('pub_date', pymongo.DESCENDING),

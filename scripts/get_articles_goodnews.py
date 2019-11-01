@@ -14,6 +14,7 @@ import os
 import re
 
 import ptvsd
+import pymongo
 import requests
 from bs4 import BeautifulSoup
 from docopt import docopt
@@ -114,6 +115,11 @@ def get_goodnews_articles(root_dir, db, resume):
                 img_data = requests.get(img_url, stream=True).content
                 with open(img_path, 'wb') as f:
                     f.write(img_data)
+
+    db.splits.create_index([
+        ('split', pymongo.ASCENDING),
+        ('_id', pymongo.ASCENDING),
+    ])
 
 
 def validate(args):
