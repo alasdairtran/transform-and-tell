@@ -62,6 +62,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.eval_limit = eval_limit
         random.seed(1234)
+        self.rs = np.random.RandomState(1234)
 
     @overrides
     def _read(self, split: str):
@@ -72,11 +73,18 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
         # Setting the batch size is needed to avoid cursor timing out
         # We limit the validation set to 1000
         limit = self.eval_limit if split == 'val' else 0
+
+        logger.info('Grabbing all article IDs')
         sample_cursor = self.db.splits.find({
             'split': {'$eq': split},
-        }, no_cursor_timeout=True, limit=limit).sort('_id', pymongo.ASCENDING).batch_size(128)
+        }, projection=['_id'], limit=limit).sort('_id', pymongo.ASCENDING)
 
-        for sample in sample_cursor:
+        ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        self.rs.shuffle(ids)
+
+        for sample_id in ids:
+            sample = self.db.splits.find_one({'_id': {'$eq': sample_id}})
+
             # Find the corresponding article
             article = self.db.articles.find_one({
                 '_id': {'$eq': sample['article_id']},

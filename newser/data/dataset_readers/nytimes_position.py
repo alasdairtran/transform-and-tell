@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 from typing import Dict
 
+import numpy as np
 import pymongo
 import torch
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
@@ -64,6 +65,7 @@ class NYTimesPositionReader(DatasetReader):
             ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         random.seed(1234)
+        self.rs = np.random.RandomState(1234)
 
         roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
         self.bpe = roberta.bpe
@@ -76,16 +78,20 @@ class NYTimesPositionReader(DatasetReader):
         if split not in ['train', 'valid', 'test']:
             raise ValueError(f'Unknown split: {split}')
 
+        logger.info('Grabbing all article IDs')
+        sample_cursor = self.db.articles.find({
+            'split': split,
+        }, projection=['_id']).sort('_id', pymongo.ASCENDING)
+        ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        self.rs.shuffle(ids)
+
         projection = ['_id', 'parsed_section.type', 'parsed_section.text',
                       'parsed_section.hash',
                       'image_positions', 'headline', 'web_url']
 
-        # Setting the batch size is needed to avoid cursor timing out
-        article_cursor = self.db.articles.find({
-            'split': split,
-        }, no_cursor_timeout=True, projection=projection).sort('_id', pymongo.ASCENDING).batch_size(128)
-
-        for article in article_cursor:
+        for article_id in ids:
+            article = self.db.articles.find_one(
+                {'_id': {'$eq': article_id}}, projection=projection)
             sections = article['parsed_section']
             image_positions = article['image_positions']
             for pos in image_positions:
