@@ -80,7 +80,6 @@ class BaselineGloveModel(Model):
                  padding_value: int = 1,
                  use_context: bool = True,
                  sampling_topk: int = 1,
-                 resnet_model: str = 'resnext101_32x16d_wsl',
                  sampling_temp: float = 1.0,
                  weigh_bert: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
@@ -90,10 +89,7 @@ class BaselineGloveModel(Model):
 
         self.index = index
         self.namespace = namespace
-        if resnet_model == 'resnext101_32x16d_wsl':
-            self.resnet = resnext101_32x16d_wsl()
-        elif resnet_model == 'resnet152':
-            self.resnet = resnet152()
+        self.resnet = resnet152()
         self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
         self.use_context = use_context
         self.padding_idx = padding_value

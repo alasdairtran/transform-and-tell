@@ -22,7 +22,7 @@ from pycocoevalcap.rouge.rouge import Rouge
 from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
 
-from .resnet import resnext101_32x16d_wsl
+from .resnet import resnet152
 
 LSTM = _Seq2SeqWrapper(nn.LSTM)
 
@@ -257,7 +257,7 @@ class PointerModel(Model):
         text_embed_size = 1024
         self.index = index
         self.namespace = namespace
-        self.resnet = resnext101_32x16d_wsl()
+        self.resnet = resnet152()
         self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
         self.attention = Attention(n_channels, hidden_size, attention_dim)
         self.use_context = use_context

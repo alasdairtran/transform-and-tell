@@ -27,7 +27,7 @@ from newser.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
 from .decoder_flattened_lstm import LSTMDecoder
-from .resnet import resnext101_32x16d_wsl
+from .resnet import resnet152
 
 LSTM = _Seq2SeqWrapper(nn.LSTM)
 
@@ -151,7 +151,7 @@ class TransformerFlattenedModel(Model):
 
         self.index = index
         self.namespace = namespace
-        self.resnet = resnext101_32x16d_wsl()
+        self.resnet = resnet152()
         self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
         self.use_context = use_context
         self.padding_idx = padding_value
