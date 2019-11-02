@@ -42,23 +42,42 @@ def validate(args):
     return args
 
 
-def clean_with_host(host, period):
-    start, end = period
+def clean_with_host(host):
     client = MongoClient(host=host, port=27017)
     db = client.nytimes
 
+    start = datetime(2019, 6, 1)
+    end = datetime(2019, 9, 1)
     article_cursor = db.articles.find({
         'pub_date': {'$gte': start, '$lt': end},
     }, no_cursor_timeout=True).batch_size(128)
-
     for article in tqdm(article_cursor):
-        sections = article['parsed_section']
-        image_positions = article['image_positions']
-        for pos in image_positions:
-            s = sections[pos]
-            if 'facenet_details' in s and 'face_probs' in s['facenet_details']:
-                del s['facenet_details']['face_probs']
+        article['split'] = 'test'
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
 
+    db.articles.create_index([
+        ('split', pymongo.ASCENDING),
+        ('_id', pymongo.ASCENDING),
+    ])
+
+    start = datetime(2000, 1, 1)
+    end = datetime(2019, 5, 1)
+    article_cursor = db.articles.find({
+        'pub_date': {'$gte': start, '$lt': end},
+    }, no_cursor_timeout=True).batch_size(128)
+    for article in tqdm(article_cursor):
+        article['split'] = 'train'
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
+
+    start = datetime(2019, 5, 1)
+    end = datetime(2019, 6, 1)
+    article_cursor = db.articles.find({
+        'pub_date': {'$gte': start, '$lt': end},
+    }, no_cursor_timeout=True).batch_size(128)
+    for article in tqdm(article_cursor):
+        article['split'] = 'valid'
         db.articles.find_one_and_update(
             {'_id': article['_id']}, {'$set': article})
 
@@ -72,23 +91,7 @@ def main():
         ptvsd.enable_attach(address)
         ptvsd.wait_for_attach()
 
-    periods = [(datetime(2000, 1, 1), datetime(2007, 8, 1)),
-               (datetime(2007, 8, 1), datetime(2009, 1, 1)),
-               (datetime(2009, 1, 1), datetime(2010, 5, 1)),
-               (datetime(2010, 5, 1), datetime(2011, 7, 1)),
-               (datetime(2011, 7, 1), datetime(2012, 11, 1)),
-               (datetime(2012, 11, 1), datetime(2014, 2, 1)),
-               (datetime(2014, 2, 1), datetime(2015, 5, 1)),
-               (datetime(2015, 5, 1), datetime(2016, 5, 1)),
-               (datetime(2016, 5, 1), datetime(2017, 5, 1)),
-               (datetime(2017, 5, 1), datetime(2018, 8, 1)),
-               (datetime(2018, 8, 1), datetime(2019, 9, 1)),
-               ]
-
-    clean = functools.partial(clean_with_host, args['host'])
-
-    pool = Pool(processes=11)
-    pool.map(clean, periods)
+    clean_with_host(args['host'])
 
 
 if __name__ == '__main__':

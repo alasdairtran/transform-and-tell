@@ -73,21 +73,12 @@ class NYTimesPositionReader(DatasetReader):
     def _read(self, split: str):
         # split can be either train, valid, or test
         # validation and test sets contain 10K examples each
-        if split == 'train':
-            start = datetime(2000, 1, 1)
-            end = datetime(2019, 5, 1)
-        elif split == 'valid':
-            start = datetime(2019, 5, 1)
-            end = datetime(2019, 6, 1)
-        elif split == 'test':
-            start = datetime(2019, 6, 1)
-            end = datetime(2019, 9, 1)
-        else:
+        if split not in ['train', 'valid', 'test']:
             raise ValueError(f'Unknown split: {split}')
 
         # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
-            'pub_date': {'$gte': start, '$lt': end},
+            'split': split,
         }, no_cursor_timeout=True).sort('_id', pymongo.ASCENDING).batch_size(128)
 
         for article in article_cursor:

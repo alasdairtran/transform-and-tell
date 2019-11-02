@@ -294,13 +294,49 @@ def main():
         parallel(delayed(retrieve_articles)(root_dir, year, month, db)
                  for year, month in month_year_iter(8, 2019, 12, 2003))
 
+    start = datetime(2019, 6, 1)
+    end = datetime(2019, 9, 1)
+    article_cursor = db.articles.find({
+        'pub_date': {'$gte': start, '$lt': end},
+    }, no_cursor_timeout=True).batch_size(128)
+    for article in tqdm(article_cursor):
+        article['split'] = 'test'
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
+
+    start = datetime(2000, 1, 1)
+    end = datetime(2019, 5, 1)
+    article_cursor = db.articles.find({
+        'pub_date': {'$gte': start, '$lt': end},
+    }, no_cursor_timeout=True).batch_size(128)
+    for article in tqdm(article_cursor):
+        article['split'] = 'train'
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
+
+    start = datetime(2019, 5, 1)
+    end = datetime(2019, 6, 1)
+    article_cursor = db.articles.find({
+        'pub_date': {'$gte': start, '$lt': end},
+    }, no_cursor_timeout=True).batch_size(128)
+    for article in tqdm(article_cursor):
+        article['split'] = 'valid'
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
+
     # Build indices
     logger.info('Building indices')
     db.articles.create_index([
         ('pub_date', pymongo.DESCENDING),
     ])
+
     db.articles.create_index([
         ('pub_date', pymongo.DESCENDING),
+        ('_id', pymongo.ASCENDING),
+    ])
+
+    db.articles.create_index([
+        ('split', pymongo.ASCENDING),
         ('_id', pymongo.ASCENDING),
     ])
 
