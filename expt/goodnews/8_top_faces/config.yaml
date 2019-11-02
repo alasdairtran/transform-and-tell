@@ -121,12 +121,12 @@ validation_iterator:
 trainer:
   type: callback_apex
   apex_opt_level: O2
-  keep_batchnorm_fp32: None
+  keep_batchnorm_fp32: true
   optimizer:
     type: bert_adam
     lr: 0.0001
     warmup: 0.05
-    t_total: 450000 # Takees 43m to go through 4376 batches per epoch
+    t_total: 437600 # Takees 43m to go through 4376 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
