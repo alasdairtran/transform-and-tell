@@ -84,6 +84,7 @@ class NYTimesFacesNERMatchedReader(DatasetReader):
             'split': split,
         }, projection=['_id']).sort('_id', pymongo.ASCENDING)
         ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        sample_cursor.close()
         self.rs.shuffle(ids)
 
         projection = ['_id', 'parsed_section.type', 'parsed_section.text',
@@ -162,8 +163,6 @@ class NYTimesFacesNERMatchedReader(DatasetReader):
                 named_entities = sorted(named_entities)
 
                 yield self.article_to_instance(paragraphs, named_entities, image, caption, image_path, article['web_url'], pos, face_embeds)
-
-        article_cursor.close()
 
     def article_to_instance(self, paragraphs, named_entities, image, caption, image_path, web_url, pos, face_embeds) -> Instance:
         context = '\n'.join(paragraphs).strip()

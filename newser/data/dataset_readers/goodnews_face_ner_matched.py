@@ -80,6 +80,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
         }, projection=['_id'], limit=limit).sort('_id', pymongo.ASCENDING)
 
         ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        sample_cursor.close()
         self.rs.shuffle(ids)
 
         for sample_id in ids:
@@ -110,8 +111,6 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
                 face_embeds = np.array(face_embeds[:n_persons])
 
             yield self.article_to_instance(article, named_entities, face_embeds, image, sample['image_index'], image_path)
-
-        sample_cursor.close()
 
     def article_to_instance(self, article, named_entities, face_embeds, image, image_index, image_path) -> Instance:
         context = article['context'].strip()

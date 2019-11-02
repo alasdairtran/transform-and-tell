@@ -18,6 +18,7 @@ from PIL import Image
 from pymongo import MongoClient
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
+from tqdm import tqdm
 
 from newser.data.fields import ImageField, ListTextField
 
@@ -83,6 +84,7 @@ class NYTimesPositionReader(DatasetReader):
             'split': split,
         }, projection=['_id']).sort('_id', pymongo.ASCENDING)
         ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        sample_cursor.close()
         self.rs.shuffle(ids)
 
         projection = ['_id', 'parsed_section.type', 'parsed_section.text',
@@ -143,8 +145,6 @@ class NYTimesPositionReader(DatasetReader):
                 paragraphs = paragraphs + before + after
 
                 yield self.article_to_instance(paragraphs, image, caption, image_path, article['web_url'], pos)
-
-        article_cursor.close()
 
     def article_to_instance(self, paragraphs, image, caption, image_path, web_url, pos) -> Instance:
         context = '\n'.join(paragraphs).strip()
