@@ -76,10 +76,14 @@ class NYTimesPositionReader(DatasetReader):
         if split not in ['train', 'valid', 'test']:
             raise ValueError(f'Unknown split: {split}')
 
+        projection = ['_id', 'parsed_section.type', 'parsed_section.text',
+                      'parsed_section.hash',
+                      'image_positions', 'headline', 'web_url']
+
         # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
             'split': split,
-        }, no_cursor_timeout=True).sort('_id', pymongo.ASCENDING).batch_size(128)
+        }, no_cursor_timeout=True, projection=projection).sort('_id', pymongo.ASCENDING).batch_size(128)
 
         for article in article_cursor:
             sections = article['parsed_section']
