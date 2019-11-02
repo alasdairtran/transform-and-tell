@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Dict
 
 import numpy as np
+import pymongo
 import torch
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import ArrayField, MetadataField, TextField
@@ -93,11 +94,8 @@ class NYTimesFacesNERMatchedReader(DatasetReader):
 
         # Setting the batch size is needed to avoid cursor timing out
         article_cursor = self.db.articles.find({
-            # 'parsed': True,  # article body is parsed into paragraphs
-            # 'n_images': {'$gt': 0},  # at least one image is present
             'pub_date': {'$gte': start, '$lt': end},
-            # 'language': 'en',
-        }, no_cursor_timeout=True, projection=projection).batch_size(128)
+        }, no_cursor_timeout=True, projection=projection).sort('_id', pymongo.ASCENDING).batch_size(128)
 
         for article in article_cursor:
             sections = article['parsed_section']
