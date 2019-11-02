@@ -4,6 +4,7 @@ import random
 from typing import Dict
 
 import numpy as np
+import pymongo
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import ArrayField, MetadataField, TextField
 from allennlp.data.instance import Instance
@@ -13,6 +14,7 @@ from overrides import overrides
 from PIL import Image
 from pymongo import MongoClient
 from torchvision.transforms import Compose, Normalize, Resize, ToTensor
+from tqdm import tqdm
 
 from newser.data.fields import ImageField
 
@@ -57,6 +59,7 @@ class FlattenedGloveGoodNewsReader(DatasetReader):
         self.eval_limit = eval_limit
 
         random.seed(1234)
+        self.rs = np.random.RandomState(1234)
 
     @overrides
     def _read(self, split: str):
@@ -66,12 +69,18 @@ class FlattenedGloveGoodNewsReader(DatasetReader):
 
         # Setting the batch size is needed to avoid cursor timing out
         # We limit the validation set to 1000
+        logger.info('Grabbing all article IDs')
         limit = self.eval_limit if split == 'val' else 0
         sample_cursor = self.db.splits.find({
             'split': {'$eq': split},
-        }, no_cursor_timeout=True, limit=limit).batch_size(128)
+        }, projection=['_id'], limit=limit).sort('_id', pymongo.ASCENDING)
+        ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        sample_cursor.close()
+        self.rs.shuffle(ids)
 
-        for sample in sample_cursor:
+        for sample_id in ids:
+            sample = self.db.splits.find_one({'_id': {'$eq': sample_id}})
+
             # Find the corresponding article
             article = self.db.articles.find_one({
                 '_id': {'$eq': sample['article_id']},
@@ -85,8 +94,6 @@ class FlattenedGloveGoodNewsReader(DatasetReader):
                 continue
 
             yield self.article_to_instance(article, image, sample['image_index'], image_path)
-
-        sample_cursor.close()
 
     def article_to_instance(self, article, image, image_index, image_path) -> Instance:
         context = article['context'].strip()

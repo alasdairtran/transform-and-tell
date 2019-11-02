@@ -4,6 +4,8 @@ import random
 from datetime import datetime
 from typing import Dict
 
+import numpy as np
+import pymongo
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import MetadataField, TextField
 from allennlp.data.instance import Instance
@@ -14,6 +16,7 @@ from PIL import Image
 from pymongo import MongoClient
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
+from tqdm import tqdm
 
 from newser.data.fields import ImageField, ListTextField
 
@@ -53,33 +56,30 @@ class NYTimesGloveReader(DatasetReader):
             ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         random.seed(1234)
+        self.rs = np.random.RandomState(1234)
 
     @overrides
     def _read(self, split: str):
         # split can be either train, valid, or test
         # validation and test sets contain 10K examples each
-        if split == 'train':
-            start = datetime(2000, 1, 1)
-            end = datetime(2019, 5, 1)
-        elif split == 'valid':
-            start = datetime(2019, 5, 1)
-            end = datetime(2019, 6, 1)
-        elif split == 'test':
-            start = datetime(2019, 6, 1)
-            end = datetime(2019, 9, 1)
-        else:
+        if split not in ['train', 'valid', 'test']:
             raise ValueError(f'Unknown split: {split}')
 
-        # Setting the batch size is needed to avoid cursor timing out
-        # We collected 1.7M articles
-        article_cursor = self.db.articles.find({
-            'parsed': True,  # article body is parsed into paragraphs
-            'n_images': {'$gt': 0},  # at least one image is present
-            'pub_date': {'$gte': start, '$lt': end},
-            'language': 'en',
-        }, no_cursor_timeout=True).batch_size(128)
+        logger.info('Grabbing all article IDs')
+        sample_cursor = self.db.articles.find({
+            'split': split,
+        }, projection=['_id']).sort('_id', pymongo.ASCENDING)
+        ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        sample_cursor.close()
+        self.rs.shuffle(ids)
 
-        for article in article_cursor:
+        projection = ['_id', 'parsed_section.type', 'parsed_section.text',
+                      'parsed_section.hash',
+                      'image_positions', 'headline', 'web_url']
+
+        for article_id in ids:
+            article = self.db.articles.find_one(
+                {'_id': {'$eq': article_id}}, projection=projection)
             sections = article['parsed_section']
             image_positions = article['image_positions']
             for pos in image_positions:
@@ -108,8 +108,6 @@ class NYTimesGloveReader(DatasetReader):
                         break
 
                 yield self.article_to_instance(paragraphs[:i+1], image, caption, image_path, article['web_url'])
-
-        article_cursor.close()
 
     def article_to_instance(self, paragraphs, image, caption, image_path, web_url) -> Instance:
         context = '\n'.join(paragraphs).strip()
