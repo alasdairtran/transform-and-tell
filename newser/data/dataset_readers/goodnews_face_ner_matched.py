@@ -88,7 +88,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
             # Find the corresponding article
             article = self.db.articles.find_one({
                 '_id': {'$eq': sample['article_id']},
-            }, projection=['_id', 'context', 'images', 'web_url'])
+            }, projection=['_id', 'context', 'images', 'web_url', 'caption_ner', 'context_ner'])
 
             # Load the image
             image_path = os.path.join(self.image_dir, f"{sample['_id']}.jpg")
