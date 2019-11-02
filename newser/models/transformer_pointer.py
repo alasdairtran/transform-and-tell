@@ -26,71 +26,9 @@ from newser.modules import GehringLinear
 from newser.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
-from .resnet import resnext101_32x16d_wsl
+from .resnet import resnet152
 
 LSTM = _Seq2SeqWrapper(nn.LSTM)
-
-
-def gelu(x):
-    """Implementation of the gelu activation function.
-        For information: OpenAI GPT's gelu is slightly different (and gives slightly different results):
-        0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi)
-                   * (x + 0.044715 * torch.pow(x, 3))))
-        Also see https://arxiv.org/abs/1606.08415
-    """
-    return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
-
-
-class Transformer(nn.Module):
-    def __init__(self, embed_dim, hidden_dim, n_embeds, n_pos, n_heads, n_layers, dropout):
-        super().__init__()
-        self.dropout = nn.Dropout(dropout)
-
-        self.attentions, self.feed_forwards = nn.ModuleList(), nn.ModuleList()
-        self.ln_1, self.ln_2 = nn.ModuleList(), nn.ModuleList()
-
-        for _ in range(n_layers):
-            self.attentions.append(nn.MultiheadAttention(
-                embed_dim, n_heads, dropout=dropout))
-            self.feed_forwards.append(nn.Sequential(nn.Linear(embed_dim, hidden_dim),
-                                                    nn.ReLU(),
-                                                    nn.Linear(hidden_dim, embed_dim)))
-            self.ln_1.append(nn.LayerNorm(embed_dim, eps=1e-12))
-            self.ln_2.append(nn.LayerNorm(embed_dim, eps=1e-12))
-
-    def forward(self, X_caption, X_image, X_article):
-        h = self.dropout(X_caption)
-
-        # In attn_mask, the upper triangle excluding the diagonal, will be
-        # set to -inf. So we can attend to ourselves and the past.
-        attn_mask = torch.full((len(X_caption), len(X_caption)), -float('inf'),
-                               device=h.device, dtype=h.dtype)
-        attn_mask = torch.triu(attn_mask, diagonal=1)
-
-        for ln_1, attn, ln_2, ff in zip(self.ln_1, self.attentions, self.ln_2, self.feed_forwards):
-            h = ln_1(h)
-            X_caption, _ = attn(
-                h, h, h, attn_mask=attn_mask, need_weights=False)
-            X_caption = self.dropout(X_caption)
-            h = X_caption + h
-
-            h = ln_2(h)
-            h = ff(h)
-            h = self.dropout(X_caption)
-            h = X_caption + h
-
-        return h
-
-
-@dataclass
-class SequenceSummaryConfig:
-    hidden_size: int
-    summary_type: str = 'last'
-    summary_use_proj: bool = True
-    summary_proj_to_labels: bool = False
-    summary_activation: str = 'tanh'
-    summary_first_dropout: float = 0.1
-    summary_last_dropout: float = 0.1
 
 
 @Model.register("transformer_pointer")
@@ -150,7 +88,7 @@ class TransformerPointerModel(Model):
 
         self.index = index
         self.namespace = namespace
-        self.resnet = resnext101_32x16d_wsl()
+        self.resnet = resnet152()
         self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
         self.use_context = use_context
         self.padding_idx = padding_value
@@ -256,6 +194,9 @@ class TransformerPointerModel(Model):
         caption_copy_masks = caption[f'{self.index}_copy_masks']
         caption_copy_masks = caption_copy_masks[:, 1:]
         # caption_copy_masks.shape == [batch_size, target_len]
+
+        if not caption_copy_masks[caption_copy_masks == 1].bool().any():
+            return torch.tensor(0.0).to(X.device), torch.tensor(0.0).to(X.device)
 
         context_copy_masks = context[f'{self.index}_copy_masks']
         # context_copy_masks.shape == [batch_size, source_len]
