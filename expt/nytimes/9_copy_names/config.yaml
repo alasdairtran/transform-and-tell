@@ -1,11 +1,11 @@
 dataset_reader:
-  type: nytimes_names_copy
+  type: nytimes_copy_matched
   tokenizer:
     type: word
     word_splitter: just_spaces_keep_newlines
   token_indexers:
     roberta:
-      type: roberta_coref
+      type: roberta_names_matched
       model_name: roberta-base
       namespace: bpe
       padding_on_right: true
@@ -20,8 +20,8 @@ vocabulary:
   type: roberta
   directory_path: ./expt/vocabulary
 model:
-  type: transformer_pointer_faster
-  model_path: ./expt/9a_nytimes_positions/serialization/best.th
+  type: transformer_pointer
+  model_path: ./expt/nytimes/2_position_aware/serialization/best.th
   decoder:
     type: dynamic_conv_decoder_flattened
     embedder:

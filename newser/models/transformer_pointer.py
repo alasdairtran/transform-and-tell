@@ -1,3 +1,4 @@
+import logging
 import math
 import re
 import warnings
@@ -21,18 +22,22 @@ from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from pycocoevalcap.rouge.rouge import Rouge
 from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
+from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 
-from newser.modules import GehringLinear
+from newser.modules import (GehringLinear, LoadStateDictWithPrefix,
+                            SelfAttention, multi_head_attention_score_forward)
 from newser.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
 from .resnet import resnet152
 
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+
 LSTM = _Seq2SeqWrapper(nn.LSTM)
 
 
 @Model.register("transformer_pointer")
-class TransformerPointerModel(Model):
+class TransformerPointerModel(LoadStateDictWithPrefix, Model):
     """
     An AllenNLP Model that runs pretrained BERT,
     takes the pooled output, and adds a Linear layer on top.
@@ -81,6 +86,7 @@ class TransformerPointerModel(Model):
                  sampling_topk: int = 1,
                  sampling_temp: float = 1.0,
                  weigh_bert: bool = False,
+                 model_path: str = None,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
         self.decoder = decoder
@@ -112,12 +118,26 @@ class TransformerPointerModel(Model):
         self.entity_loss = nn.CrossEntropyLoss(ignore_index=-1)
         # self.copy_loss = nn.CrossEntropyLoss(ignore_index=padding_value)
 
-        self.copy_attn = nn.MultiheadAttention(
-            embed_dim=1024, num_heads=16, dropout=0.1, bias=True,
-            add_bias_kv=True, add_zero_attn=True)
+        # Copy-related modules
+        self.in_proj_weight = nn.Parameter(torch.empty(2 * 1024, 1024))
+        self.in_proj_bias = nn.Parameter(torch.empty(2 * 1024))
+        self.out_proj = GehringLinear(1024, 1024, bias=True)
+        self.bias_k = nn.Parameter(torch.empty(1, 1, 1024))
+        xavier_uniform_(self.in_proj_weight)
+        constant_(self.in_proj_bias, 0.)
+        xavier_normal_(self.bias_k)
+
+        # Entity-related modules
+        self.entity_attn = SelfAttention(
+            out_channels=1024, embed_dim=1024, num_heads=16, gated=True)
 
         initializer(self)
         self.vocab_size = vocab_size
+
+        if model_path is not None:
+            logger.info(f'Recovering weights from {model_path}.')
+            model_state = torch.load(model_path)
+            self.load_state_dict(model_state)
         # Initialize the weight with first layer of BERT
         # self.fc.weight.data.copy_(
         #     self.roberta.model.decoder.sentence_encoder.embed_tokens.weight)
@@ -126,7 +146,9 @@ class TransformerPointerModel(Model):
                 context: Dict[str, torch.LongTensor],
                 image: torch.Tensor,
                 caption: Dict[str, torch.LongTensor],
-                metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+                metadata: List[Dict[str, Any]],
+                names=None,
+                face_embeds=None) -> Dict[str, torch.Tensor]:
 
         caption_ids, target_ids, contexts, X_sections_hiddens, article_padding_mask = self._forward(
             context, image, caption)
@@ -195,22 +217,11 @@ class TransformerPointerModel(Model):
         caption_copy_masks = caption_copy_masks[:, 1:]
         # caption_copy_masks.shape == [batch_size, target_len]
 
-        if not caption_copy_masks[caption_copy_masks == 1].bool().any():
+        if not caption_copy_masks[caption_copy_masks >= 1].bool().any():
             return torch.tensor(0.0).to(X.device), torch.tensor(0.0).to(X.device)
 
         context_copy_masks = context[f'{self.index}_copy_masks']
         # context_copy_masks.shape == [batch_size, source_len]
-
-        entity_logits = self.entity_fc(X)
-        # entity_logits.shape == [batch_size, target_len, 2]
-
-        entity_logits = entity_logits.view(-1, 2)
-        # entity_logits.shape == [batch_size * target_len, 2]
-
-        targets = caption_copy_masks.reshape(-1)
-        # targets.shape == [batch_size * target_len]
-
-        entity_loss = self.entity_loss(entity_logits, targets)
 
         if self.weigh_bert:
             X_article = torch.stack(X_sections_hiddens, dim=2)
@@ -232,8 +243,30 @@ class TransformerPointerModel(Model):
 
         X_article = X_article.transpose(0, 1)
 
-        _, copy_attn = self.copy_attn(
-            query=X, key=X_article, value=X_article, key_padding_mask=article_padding_mask)
+        X_entity = self.entity_attn(X)
+        # X_entity.shape == [target_len, batch_size, embed_size]
+
+        X_entity = X_entity.transpose(0, 1)
+        # X_entity.shape == [batch_size, target_len, embed_size]
+
+        entity_logits = self.entity_fc(X_entity)
+        # entity_logits.shape == [batch_size, target_len, 2]
+
+        entity_logits = entity_logits.view(-1, 2)
+        # entity_logits.shape == [batch_size * target_len, 2]
+
+        targets = caption_copy_masks.clone().reshape(-1)
+        targets[targets > 1] = 1
+        # targets.shape == [batch_size * target_len]
+
+        entity_loss = self.entity_loss(entity_logits, targets)
+
+        copy_attn = multi_head_attention_score_forward(
+            X, X_article, 1024, 16,
+            self.in_proj_weight, self.in_proj_bias,
+            self.bias_k, True, 0.1, self.out_proj.weight, self.out_proj.bias,
+            training=self.training,
+            key_padding_mask=article_padding_mask)
         # copy_attn.shape == [batch_size, target_len, source_len + 2]
 
         copy_attn = copy_attn[:, :, :-2]
@@ -245,7 +278,7 @@ class TransformerPointerModel(Model):
         context_copy_masks = context_copy_masks.expand_as(copy_attn)
         # context_copy_masks.shape == [batch_size, target_len, source_len]
 
-        irrelevant_mask = context_copy_masks != 1
+        irrelevant_mask = context_copy_masks < 1
         copy_attn[irrelevant_mask] = 0
         # copy_attn.shape == [batch_size, target_len, source_len]
 
@@ -256,6 +289,7 @@ class TransformerPointerModel(Model):
         context_ids = context[self.index]
         # context_ids.shape == [batch_size, source_len]
 
+        ########################################
         # Second attempt at calculating copy loss
         # First construct the reduced dictionary, containing only tokens
         # mentioned in the context.
@@ -283,8 +317,7 @@ class TransformerPointerModel(Model):
             0, caption_targets.reshape(-1))
         # new_caption_targets.shape == [batch_size * source_len, 1]
 
-        relevant_mask = (caption_copy_masks == 1).view(-1)
-        new_caption_targets = new_caption_targets.reshape(-1, 1)[relevant_mask]
+        new_caption_targets = new_caption_targets.reshape(-1, 1)
         # new_caption_targets.shape == [batch_size * n_entity_tokens, 1]
 
         copy_probs = copy_attn.new_zeros(B, L, V)
@@ -293,11 +326,20 @@ class TransformerPointerModel(Model):
         copy_probs.scatter_add_(2, new_context_ids, copy_attn)
         copy_lprobs = copy_probs.new_zeros(copy_probs.shape)
         copy_lprobs[copy_probs > 0] = torch.log(copy_probs[copy_probs > 0])
-        copy_lprobs = copy_lprobs.view(B * L, V)[relevant_mask]
-        # copy_lprobs.shape == [batch_size * n_entity_tokens, reduced_vocab_size]
+        copy_lprobs = copy_lprobs.view(B * L, V)
 
-        copy_loss = -copy_lprobs.gather(dim=-1,
-                                        index=new_caption_targets).mean()
+        max_index = caption_copy_masks.max().item()
+        copy_loss = torch.tensor(0.0).to(X.device)
+        for i in range(1, max_index + 1):
+            relevant_mask = (caption_copy_masks == i).view(-1)
+            new_caption_targets_i = new_caption_targets[relevant_mask]
+            # new_caption_targets_i.shape == [batch_size * n_entity_tokens, 1]
+
+            copy_lprobs_i = copy_lprobs[relevant_mask]
+            # copy_lprobs_i.shape == [batch_size * n_entity_tokens, reduced_vocab_size]
+
+            copy_loss += -copy_lprobs_i.gather(dim=-1,
+                                               index=new_caption_targets_i).mean()
 
         return entity_loss, copy_loss
 

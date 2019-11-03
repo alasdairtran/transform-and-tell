@@ -1,5 +1,6 @@
 from .roberta_indexer import RobertaTokenIndexer
 from .roberta_indexer_coref import RobertaCorefTokenIndexer
 from .roberta_indexer_names import RobertaNamesTokenIndexer
+from .roberta_indexer_names_matched import RobertaNamesMatchedTokenIndexer
 from .roberta_indexer_rare import RareRobertaTokenIndexer
 from .roberta_indexer_rare_whole_words import RareWholeWordRobertaTokenIndexer

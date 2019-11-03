@@ -1,3 +1,4 @@
+from .copy_text_field import CopyTextField
 from .coref_text_field import CorefTextField
 from .image_field import ImageField
 from .list_text_field import ListTextField
