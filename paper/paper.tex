@@ -26,7 +26,7 @@
 \begin{document}
 
 %%%%%%%%% TITLE
-\title{Writing News Captions with Bags of Attention}
+\title{Transform and Tell:\\The News Image Caption Writer That Remembers Rare Names}
 
 \author{Alasdair Tran, Alexander Matthews, Lexing Xie\\
 Australian National University\\
@@ -44,15 +44,17 @@ Australian National University\\
 %%%%%%%%% ABSTRACT
 \begin{abstract}
    We propose an end-to-end model to generate image captions in news articles.
-   By combining the transformer architecture, byte-pair encoding, RoBERTa
-   embeddings for text, ResNet-152 embeddings for images, and bags of
-   attentions, our system is able to describe an image with specific named
-   entities mentioned in the article. Our model achieves a CIDEr score of 54 on
-   the GoodNews dataset, significantly outperforming the previous state-of-art
-   CIDEr of 13. We also introduce the NYTimes+ dataset, an extended version of
-   GoodNews with higher-quality articles and metadata that allow us to study
-   the importance of the image location within the text. On NYTimes+, we
-   achieve a CIDEr of 51. Pretrained models and source code are available from
+   By combining the transformer architecture, byte-pair encoding, and
+   pretrained embeddings from three different modalities (RoBERTa for text,
+   ResNet-152 for images, and FaceNet for faces), our system is able to
+   describe an image with specific named entities mentioned in the article. Our
+   model achieves a CIDEr score of 54 on the GoodNews dataset, significantly
+   outperforming the previous state-of-art CIDEr of 13. We also introduce the
+   NYTimes+ dataset, the largest news image captioning dataset to date.
+   NYTimes+ is an extended version of GoodNews with higher-quality articles and
+   metadata that allow us to study the importance of the image location within
+   the text. On NYTimes+, we achieve a CIDEr of 51. Pretrained models and
+   source code are available from
    \href{https://github.com}{https://anonymized}.
 \end{abstract}
 
@@ -68,16 +70,15 @@ Chen2015MicrosoftCC} and Flickr30k \cite{Young2014FromID} were annotated using
 only visual cues present in the image. More recently, datasets such as TIME
 \cite{Tariq2017ACE}, BreakingNews \cite{Ramisa2016BreakingNewsAA}, and GoodNews
 \cite{Biten2019GoodNews} include real-life captions scraped from online
-newspapers. To the best of our knowledge, all of the existing models
-that are trained on these news datasets use template-based methods to insert
-named entities.
+newspapers. To the best of our knowledge, all existing models that are trained
+on these news datasets use template-based methods to insert named entities.
 
 This motivates us to ask whether it is possible to design a fully end-to-end
 model for news image captioning. The model would need to 1) attend to
-contextual cues from different modalities (image and text) and 2) generate
-captions that contain specific information including rare proper names that
-have not been seen in the training data. To answer this, we look at the recent
-development in sequence-to-sequence architectures and language modeling.
+contextual cues from different modalities and 2) generate captions that contain
+specific information including rare proper names that have not been seen in the
+training data. To answer this, we look at the recent development in
+sequence-to-sequence architectures and language modeling.
 
 The most successful family of models in natural language understanding and
 generation are the transformer networks, which consist of layers of
@@ -97,6 +98,16 @@ results on many natural language understanding benchmarks including GLUE
 \cite{Rajpurkar2016SQuAD, Rajpurkar2018KnowWY}, even surpassing the human
 baselines in many cases.
 
+\begin{figure}[t]
+   \begin{center}
+   \fbox{\rule{0pt}{2in} \rule{0.9\linewidth}{0pt}}
+      %\includegraphics[width=0.8\linewidth]{egfigure.eps}
+   \end{center}
+      \caption{An example caption.}
+   \label{fig:long}
+   \label{fig:onecol}
+\end{figure}
+
 In parallel to the development of these pre-training methods, many novel
 techniques have been proposed to improve training convergence and handle more
 diverse data inputs. The most significant contribution is the use of byte-pair
@@ -108,19 +119,24 @@ their bags of tricks, to carefully design a captioning system most appropriate
 for news images. Our main contributions are thus threefold:
 
 \begin{enumerate}
-   \item We show that combining article attention with pre-trained
-   contextualized word piece embeddings allows our model to generate captions
-   containing relevant words that were not seen during training.
+   \item We introduce the NYTimes+ dataset, containing 446K articles and 794K
+   images with captions from the New York Times spanning 14 years. This
+   constitutes the largest news image captioning dataset to date. NYTimes+ is
+   built upon the GoodNews dataset, but we write a custom parser to collect
+   higher-quality articles and metadata such as the location of an image within
+   the page.
 
-   \item We demonstrate that the location of the image within the article is an
-   important signal for generating relevant news captions.
+   \item We build a captioning model that combines the power of transformers,
+   byte-pair encoding, and attention over three different modalities (text,
+   images, and faces). We show that our model achieves state-of-the-art results
+   with a significant margin over previous methods, and in particular, it can
+   generate names not seen during training.
 
-   \item We build on the GoodNews dataset to produce a larger and more complete
-   news captioning dataset consisting of 445,828 articles from the New York
-   Times and their 794K images with captions. This constitutes the largest
-   news image captioning dataset to date. In contrast to GoodNews our dataset
-   contains the full article text, and the location of the image within the
-   page.
+   \item We provide a detailed model analysis, deconstructing the most
+   important modeling components and quantifying the incremental contribution
+   that each of them makes not only to the popular metrics such as BLEU, ROUGE,
+   METEOR, and CIDEr; but also to other linguistic measures like readability
+   scores, caption length, and recall of rare names.
 \end{enumerate}
 
 
@@ -160,15 +176,7 @@ combining embeddings from three modalities: concept terms, object regions,
 and image patches. These strategies include addition, concatenation, and
 multivariate residual modules.
 
-\begin{figure}[t]
-   \begin{center}
-   \fbox{\rule{0pt}{2in} \rule{0.9\linewidth}{0pt}}
-      %\includegraphics[width=0.8\linewidth]{egfigure.eps}
-   \end{center}
-      \caption{An example caption.}
-   \label{fig:long}
-   \label{fig:onecol}
-   \end{figure}
+
 
 \section{Dataset}
 
@@ -371,7 +379,7 @@ our NYTimes+ dataset.
 		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr \\
       \midrule
       GloVe + LSTM & 14.0 & 6.09 & 2.98 & 1.67 & 13.0 & 5.15 & 9.96 \\
-      GloVe + Transformer & 18.0 & 8.88 & 4.90 & 2.98 & 16.3 & 7.30 & 21.0 \\
+      GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\
       RoBERTa + LSTM & 18.6 & 10.1 & 6.03 & 3.88 & 17.1 & 8.00 & 29.2 \\
       Transformer (first 512 tokens) & 17.6 & 10.4 & 6.68 & 4.65 & 19.1 & 8.49 & 41.1 \\
       Transformer (location-aware) & 19.0 & 11.7 & 7.76 & 5.48 & 21.1 & 9.51 & 51.4 \\
@@ -390,7 +398,7 @@ our NYTimes+ dataset.
         & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
       \midrule
       GloVe + LSTM & 10.5\% & 13.1\% & 0\% & 0\% & 0\% & 0\%  \\
-      GloVe + Transformer & 19.2\% & 21.5\% & 0\% & 0\% & 0\% & 0\%  \\
+      GloVe + Transformer & 18.3\% & 21.7\% & 0\% & 0\% & 0\% & 0\%  \\
       RoBERTa + LSTM & 25.1\% & 26.7\% & 14.8\% & 14.0\% & 12.5\% & 7.98\%  \\
       Transformer (first 512 tokens) & 26.4\% & 31.5\% & 19.8\% & 29.5\% & 17.7\% & 20.9\%  \\
       Transformer (location-aware) & 31.5\% & 36.8\% & 25.3\% & 33.2\% & 23.5\% & 25.3\%   \\
@@ -408,7 +416,7 @@ our NYTimes+ dataset.
       \midrule
       Ground Truths & 18.4 & 17.1 \\
       GloVe + LSTM  & 15.3 & 12.3 \\
-      GloVe + Transformer  & 16.1 & 13.6 \\
+      GloVe + Transformer  & 15.1 & 12.9 \\
       RoBERTa + LSTM  & 15.6 & 13.4 \\
       Transformer (first 512 tokens)  & 13.1 & 11.7 \\
       Transformer (location-aware) & 13.0 & 11.7  \\
