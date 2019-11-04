@@ -44,20 +44,70 @@ Australian National University\\
 %%%%%%%%% ABSTRACT
 \begin{abstract}
    We propose an end-to-end model to generate image captions in news articles.
-   By combining the transformer architecture, byte-pair encoding, pretrained
-   text and image embeddings, and bags of attentions, our system is able to
-   describe an image using specific events and names mentioned in the article.
-   Our model achieves state-of-the-art results on the existing GoodNews
-   dataset. We also extend the GoodNews dataset to improve the quality of
-   articles and study the importance of the image location on the page.
+   By combining the transformer architecture, byte-pair encoding, RoBERTa
+   embeddings for text, ResNet-152 embeddings for images, and bags of
+   attentions, our system is able to describe an image with specific named
+   entities mentioned in the article. Our model achieves a CIDEr score of 54 on
+   the GoodNews dataset, significantly outperforming the previous state-of-art
+   CIDEr of 13. We also introduce the NYTimes+ dataset, an extended version of
+   GoodNews with higher-quality articles and metadata that allow us to study
+   the importance of the image location within the text. On NYTimes+, we
+   achieve a CIDEr of 51. Pretrained models and source code are available from
+   \href{https://github.com}{https://anonymized}.
 \end{abstract}
 
 %%%%%%%%% BODY TEXT
 \section{Introduction}
 
-Our main contributions are as follows:
+Most existing captioning systems can only generate a generic description of an
+image \cite{Vinyals2014ShowAT, Fang2014FromCT, Karpathy2015DeepVA,
+Rennie2016SelfCriticalST, Lu2016KnowingWT, Anderson2017BottomUpAT}, mainly
+because these architectures cannot handle an open vocabulary and early
+captioning datasets such as MS COCO \cite{Lin2014MicrosoftCC,
+Chen2015MicrosoftCC} and Flickr30k \cite{Young2014FromID} were annotated using
+only visual cues present in the image. More recently, datasets such as TIME
+\cite{Tariq2017ACE}, BreakingNews \cite{Ramisa2016BreakingNewsAA}, and GoodNews
+\cite{Biten2019GoodNews} include real-life captions scraped from online
+newspapers. To the best of our knowledge, all of the existing models
+that are trained on these news datasets use template-based methods to insert
+named entities.
 
-\begin{itemize}
+This motivates us to ask whether it is possible to design a fully end-to-end
+model for news image captioning. The model would need to 1) attend to
+contextual cues from different modalities (image and text) and 2) generate
+captions that contain specific information including rare proper names that
+have not been seen in the training data. To answer this, we look at the recent
+development in sequence-to-sequence architectures and language modeling.
+
+The most successful family of models in natural language understanding and
+generation are the transformer networks, which consist of layers of
+self-attention and feed-forward connections stacked on top of each other
+\cite{Vaswani2017AttentionIA}. Transformers have consistently been shown to
+outperform RNN architectures in language modeling \cite{Radford2019LanguageMA},
+story generation \cite{Fan2018HierarchicalNS}, summarization
+\cite{Subramanian2019OnEA}, and machine translation \cite{Bojar2018Findings}.
+
+Furthermore, transformers have led to the rise of unsupervised language
+representation learning such as BERT \cite{Devlin2019BERT}, XLM
+\cite{Lample2019CrosslingualLM}, XLNet \cite{Yang2019XLNetGA}, RoBERTa
+\cite{Liu2019RoBERTaAR}, and ALBERT \cite{Lan2019ALBERT}. The contextual word
+embeddings provided by these methods have helped establish new state-of-the-art
+results on many natural language understanding benchmarks including GLUE
+\cite{Wang2019GLUE}, SuperGLUE \cite{Wang2019SuperGLUEAS}, and SQuAD
+\cite{Rajpurkar2016SQuAD, Rajpurkar2018KnowWY}, even surpassing the human
+baselines in many cases.
+
+In parallel to the development of these pre-training methods, many novel
+techniques have been proposed to improve training convergence and handle more
+diverse data inputs. The most significant contribution is the use of byte-pair
+encoding \cite{Sennrich2015NeuralMT} to handle an open vocabulary. This is done
+by representing a rare word as a sequence of subword units.
+
+The goal of this paper is to make use of these recent developments, along with
+their bags of tricks, to carefully design a captioning system most appropriate
+for news images. Our main contributions are thus threefold:
+
+\begin{enumerate}
    \item We show that combining article attention with pre-trained
    contextualized word piece embeddings allows our model to generate captions
    containing relevant words that were not seen during training.
@@ -65,12 +115,13 @@ Our main contributions are as follows:
    \item We demonstrate that the location of the image within the article is an
    important signal for generating relevant news captions.
 
-   \item We build on the GoodNews dataset to produce a larger and more
-   complete news captioning dataset consisting of 445,828 articles from the New
-   York Times and their 794K images with captions. In contrast to GoodNews
-   our dataset contains the full article text, and the location of the image
-   within the page.
-\end{itemize}
+   \item We build on the GoodNews dataset to produce a larger and more complete
+   news captioning dataset consisting of 445,828 articles from the New York
+   Times and their 794K images with captions. This constitutes the largest
+   news image captioning dataset to date. In contrast to GoodNews our dataset
+   contains the full article text, and the location of the image within the
+   page.
+\end{enumerate}
 
 
 \section{Related Works}
@@ -95,7 +146,7 @@ the model generates a template with placeholders such as PERSON and
 ORGANIZATION. In the second stage, the model finds the best matched sentence in
 the article and replace the placeholder with an entity mentioned in that
 sentence. They also created the ``GoodNews" dataset, which contains more
-samples than MSCOCO \cite{Lin2014MicrosoftCC} and BreakingNews
+samples than MSCOCO and BreakingNews
 \cite{Ramisa2016BreakingNewsAA} datasets.
 
 Zhu \etal \cite{Zhu2018CaptioningTW} used transformers to achieve competitive
@@ -374,7 +425,7 @@ our NYTimes+ dataset.
 		\toprule
         & Parameters \\
       \midrule
-      GloVe + LSTM & 137M \\
+      GloVe + LSTM & 153M \\
       GloVe + Transformer & 148M \\
       RoBERTa + LSTM & 139M \\
       RoBERTa + Transformer & 154M \\
