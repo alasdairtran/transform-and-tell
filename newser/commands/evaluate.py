@@ -1,9 +1,12 @@
 import json
 import logging
+import math
 import os
+import string
 from typing import Any, Dict, Iterable
 
 import spacy
+import textstat
 import torch
 from allennlp.common.checks import check_for_gpu
 from allennlp.common.tqdm import Tqdm
@@ -16,6 +19,7 @@ from allennlp.models.archival import load_archive
 from allennlp.nn import util as nn_util
 from allennlp.nn.util import move_to_device
 from allennlp.training.util import HasBeenWarned, datasets_from_params
+from nltk.tokenize import word_tokenize
 
 from .train import yaml_to_params
 
@@ -170,6 +174,10 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
                 'context': m['context'],
                 'caption_names': get_proper_nouns(m['caption'], nlp),
                 'generated_names': get_proper_nouns(generation, nlp),
+                'caption_readability': get_readability_scores(m['caption']),
+                'gen_readability': get_readability_scores(generation),
+                'caption_np': get_narrative_productivity(m['caption']),
+                'gen_np': get_narrative_productivity(generation),
             }
 
             if 'copied_texts' in output_dict:
@@ -185,3 +193,105 @@ def get_proper_nouns(text, nlp):
         if token.pos_ == 'PROPN':
             proper_nouns.append(token.text)
     return proper_nouns
+
+
+def get_readability_scores(text):
+    scores = {
+        'flesch_reading_ease': textstat.flesch_reading_ease(text),
+        'flesch_kincaid_grade': textstat.flesch_kincaid_grade(text),
+        'gunning_fog': textstat.gunning_fog(text),
+        'smog_index': textstat.smog_index(text),
+        'automated_readability_index': textstat.automated_readability_index(text),
+        'coleman_liau_index': textstat.coleman_liau_index(text),
+        'linsear_write_formula': textstat.linsear_write_formula(text),
+        'dale_chall_readability_score': textstat.dale_chall_readability_score(text),
+        'text_standard': textstat.text_standard(text, float_output=True),
+        'difficult_words': textstat.difficult_words(text) / len(text.split()),
+    }
+    return scores
+
+
+def is_word(tok):
+    return tok not in string.punctuation
+
+
+def get_narrative_productivity(text):
+    doc = word_tokenize(text)
+    doc = list(filter(is_word, doc))
+    n_words = len(doc)
+    n_terms = len(set(doc))
+
+    scores = {
+        'basic_ttr': basic_ttr(n_terms, n_words),
+        'root_ttr': root_ttr(n_terms, n_words),
+        'corrected_ttr': corrected_ttr(n_terms, n_words),
+        'herdan': herdan(n_terms, n_words),
+        'summer': summer(n_terms, n_words),
+        'maas': maas(n_terms, n_words),
+    }
+
+
+def basic_ttr(n_terms, n_words):
+    """ Type-token ratio (TTR) computed as t/w, where t is the number of unique
+    terms/vocab, and w is the total number of words.
+    (Chotlos 1944, Templin 1957)
+    """
+    if n_words == 0:
+        return 0
+    return n_terms / n_words
+
+
+def root_ttr(n_terms, n_words):
+    """ Root TTR (RTTR) computed as t/sqrt(w), where t is the number of unique terms/vocab,
+        and w is the total number of words.
+        Also known as Guiraud's R and Guiraud's index.
+        (Guiraud 1954, 1960)
+    """
+    if n_words == 0:
+        return 0
+    return n_terms / math.sqrt(n_words)
+
+
+def corrected_ttr(n_terms, n_words):
+    """ Corrected TTR (CTTR) computed as t/sqrt(2 * w), where t is the number of unique terms/vocab,
+        and w is the total number of words.
+        (Carrol 1964)
+    """
+    if n_words == 0:
+        return 0
+    return n_terms / math.sqrt(2 * n_words)
+
+
+def herdan(n_terms, n_words):
+    """ Computed as log(t)/log(w), where t is the number of unique terms/vocab, and w is the
+        total number of words.
+        Also known as Herdan's C.
+        (Herdan 1960, 1964)
+    """
+    if n_words <= 1:
+        return 0
+    return math.log(n_terms) / math.log(n_words)
+
+
+def summer(n_terms, n_words):
+    """ Computed as log(log(t)) / log(log(w)), where t is the number of unique terms/vocab, and
+        w is the total number of words.
+        (Summer 1966)
+    """
+    if n_words <= 1:
+        return 0
+    return math.log(math.log(n_terms)) / math.log(math.log(n_words))
+
+
+def maas(n_terms, n_words):
+    """ Maas's TTR, computed as (log(w) - log(t)) / (log(w) * log(w)), where t is the number of
+        unique terms/vocab, and w is the total number of words. Unlike the other measures, lower
+        maas measure indicates higher lexical richness.
+        (Maas 1972)
+    """
+    # We cap this score at 0.2
+    if n_words <= 1:
+        return 0.2
+    score = (math.log(n_words) - math.log(n_terms)) / \
+        (math.log(n_words) ** 2)
+    return min(score, 0.2)
