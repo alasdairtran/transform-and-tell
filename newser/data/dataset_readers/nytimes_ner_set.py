@@ -5,6 +5,8 @@ import re
 from datetime import datetime
 from typing import Dict
 
+import numpy as np
+import pymongo
 import torch
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import MetadataField, TextField
@@ -16,6 +18,7 @@ from PIL import Image
 from pymongo import MongoClient
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
+from tqdm import tqdm
 
 from newser.data.fields import CorefTextField, ImageField, ListTextField
 
@@ -64,6 +67,7 @@ class NYTimesNERSetReader(DatasetReader):
             ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         random.seed(1234)
+        self.rs = np.random.RandomState(1234)
 
         roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
         self.bpe = roberta.bpe
@@ -73,28 +77,24 @@ class NYTimesNERSetReader(DatasetReader):
     def _read(self, split: str):
         # split can be either train, valid, or test
         # validation and test sets contain 10K examples each
-        if split == 'train':
-            start = datetime(2000, 1, 1)
-            end = datetime(2019, 5, 1)
-        elif split == 'valid':
-            start = datetime(2019, 5, 1)
-            end = datetime(2019, 6, 1)
-        elif split == 'test':
-            start = datetime(2019, 6, 1)
-            end = datetime(2019, 9, 1)
-        else:
+        if split not in ['train', 'valid', 'test']:
             raise ValueError(f'Unknown split: {split}')
+
+        logger.info('Grabbing all article IDs')
+        sample_cursor = self.db.articles.find({
+            'split': split,
+        }, projection=['_id']).sort('_id', pymongo.ASCENDING)
+        ids = np.array([article['_id'] for article in tqdm(sample_cursor)])
+        sample_cursor.close()
+        self.rs.shuffle(ids)
 
         projection = ['_id', 'parsed_section.type', 'parsed_section.text',
                       'parsed_section.hash', 'parsed_section.named_entities',
                       'image_positions', 'headline', 'web_url']
 
-        # Setting the batch size is needed to avoid cursor timing out
-        article_cursor = self.db.articles.find({
-            'pub_date': {'$gte': start, '$lt': end},
-        }, no_cursor_timeout=True, projection=projection).batch_size(128)
-
-        for article in article_cursor:
+        for article_id in ids:
+            article = self.db.articles.find_one(
+                {'_id': {'$eq': article_id}}, projection=projection)
             sections = article['parsed_section']
             image_positions = article['image_positions']
             for pos in image_positions:
@@ -153,8 +153,6 @@ class NYTimesNERSetReader(DatasetReader):
                 named_entities = sorted(named_entities)
 
                 yield self.article_to_instance(paragraphs, named_entities, image, caption, image_path, article['web_url'], pos)
-
-        article_cursor.close()
 
     def article_to_instance(self, paragraphs, named_entities, image, caption, image_path, web_url, pos) -> Instance:
         context = '\n'.join(paragraphs).strip()

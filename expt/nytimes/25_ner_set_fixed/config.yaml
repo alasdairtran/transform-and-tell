@@ -120,7 +120,7 @@ validation_iterator:
 trainer:
   type: callback_apex
   apex_opt_level: O2
-  keep_batchnorm_fp32: None
+  keep_batchnorm_fp32: true
   optimizer:
     type: bert_adam
     lr: 0.0001
