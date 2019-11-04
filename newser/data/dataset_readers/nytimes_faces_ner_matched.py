@@ -55,6 +55,7 @@ class NYTimesFacesNERMatchedReader(DatasetReader):
                  image_dir: str,
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
+                 use_caption_names: bool = True,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -65,12 +66,14 @@ class NYTimesFacesNERMatchedReader(DatasetReader):
         self.preprocess = Compose([
             ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        self.use_caption_names = use_caption_names
         random.seed(1234)
         self.rs = np.random.RandomState(1234)
 
         roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
         self.bpe = roberta.bpe
         self.indices = roberta.task.source_dictionary.indices
+
 
     @overrides
     def _read(self, split: str):
@@ -115,7 +118,10 @@ class NYTimesFacesNERMatchedReader(DatasetReader):
                 if not caption:
                     continue
 
-                n_persons = len(self._get_person_names(sections[pos]))
+                if self.use_caption_names:
+                    n_persons = len(self._get_person_names(sections[pos]))
+                else:
+                    n_persons = 4
 
                 before = []
                 after = []
