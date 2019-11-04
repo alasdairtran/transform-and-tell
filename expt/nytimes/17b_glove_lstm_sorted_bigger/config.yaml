@@ -1,5 +1,5 @@
 dataset_reader:
-  type: nytimes
+  type: nytimes_glove
   tokenizer:
     type: word
     word_splitter: just_spaces_keep_newlines
@@ -20,7 +20,7 @@ vocabulary:
   type: roberta
   directory_path: ./expt/vocabulary
 model:
-  type: transformer_flattened
+  type: baseline_glove
   decoder:
     type: lstm_decoder_flattened
     embedder:
@@ -57,6 +57,7 @@ model:
     tie_adaptive_proj: false
     namespace: bpe
     vocab_size: 50265
+    article_embed_size: 300
   criterion:
     type: adaptive_loss
     padding_idx: 1
@@ -82,25 +83,21 @@ model:
 iterator:
   type: bucket
   sorting_keys:
-    - - context
-      - num_tokens
     - - caption
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 8192
   biggest_batch_first: false
   instances_per_epoch: 65536
-  maximum_samples_per_batch: ["num_tokens", 16384]
+  maximum_samples_per_batch: ["num_tokens", 512]
 validation_iterator:
   type: bucket
   sorting_keys:
-    - - context
-      - num_tokens
     - - caption
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 8192
-  maximum_samples_per_batch: ["num_tokens", 16384]
+  maximum_samples_per_batch: ["num_tokens", 512]
   biggest_batch_first: false
 trainer:
   type: callback_apex
@@ -110,7 +107,7 @@ trainer:
     type: bert_adam
     lr: 0.0001
     warmup: 0.05
-    t_total: 437600 # Takees 43m to go through 4376 batches per epoch
+    t_total: 500000 # Takees 43m to go through 4376 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
