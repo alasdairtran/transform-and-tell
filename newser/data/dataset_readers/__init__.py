@@ -1,5 +1,6 @@
 from .goodnews import GoodNewsReader
 from .goodnews_annotated import AnnotatedGoodNewsReader
+from .goodnews_copy_matched import GoodNewsCopyMatchedReader
 from .goodnews_coref import CorefGoodNewsReader
 from .goodnews_face_ner_matched import GoodNewsFaceNERMatchedReader
 from .goodnews_flattened import FlattenedGoodNewsReader
