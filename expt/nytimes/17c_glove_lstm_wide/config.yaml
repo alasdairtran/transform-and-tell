@@ -1,5 +1,5 @@
 dataset_reader:
-  type: goodnews_flattened
+  type: nytimes_glove
   tokenizer:
     type: word
     word_splitter: just_spaces_keep_newlines
@@ -11,17 +11,16 @@ dataset_reader:
       padding_on_right: true
       padding_value: 1
       max_len: 512
-  image_dir: data/goodnews/images_processed
-  eval_limit: 5120
+  image_dir: data/nytimes/images_processed
   lazy: true
 train_data_path: train
-validation_data_path: val
+validation_data_path: valid
 test_data_path: test
 vocabulary:
   type: roberta
   directory_path: ./expt/vocabulary
 model:
-  type: transformer_flattened
+  type: baseline_glove
   decoder:
     type: lstm_decoder_flattened
     embedder:
@@ -58,15 +57,13 @@ model:
     tie_adaptive_proj: false
     namespace: bpe
     vocab_size: 50265
+    article_embed_size: 300
   criterion:
     type: adaptive_loss
     padding_idx: 1
   use_context: true
   evaluate_mode: false
   sampling_topk: 1
-  vocab_size: 50265
-  hidden_size: 1024
-  attention_dim: 1024
   namespace: bpe
   index: roberta
   weigh_bert: true
@@ -83,25 +80,21 @@ model:
 iterator:
   type: bucket
   sorting_keys:
-    - - context
-      - num_tokens
     - - caption
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 8192
   biggest_batch_first: false
   instances_per_epoch: 65536
-  maximum_samples_per_batch: ["num_tokens", 6144]
+  maximum_samples_per_batch: ["num_tokens", 512]
 validation_iterator:
   type: bucket
   sorting_keys:
-    - - context
-      - num_tokens
     - - caption
       - num_tokens
   batch_size: 16
   max_instances_in_memory: 8192
-  maximum_samples_per_batch: ["num_tokens", 6144]
+  maximum_samples_per_batch: ["num_tokens", 512]
   biggest_batch_first: false
 trainer:
   type: callback_apex

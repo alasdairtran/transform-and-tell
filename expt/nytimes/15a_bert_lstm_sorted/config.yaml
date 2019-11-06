@@ -46,8 +46,8 @@ model:
         adaptive: ["roberta"]
         position: ["roberta"]
       allow_unmatched_keys: true
-    num_layers: 10
-    hidden_size: 1024
+    num_layers: 4
+    hidden_size: 1536
     dropout: 0.1
     share_decoder_input_output_embed: true
     adaptive_softmax_cutoff: [5000, 20000]

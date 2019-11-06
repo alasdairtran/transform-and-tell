@@ -121,8 +121,8 @@ class LSTMDecoder(Decoder):
 
         self.adaptive_softmax = None
 
-        self.project_out_dim = GehringLinear(embed_dim, output_embed_dim, bias=False) \
-            if embed_dim != output_embed_dim and not tie_adaptive_weights else None
+        self.project_out_dim = GehringLinear(hidden_size, output_embed_dim, bias=False) \
+            if hidden_size != output_embed_dim else None
 
         if adaptive_softmax_cutoff is not None:
             adaptive_inputs = None
