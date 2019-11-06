@@ -50,6 +50,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
                  use_caption_names: bool = True,
+                 n_faces: int = None,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -63,6 +64,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.eval_limit = eval_limit
         self.use_caption_names = use_caption_names
+        self.n_faces = n_faces
         random.seed(1234)
         self.rs = np.random.RandomState(1234)
 
@@ -102,7 +104,9 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
 
             named_entities = sorted(self._get_named_entities(article))
 
-            if self.use_caption_names:
+            if self.n_faces is not None:
+                n_persons = self.n_faces
+            elif self.use_caption_names:
                 n_persons = len(self._get_person_names(
                     article, sample['image_index']))
             else:
