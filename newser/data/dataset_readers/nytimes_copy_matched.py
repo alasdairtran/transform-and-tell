@@ -274,8 +274,9 @@ class NYTimesCopyMatchedReader(DatasetReader):
                 offset += len(par) + 1
 
     def is_in_ner(self, text, section):
-        ners = section['named_entities']
-        for ner in ners:
-            if text in ner['text']:
-                return True
+        if 'named_entities' in section:
+            ners = section['named_entities']
+            for ner in ners:
+                if text in ner['text']:
+                    return True
         return False
