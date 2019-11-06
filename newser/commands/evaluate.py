@@ -1,7 +1,9 @@
+import hashlib
 import json
 import logging
 import math
 import os
+import pickle
 import string
 from typing import Any, Dict, Iterable
 
@@ -20,6 +22,7 @@ from allennlp.nn import util as nn_util
 from allennlp.nn.util import move_to_device
 from allennlp.training.util import HasBeenWarned, datasets_from_params
 from nltk.tokenize import word_tokenize
+from spacy.tokens import Doc
 
 from .train import yaml_to_params
 
@@ -90,6 +93,18 @@ def evaluate(model: Model,
     nlp = spacy.load("en_core_web_lg")
     assert not os.path.exists(os.path.join(
         serialization_dir, f'generations{eval_suffix}.jsonl'))
+
+    # caching saves us extra 30 minutes
+    if 'goodnews' in serialization_dir:
+        cache_path = 'data/goodnews/evaluation_cache.pkl'
+    elif 'nytimes' in serialization_dir:
+        cache_path = 'data/nytimes/evaluation_cache.pkl'
+    if os.path.exists(cache_path):
+        with open(cache_path, 'rb') as f:
+            cache = pickle.load(f)
+    else:
+        cache = {}
+
     with torch.no_grad():
         model.eval()
 
@@ -115,7 +130,8 @@ def evaluate(model: Model,
             output_dict = model(**batch)
             loss = output_dict.get("loss")
 
-            write_to_json(output_dict, serialization_dir, nlp, eval_suffix)
+            write_to_json(output_dict, serialization_dir,
+                          nlp, eval_suffix, cache)
 
             metrics = model.get_metrics()
 
@@ -148,10 +164,14 @@ def evaluate(model: Model,
             #                        "produced a loss!")
             final_metrics["loss"] = total_loss / total_weight
 
-        return final_metrics
+    if not os.path.exists(cache_path):
+        with open(cache_path, 'wb') as f:
+            pickle.dump(cache, f)
+
+    return final_metrics
 
 
-def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
+def write_to_json(output_dict, serialization_dir, nlp, eval_suffix, cache):
     if 'captions' not in output_dict:
         return
 
@@ -165,9 +185,9 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
         for i, caption in enumerate(captions):
             m = metadatas[i]
             generation = generations[i]
-            caption_doc = nlp(m['caption'])
+            caption_doc = spacize(m['caption'], cache, nlp)
             gen_doc = nlp(generation)
-            context_doc = nlp(m['context'])
+            context_doc = spacize(m['context'], cache, nlp)
             obj = {
                 'caption': caption,
                 'raw_caption': m['caption'],
@@ -191,6 +211,14 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
                 obj['copied_text'] = output_dict['copied_texts'][i]
 
             f.write(f'{json.dumps(obj)}\n')
+
+
+def spacize(text, cache, nlp):
+    key = hashlib.sha256(text.encode('utf-8')).hexdigest()
+    if key not in cache:
+        cache[key] = nlp(text).to_bytes()
+
+    return Doc(nlp.vocab).from_bytes(cache[key])
 
 
 def get_proper_nouns(doc):
