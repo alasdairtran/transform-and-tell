@@ -69,8 +69,8 @@ captioning datasets such as MS COCO \cite{Lin2014MicrosoftCC,
 Chen2015MicrosoftCC} and Flickr30k \cite{Young2014FromID} were annotated using
 only visual cues present in the image. More recently, datasets such as TIME
 \cite{Tariq2017ACE}, BreakingNews \cite{Ramisa2016BreakingNewsAA}, and GoodNews
-\cite{Biten2019GoodNews} include real-life captions scraped from online
-newspapers. To the best of our knowledge, all existing models that are trained
+\cite{Biten2019GoodNews} include real-life captions written by professional
+journalists. To the best of our knowledge, all existing models that are trained
 on these news datasets use template-based methods to insert named entities.
 
 This motivates us to ask whether it is possible to design a fully end-to-end
@@ -147,9 +147,10 @@ improvements include giving the model the option to not attend to any image
 region \cite{Lu2017KnowingWT}, using reinforcement learning to directly
 optimize for the CIDEr metric \cite{Rennie2017SelfCriticalST}, and using a
 bottom-up approach to propose a region to attend to
-\cite{Anderson2017BottomUpAT}. All of these systems generate generic captions.
+\cite{Anderson2017BottomUpAT}. All of these systems can only generate generic
+captions with a limited vocabulary.
 
-A more challenging task is to generate captions for news images, in which we
+A more challenging task is to produce captions for news images, in which we
 need to be able to generate entity names. There are non-neural approaches
 \cite{Feng2013AutomaticCG,Tariq2017ACE}. Neural approaches include using the
 word2vec representation of the article and and the VGG19 representation of the
@@ -203,11 +204,11 @@ As a starting point, we use the GoodNews dataset, previously the largest
 dataset on news image captioning. As part of the quality check, we also
 reconstruct the same dataset on our own. We use the New York Times API and
 write a custom parser to recollect and extract all the articles and images in
-in the same period as GoodNews from the original source. We call this
-GoodNews+. We managed to crawl all the original articles, but the number of
-images is slightly less, either due to dead links or not crawling images
-unrelated to the main article. GoodNews+ allows us to make the following
-observations about the original GoodNews dataset:
+the same period as GoodNews from the original source. We call this GoodNews+.
+We were able to crawl all the original articles, but the number of images is
+slightly less, either due to dead links or not crawling images unrelated to the
+main article. GoodNews+ allows us to make the following observations about the
+original GoodNews dataset:
 
 \begin{itemize}
    \item The average length of an article in GoodNews is 451 words, while it is
@@ -402,7 +403,7 @@ our NYTimes+ dataset.
 		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr \\
       \midrule
       GloVe + LSTM & 14.0 & 6.09 & 2.98 & 1.67 & 13.0 & 5.15 & 9.96 \\
-      GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\
+      GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\ % Final
       RoBERTa + LSTM & 18.6 & 10.1 & 6.03 & 3.88 & 17.1 & 8.00 & 29.2 \\
       Transformer (first 512 tokens) & 17.6 & 10.4 & 6.68 & 4.65 & 19.1 & 8.49 & 41.1 \\
       Transformer (location-aware) & 19.0 & 11.7 & 7.76 & 5.48 & 21.1 & 9.51 & 51.4 \\
@@ -456,13 +457,13 @@ our NYTimes+ dataset.
 		\toprule
         & Parameters \\
       \midrule
-      GloVe + LSTM & 153M \\
+      GloVe + LSTM & 157M \\
       GloVe + Transformer & 148M \\
-      RoBERTa + LSTM & 139M \\
+      RoBERTa + LSTM & 159M \\
       RoBERTa + Transformer & 154M \\
         + faces & 171M \\
-        + names & 175M \\
-        + faces + names & 192M \\
+      %   + names & 175M \\
+      %   + faces + names & 192M \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
