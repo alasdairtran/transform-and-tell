@@ -87,7 +87,7 @@ def evaluate(model: Model,
              eval_suffix: str,
              batch_weight_key: str) -> Dict[str, Any]:
     check_for_gpu(cuda_device)
-    nlp = spacy.load("en_core_web_lg", disable=['parser', 'ner'])
+    nlp = spacy.load("en_core_web_lg")
     assert not os.path.exists(os.path.join(
         serialization_dir, f'generations{eval_suffix}.jsonl'))
     with torch.no_grad():
@@ -165,6 +165,8 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
         for i, caption in enumerate(captions):
             m = metadatas[i]
             generation = generations[i]
+            caption_doc = nlp(m['caption'])
+            gen_doc = nlp(generation)
             obj = {
                 'caption': caption,
                 'raw_caption': m['caption'],
@@ -172,8 +174,10 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
                 'web_url': m['web_url'],
                 'image_path': m['image_path'],
                 'context': m['context'],
-                'caption_names': get_proper_nouns(m['caption'], nlp),
-                'generated_names': get_proper_nouns(generation, nlp),
+                'caption_names': get_proper_nouns(caption_doc),
+                'generated_names': get_proper_nouns(gen_doc),
+                'caption_entities': get_entities(caption_doc),
+                'generated_entities': get_entities(gen_doc),
                 'caption_readability': get_readability_scores(m['caption']),
                 'gen_readability': get_readability_scores(generation),
                 'caption_np': get_narrative_productivity(m['caption']),
@@ -186,13 +190,19 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
             f.write(f'{json.dumps(obj)}\n')
 
 
-def get_proper_nouns(text, nlp):
-    doc = nlp(text)
+def get_proper_nouns(doc):
     proper_nouns = []
     for token in doc:
         if token.pos_ == 'PROPN':
             proper_nouns.append(token.text)
     return proper_nouns
+
+
+def get_entities(doc):
+    entities = []
+    for ent in doc.ents:
+        entities.append(ent.text)
+    return entities
 
 
 def get_readability_scores(text):
