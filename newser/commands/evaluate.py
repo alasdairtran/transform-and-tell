@@ -167,6 +167,7 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
             generation = generations[i]
             caption_doc = nlp(m['caption'])
             gen_doc = nlp(generation)
+            context_doc = nlp(m['context'])
             obj = {
                 'caption': caption,
                 'raw_caption': m['caption'],
@@ -176,8 +177,10 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix):
                 'context': m['context'],
                 'caption_names': get_proper_nouns(caption_doc),
                 'generated_names': get_proper_nouns(gen_doc),
+                'context_names': get_proper_nouns(context_doc),
                 'caption_entities': get_entities(caption_doc),
                 'generated_entities': get_entities(gen_doc),
+                'context_entities': get_entities(context_doc),
                 'caption_readability': get_readability_scores(m['caption']),
                 'gen_readability': get_readability_scores(generation),
                 'caption_np': get_narrative_productivity(m['caption']),
@@ -201,7 +204,11 @@ def get_proper_nouns(doc):
 def get_entities(doc):
     entities = []
     for ent in doc.ents:
-        entities.append(ent.text)
+        entities.append({
+            'text': ent.text,
+            'label': ent.label_,
+            'tokens': [{'text': tok.text, 'pos': tok.pos_} for tok in ent],
+        })
     return entities
 
 
@@ -239,6 +246,8 @@ def get_narrative_productivity(text):
         'summer': summer(n_terms, n_words),
         'maas': maas(n_terms, n_words),
     }
+
+    return scores
 
 
 def basic_ttr(n_terms, n_words):
