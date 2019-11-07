@@ -178,6 +178,10 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix, cache):
     captions = output_dict['captions']
     generations = output_dict['generations']
     metadatas = output_dict['metadata']
+    if 'copied_texts' in output_dict:
+        copied_texts = output_dict['copied_texts']
+    else:
+        copied_texts = ['' for _ in range(len(captions))]
 
     out_path = os.path.join(
         serialization_dir, f'generations{eval_suffix}.jsonl')
@@ -192,6 +196,7 @@ def write_to_json(output_dict, serialization_dir, nlp, eval_suffix, cache):
                 'caption': caption,
                 'raw_caption': m['caption'],
                 'generation': generation,
+                'copied_texts': copied_texts[i],
                 'web_url': m['web_url'],
                 'image_path': m['image_path'],
                 'context': m['context'],
