@@ -55,7 +55,7 @@ Australian National University\\
    metadata that allow us to study the importance of the image location within
    the text. On NYTimes+, we achieve a CIDEr of 51. Pretrained models and
    source code are available from
-   \href{https://github.com}{https://anonymized}.
+   \href{https://github.com}{https://github.com/anonymized-link}.
 \end{abstract}
 
 %%%%%%%%% BODY TEXT
@@ -70,23 +70,25 @@ Chen2015MicrosoftCC} and Flickr30k \cite{Young2014FromID} were annotated using
 only visual cues present in the image. More recently, datasets such as TIME
 \cite{Tariq2017ACE}, BreakingNews \cite{Ramisa2016BreakingNewsAA}, and GoodNews
 \cite{Biten2019GoodNews} include real-life captions written by professional
-journalists. To the best of our knowledge, all existing models that are trained
-on these news datasets use template-based methods to insert named entities.
+journalists. However, all existing models that are trained on these news
+datasets use template-based methods to insert named entities.
 
 This motivates us to ask whether it is possible to design a fully end-to-end
 model for news image captioning. The model would need to 1) attend to
 contextual cues from different modalities and 2) generate captions that contain
 specific information including rare proper names that have not been seen in the
 training data. To answer this, we look at the recent development in
-sequence-to-sequence architectures and language modeling.
+sequence-to-sequence architectures and language representation learning.
 
-The most successful family of models in natural language understanding and
-generation are the transformer networks, which consist of layers of
+The most successful family of models in the field of natural language
+processing (NLP) are the transformer networks, which consist of layers of
 self-attention and feed-forward connections stacked on top of each other
 \cite{Vaswani2017AttentionIA}. Transformers have consistently been shown to
 outperform RNN architectures in language modeling \cite{Radford2019LanguageMA},
 story generation \cite{Fan2018HierarchicalNS}, summarization
 \cite{Subramanian2019OnEA}, and machine translation \cite{Bojar2018Findings}.
+There are theoretical justifications that transformers could be universal
+approximations of sequence-to-sequence functions \cite{Anonymous2020AreTU}.
 
 Furthermore, transformers have led to the rise of unsupervised language
 representation learning such as BERT \cite{Devlin2019BERT}, XLM
@@ -111,8 +113,9 @@ baselines in many cases.
 In parallel to the development of these pre-training methods, many novel
 techniques have been proposed to improve training convergence and handle more
 diverse data inputs. The most significant contribution is the use of byte-pair
-encoding \cite{Sennrich2015NeuralMT} to handle an open vocabulary. This is done
-by representing a rare word as a sequence of subword units.
+encoding (BPE) \cite{Sennrich2015NeuralMT} to represent a rare word as a
+sequence of subword units, thus giving models the ability to handle an open
+vocabulary.
 
 The goal of this paper is to make use of these recent developments, along with
 their bags of tricks, to carefully design a captioning system most appropriate
@@ -133,7 +136,7 @@ for news images. Our main contributions are thus threefold:
 
    \item We provide a detailed model analysis, deconstructing the most
    important modeling components and quantifying the incremental contribution
-   that each of them makes not only to the popular metrics such as BLEU, ROUGE,
+   that each of them makes not only to the usual metrics such as BLEU, ROUGE,
    METEOR, and CIDEr; but also to other linguistic measures like readability
    scores, caption length, and recall of rare names.
 \end{enumerate}
