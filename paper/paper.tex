@@ -48,7 +48,7 @@ Australian National University\\
    pretrained embeddings from three different modalities (RoBERTa for text,
    ResNet-152 for images, and FaceNet for faces), our system is able to
    describe an image with specific named entities mentioned in the article. Our
-   model achieves a CIDEr score of 54 on the GoodNews dataset, significantly
+   model achieves a CIDEr score of 53 on the GoodNews dataset, significantly
    outperforming the previous state-of-art CIDEr of 13. We also introduce the
    NYTimes+ dataset, the largest news image captioning dataset to date.
    NYTimes+ is an extended version of GoodNews with higher-quality articles and
@@ -336,7 +336,7 @@ our NYTimes+ dataset.
       GloVe + LSTM & 13.6 & 6.19 & 3.13 & 1.81 & 13.5 & 5.26 & 11.9 \\
       GloVe + Transformer & 17.2 & 8.68 & 4.81 & 2.91 & 16.4 & 7.13 & 22.2 \\
       RoBERTa + LSTM & 18.7  & 10.3 & 6.09 & 3.89  & 18.0  & 8.19 & 34.8  \\
-      RoBERTa + Transformer & 22.7 & 13.7 & 8.93 & 6.17 & 21.4 & 10.3 & 53.9 \\
+      RoBERTa + Transformer & 22.2 & 13.4 & 8.68 & 5.99 & 21.2 & 10.1 & 52.9 \\ % Final
 		\bottomrule
 	\end{tabular}
 \end{table*}
@@ -362,7 +362,7 @@ our NYTimes+ dataset.
       GloVe + LSTM & 10.1\% & 14.9\%  \\
       GloVe + Transformer & 16.6\% & 21.7\% \\
       RoBERTa + LSTM & 23.4\% & 28.8\%  \\
-      RoBERTa + Transformer & 29.8\% & 34.4\%  \\
+      RoBERTa + Transformer & 29.5\% & 33.9\%  \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
@@ -387,7 +387,7 @@ our NYTimes+ dataset.
       GloVe + LSTM & 13.9 & 11.4 \\
       GloVe + Transformer & 14.9 & 12.9 \\
       RoBERTa + LSTM & 14.7 & 12.7  \\
-      RoBERTa + Transformer & 15.7 & 13.8 \\
+      RoBERTa + Transformer & 15.5 & 13.7 \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
@@ -405,8 +405,8 @@ our NYTimes+ dataset.
       GloVe + LSTM & 14.0 & 6.09 & 2.98 & 1.67 & 13.0 & 5.15 & 9.96 \\
       GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\ % Final
       RoBERTa + LSTM & 18.6 & 10.1 & 6.03 & 3.88 & 17.1 & 8.00 & 29.2 \\
-      Transformer (first 512 tokens) & 17.6 & 10.4 & 6.68 & 4.65 & 19.1 & 8.49 & 41.1 \\
-      Transformer (location-aware) & 19.0 & 11.7 & 7.76 & 5.48 & 21.1 & 9.51 & 51.4 \\
+      Transformer (first 512 tokens) & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
+      Transformer (location-aware) & 21.7 & 13.3 & 8.84 & 6.25 & 21.3 & 10.3 & 52.4 \\ % Final
       \\
 		\bottomrule
 	\end{tabular}
@@ -424,8 +424,8 @@ our NYTimes+ dataset.
       GloVe + LSTM & 10.5\% & 13.1\% & 0\% & 0\% & 0\% & 0\%  \\
       GloVe + Transformer & 18.3\% & 21.7\% & 0\% & 0\% & 0\% & 0\%  \\
       RoBERTa + LSTM & 25.1\% & 26.7\% & 14.8\% & 14.0\% & 12.5\% & 7.98\%  \\
-      Transformer (first 512 tokens) & 26.4\% & 31.5\% & 19.8\% & 29.5\% & 17.7\% & 20.9\%  \\
-      Transformer (location-aware) & 31.5\% & 36.8\% & 25.3\% & 33.2\% & 23.5\% & 25.3\%   \\
+      Transformer (first 512 tokens) & 30.3\% & 32.2\% & 22.6\% & 29.1\% & 20.1\% & 21.3\%  \\
+      Transformer (location-aware) & 33.8\% & 36.5\% & 26.2\% & 32.5\% & 24.0\% & 25.6\%   \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
@@ -442,8 +442,8 @@ our NYTimes+ dataset.
       GloVe + LSTM  & 15.3 & 12.3 \\
       GloVe + Transformer  & 15.1 & 12.9 \\
       RoBERTa + LSTM  & 15.6 & 13.4 \\
-      Transformer (first 512 tokens)  & 13.1 & 11.7 \\
-      Transformer (location-aware) & 13.0 & 11.7  \\
+      Transformer (first 512 tokens)  & 15.3 & 13.6 \\
+      Transformer (location-aware) & 15.1 & 13.5  \\
 		\bottomrule
 	\end{tabular}
 \end{table*}
