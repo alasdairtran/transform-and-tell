@@ -165,7 +165,7 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
         entity_loss = entity_loss / math.log(2)
         copy_loss = copy_loss / math.log(2)
 
-        loss = gen_loss + entity_loss + copy_loss
+        loss = entity_loss + copy_loss
 
         if not torch.isnan(gen_loss):
             self.batch_history['gen_loss'] += gen_loss.item()
