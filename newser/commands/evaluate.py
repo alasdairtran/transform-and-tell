@@ -325,7 +325,7 @@ def summer(n_terms, n_words):
         w is the total number of words.
         (Summer 1966)
     """
-    if n_words <= 1:
+    if n_words <= 1 or n_terms == 0:
         return 0
     return math.log(math.log(n_terms)) / math.log(math.log(n_words))
 
