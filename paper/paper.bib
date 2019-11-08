@@ -51,6 +51,14 @@ year = {2019}
     volume       = {abs/1504.00325},
 }
 
+@InProceedings{Cornia2019ShowCT,
+author = {Cornia, Marcella and Baraldi, Lorenzo and Cucchiara, Rita},
+title = {Show, Control and Tell: A Framework for Generating Controllable and Grounded Captions},
+booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+month = {June},
+year = {2019}
+}
+
 @inproceedings{Devlin2019BERT,
     abstract  = {We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models (Peters et al., 2018a; Radford et al., 2018), BERT is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT model can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications. BERT is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE score to 80.5 (7.7 point absolute improvement), MultiNLI accuracy to 86.7{\%} (4.6{\%} absolute improvement), SQuAD v1.1 question answering Test F1 to 93.2 (1.5 point absolute improvement) and SQuAD v2.0 Test F1 to 83.1 (5.1 point absolute improvement).},
     author    = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
@@ -61,6 +69,14 @@ year = {2019}
     doi       = {10.18653/v1/N19-1423},
     pages     = {4171--4186},
     title     = {{BERT}: Pre-training of Deep Bidirectional Transformers for Language Understanding},
+}
+
+@InProceedings{Donahue2015LongTR,
+author = {Donahue, Jeffrey and Anne Hendricks, Lisa and Guadarrama, Sergio and Rohrbach, Marcus and Venugopalan, Subhashini and Saenko, Kate and Darrell, Trevor},
+title = {Long-Term Recurrent Convolutional Networks for Visual Recognition and Description},
+booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+month = {June},
+year = {2015}
 }
 
 @inproceedings{Fan2018HierarchicalNS,
@@ -197,6 +213,24 @@ month = {July},
 year = {2017}
 }
 
+@inproceedings{Lu2018EntityAI,
+    title = "Entity-aware Image Caption Generation",
+    author = "Lu, Di  and
+      Whitehead, Spencer  and
+      Huang, Lifu  and
+      Ji, Heng  and
+      Chang, Shih-Fu",
+    booktitle = "Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing",
+    month = oct # "-" # nov,
+    year = "2018",
+    address = "Brussels, Belgium",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/D18-1435",
+    doi = "10.18653/v1/D18-1435",
+    pages = "4013--4023",
+    abstract = "Current image captioning approaches generate descriptions which lack specific information, such as named entities that are involved in the images. In this paper we propose a new task which aims to generate informative image captions, given images and hashtags as input. We propose a simple but effective approach to tackle this problem. We first train a convolutional neural networks - long short term memory networks (CNN-LSTM) model to generate a template caption based on the input image. Then we use a knowledge graph based collective inference algorithm to fill in the template with specific named entities retrieved via the hashtags. Experiments on a new benchmark dataset collected from Flickr show that our model generates news-style image descriptions with much richer information. Our model outperforms unimodal baselines significantly with various evaluation metrics.",
+}
+
 @incollection{Mikolov2013DistributedRO,
 title = {Distributed Representations of Words and Phrases and their Compositionality},
 author = {Mikolov, Tomas and Sutskever, Ilya and Chen, Kai and Corrado, Greg S and Dean, Jeff},
@@ -321,6 +355,23 @@ month = {June},
 year = {2015}
 }
 
+@inproceedings{Sharma2018ConceptualCA,
+    title = "Conceptual Captions: A Cleaned, Hypernymed, Image Alt-text Dataset For Automatic Image Captioning",
+    author = "Sharma, Piyush  and
+      Ding, Nan  and
+      Goodman, Sebastian  and
+      Soricut, Radu",
+    booktitle = "Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2018",
+    address = "Melbourne, Australia",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/P18-1238",
+    doi = "10.18653/v1/P18-1238",
+    pages = "2556--2565",
+    abstract = "We present a new dataset of image caption annotations, Conceptual Captions, which contains an order of magnitude more images than the MS-COCO dataset (Lin et al., 2014) and represents a wider variety of both images and image caption styles. We achieve this by extracting and filtering image caption annotations from billions of webpages. We also present quantitative evaluations of a number of image captioning models and show that a model architecture based on Inception-ResNetv2 (Szegedy et al., 2016) for image-feature extraction and Transformer (Vaswani et al., 2017) for sequence modeling achieves the best performance when trained on the Conceptual Captions dataset.",
+}
+
 @article{Subramanian2019OnEA,
     author       = {Subramanian, Sandeep and Li, Raymond and Pilault, Jonathan and Pal, Christopher Joseph},
     date         = {2019},
@@ -441,6 +492,23 @@ year = {2017}
     pages        = {1499--1503},
     title        = {Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks},
     volume       = {23},
+}
+
+@inproceedings{Zhao2019InformativeIC,
+    title = "Informative Image Captioning with External Sources of Information",
+    author = "Zhao, Sanqiang  and
+      Sharma, Piyush  and
+      Levinboim, Tomer  and
+      Soricut, Radu",
+    booktitle = "Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2019",
+    address = "Florence, Italy",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/P19-1650",
+    doi = "10.18653/v1/P19-1650",
+    pages = "6485--6494",
+    abstract = "An image caption should fluently present the essential information in a given image, including informative, fine-grained entity mentions and the manner in which these entities interact. However, current captioning models are usually trained to generate captions that only contain common object names, thus falling short on an important {``}informativeness{''} dimension. We present a mechanism for integrating image information together with fine-grained labels (assumed to be generated by some upstream models) into a caption that describes the image in a fluent and informative manner. We introduce a multimodal, multi-encoder model based on Transformer that ingests both image features and multiple sources of entity labels. We demonstrate that we can learn to control the appearance of these entity labels in the output, resulting in captions that are both fluent and informative.",
 }
 
 @article{Zhu2018CaptioningTW,
