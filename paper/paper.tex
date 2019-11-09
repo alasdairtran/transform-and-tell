@@ -106,10 +106,10 @@ baselines in many cases.
    \begin{center}
       \includegraphics[width=0.99\linewidth, frame]{figures/figure_1.pdf}
    \end{center}
-      \caption{Our transformer model attends over embeddings from three
-      different domains (image patches, faces, and article text). Using
-      byte-pair encoding, the model can then directly produce a caption
-      containing specific named entities without the use of templates.}
+      \caption{Our transformer model attends to embeddings from three different
+      domains (image patches, faces, and article text). Using byte-pair
+      encoding, the model can then directly produce a caption containing
+      specific named entities without the use of templates.}
    \label{fig:long}
    \label{fig:onecol}
 \end{figure}
@@ -197,14 +197,14 @@ entities that should appear in the caption. Instead the model has to determine
 which entities to generate on its own by scanning through and attending to the
 article.
 
-BPE offers an elegant solution to handle an open vocabulary. To date the only
+BPE offers an elegant solution to handling an open vocabulary. To date the only
 image captioning work that uses BPE is \cite{Sharma2018ConceptualCA}, but in
 their data preprocessing step, they explicitly removed rare named entities from
-the captions. Thus no study has been done yet to see how well BPE used in
-transformers can generate rare names.
+the captions. We attempt to fill this gap and in particular examine how much
+better BPE can generate rare names compared to template-based methods.
 
-In addition to attending to image patches, some captioning models attend to
-objects \cite{Wang2019Hierarchical} and concept terms
+In addition to attending to image patches, some captioning models also attend
+to objects \cite{Wang2019Hierarchical} and concept terms
 \cite{Wang2019Hierarchical,Li2019Boosted}, both of which are derived from the
 image itself. When attending to more than one modality, there are various
 strategies on how to combine embeddings such as addition, concatenation, and
@@ -219,11 +219,13 @@ using multivariate residual modules \cite{Wang2019Hierarchical}.
 As a starting point, we use the GoodNews dataset, previously the largest
 dataset on news image captioning \cite{Biten2019GoodNews}. As part of the
 quality check, we also reconstruct the same dataset on our own. We use the New
-York Times API and write a custom parser to recollect and extract all the
-articles and images in the same period as GoodNews from the original source. We
-call this GoodNews+. We were able to crawl all the original articles, but the
-number of images is slightly less, either due to dead links or not crawling
-images unrelated to the main article. GoodNews+ allows us to make the following
+York Times
+API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}
+and write a custom parser to recollect and extract all the articles and images
+in the same period as GoodNews from the original source. We call this
+GoodNews+. We were able to crawl all the original articles, but the number of
+images is slightly less, either due to dead links or not crawling images
+unrelated to the main article. GoodNews+ allows us to make the following
 observations about the original GoodNews dataset:
 
 \begin{itemize}
@@ -436,7 +438,7 @@ our NYTimes+ dataset.
 		\toprule
 		  & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr \\
       \midrule
-      GloVe + LSTM & 14.0 & 6.09 & 2.98 & 1.67 & 13.0 & 5.15 & 9.96 \\
+      GloVe + LSTM & 13.4 & 6.00 & 3.05 & 1.76 & 13.2 & 5.36 & 12.2 \\ % Final
       GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\ % Final
       RoBERTa + LSTM & 18.6 & 10.1 & 6.03 & 3.88 & 17.1 & 8.00 & 29.2 \\
       Transformer (first 512 tokens) & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
@@ -455,7 +457,7 @@ our NYTimes+ dataset.
         & \multicolumn{2}{c}{All names} & \multicolumn{2}{c}{Rare names in caption } & \multicolumn{2}{c}{Rare names in article } \\
         & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
       \midrule
-      GloVe + LSTM & 10.5\% & 13.1\% & 0\% & 0\% & 0\% & 0\%  \\
+      GloVe + LSTM & 12.4\% & 15.6\% & 0\% & 0\% & 0\% & 0\%  \\
       GloVe + Transformer & 18.3\% & 21.7\% & 0\% & 0\% & 0\% & 0\%  \\
       RoBERTa + LSTM & 25.1\% & 26.7\% & 14.8\% & 14.0\% & 12.5\% & 7.98\%  \\
       Transformer (first 512 tokens) & 30.3\% & 32.2\% & 22.6\% & 29.1\% & 20.1\% & 21.3\%  \\
@@ -473,7 +475,7 @@ our NYTimes+ dataset.
         & Caption length  & Unique words \\
       \midrule
       Ground Truths & 18.4 & 17.1 \\
-      GloVe + LSTM  & 15.3 & 12.3 \\
+      GloVe + LSTM  & 13.8 & 11.8 \\
       GloVe + Transformer  & 15.1 & 12.9 \\
       RoBERTa + LSTM  & 15.6 & 13.4 \\
       Transformer (first 512 tokens)  & 15.3 & 13.6 \\
