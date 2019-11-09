@@ -51,10 +51,10 @@ Australian National University\\
    describe an image with specific named entities mentioned in the article. Our
    model achieves a CIDEr score of 53 on the GoodNews dataset, significantly
    outperforming the previous state-of-art CIDEr of 13. We also introduce the
-   NYTimes+ dataset, the largest news image captioning dataset to date.
-   NYTimes+ is an extended version of GoodNews with higher-quality articles and
+   NYTimes800k dataset, the largest news image captioning dataset to date.
+   NYTimes800k is an extended version of GoodNews with higher-quality articles and
    metadata that allow us to study the importance of the image location within
-   the text. On NYTimes+, we achieve a CIDEr of 51. Pretrained models and
+   the text. On NYTimes800k, we achieve a CIDEr of 51. Pretrained models and
    source code are available from
    \href{https://github.com}{https://github.com/anonymized-link}.
 \end{abstract}
@@ -126,9 +126,9 @@ their bags of tricks, to carefully design a captioning system most appropriate
 for news images. Our main contributions are thus threefold:
 
 \begin{enumerate}
-   \item We introduce NYTimes+, the largest news image captioning dataset to
-   date, containing 446K articles and 794K images with captions from the New
-   York Times spanning 14 years. NYTimes+ is built upon the GoodNews dataset,
+   \item We introduce NYTimes800k, the largest news image captioning dataset to
+   date, containing 446K articles and 794K images with captions from The New
+   York Times spanning 14 years. NYTimes800k is built upon the GoodNews dataset,
    but we write a custom parser to collect higher-quality articles and metadata
    such as the location of an image within the page.
 
@@ -155,10 +155,10 @@ Attention over image patches was later introduced in ``Show, Attend and Tell"
 image embeddings and the previous hidden state of the RNN through a multilayer
 perception. Later improvements include giving the model the option to not
 attend to any image region \cite{Lu2017KnowingWT}, using reinforcement learning
-to directly optimize for the CIDEr metric \cite{Rennie2017SelfCriticalST}, and
-using a bottom-up approach to propose a region to attend to
-\cite{Anderson2017BottomUpAT}. All of these systems can only generate generic
-captions with a limited vocabulary.
+to directly optimize for the CIDEr metric \cite{Rennie2017SelfCriticalST,
+Gao2019DeliberateAN}, and using a bottom-up approach to propose a region to
+attend to \cite{Anderson2017BottomUpAT}. All of these systems can only generate
+generic captions with a limited vocabulary.
 
 A more challenging task is to produce captions for news images, in which we
 need to be able to generate entity names. Early non-neural approaches include
@@ -187,14 +187,14 @@ template.
 Transformers are still scarcely used in image captioning. They have been shown
 to yield competitive results in generating generic MS COCO captions
 \cite{Zhu2018CaptioningTW, Li2019Boosted}. Zhao \etal
-\cite{Zhao2019InformativeIC} have gone further and train transformers to
+\cite{Zhao2019InformativeIC} have gone further and trained transformers to
 produce named entities in the Conceptual Captions dataset
 \cite{Sharma2018ConceptualCA}. However Conceptual Captions have no additional
-context apart from the image itself, and the authors use web-entity labels,
+context apart from the image itself, and the authors used web-entity labels,
 extracted using Google Cloud Vision API, as inputs to the model. In our work,
 we are more ambitious in that we do not explicitly give the model a list of
 entities that should appear in the caption. Instead the model has to determine
-which entities to generate on its own by scanning through and attending to the
+on its own which entities to generate by scanning through and attending to the
 article.
 
 BPE offers an elegant solution to handling an open vocabulary. To date the only
@@ -204,92 +204,135 @@ the captions. We attempt to fill this gap and in particular examine how much
 better BPE can generate rare names compared to template-based methods.
 
 In addition to attending to image patches, some captioning models also attend
-to objects \cite{Wang2019Hierarchical} and concept terms
-\cite{Wang2019Hierarchical,Li2019Boosted}, both of which are derived from the
-image itself. When attending to more than one modality, there are various
-strategies on how to combine embeddings such as addition, concatenation, and
-using multivariate residual modules \cite{Wang2019Hierarchical}.
+to object regions \cite{Wang2019Hierarchical} and visual concepts
+\cite{You2016ImageCW,Li2019Boosted,Wang2019Hierarchical}, both of which are
+derived from the image itself. When attending to more than one modality, there
+are various strategies on how to combine embeddings such as addition,
+concatenation, and using multivariate residual modules (MRMs)
+\cite{Kim2016MultimodalRL}. In our models, we use a simple concatenation since
+more complex strategies such as MRMs have shown to yield only minor improvement
+\cite{Wang2019Hierarchical}.
 
 
 
 \section{Datasets}
 
-\subsection{GoodNews and GoodNews+}
+\subsection{GoodNews}
 
 As a starting point, we use the GoodNews dataset, previously the largest
-dataset on news image captioning \cite{Biten2019GoodNews}. As part of the
-quality check, we also reconstruct the same dataset on our own. We use the New
-York Times
-API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}
-and write a custom parser to recollect and extract all the articles and images
-in the same period as GoodNews from the original source. We call this
-GoodNews+. We were able to crawl all the original articles, but the number of
-images is slightly less, either due to dead links or not crawling images
-unrelated to the main article. GoodNews+ allows us to make the following
-observations about the original GoodNews dataset:
+dataset on news image captioning \cite{Biten2019GoodNews}. Each sample in the
+dataset is a triplet containing an article, an image, and a caption. Since only
+the article text and captions were publicly released, we had to crawl the
+images ourselves. Out of the 466K image URLs provided by
+\cite{Biten2019GoodNews}, we were able to crawl 463K images, or 99.2\% of the
+original dataset. The remaining are broken links. As part of the quality check,
+we also wrote a custom parser to re-extract the articles in the same period
+from the original web pages, with the help of The New York Times
+API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}.
 
-\begin{itemize}
-   \item The average length of an article in GoodNews is 451 words, while it is
-         963 words in GoodNews+. Thus half of the article body is missing in
-         GoodNews. This includes the first few paragraphs that might contain
-         important information about the top caption. Looking through the
-         publicly released code, we found that this is because the original
-         parser used by \cite{Biten2019GoodNews} fails to recognize certain
-         HTML tags used in New York Times web pages.
-   \item GoodNews contains X Spanish articles, adding unwanted noise to the
-         training.
-   \item GoodNews sometimes include images from the recommendation sidebar,
-         which are not part of the main article.
-\end{itemize}
+From the recollection, we observe that the average length of an article in
+GoodNews is 451 words, while it is 963 in our recollected dataset. Thus half of
+the article body is missing in GoodNews. This includes the first few paragraphs
+that might contain important information about the top caption. Looking through
+the publicly released code, we found that this is because the original parser
+used by \cite{Biten2019GoodNews} was designed to extract articles from a
+generic online news source and it fails to recognize certain HTML tags used
+specifically in New York Times web pages.
 
-Despite the above limitation, we will use the original GoodNews dataset in our
-experiments, along with the original train-validation-test split to make
+In addition, we also found some noisy samples in GoodNews. This includes a
+small number of non-English articles, and captioned images from the
+recommendation sidebar which are not related to the main article.
+
+Despite the above limitations, we still use the original GoodNews dataset in
+our experiments, along with the original train-validation-test split, to make
 comparison to previous works easier.
 
-\subsection{NYTimes+}
+% \begin{table}[t]
+% 	\caption {Summary of datasets}
+% 	\label{tab:datasets}
+% 	\centering
+% 	\begin{tabular}{llll}
+% 		\toprule
+% 		  & GoodNews  & GoodNews+ &   NYTimes800k \\
+% 		\midrule
+%       No. of articles & 241 808 & 241 808 & 445 828 \\
+%       No. of images   & 462 642 & 440 112 & 794 085 \\
+%       Article length & 451 & 963 & 974 \\
+%       Caption length & 18 & 18 & 18 \\
+%       Start month & Jan 10 & Jan 10 & Mar 05\\
+%       End month & Jul 18 & Jul 18 & Sep 19 \\
+% 		\bottomrule
+% 	\end{tabular}
+% \end{table}
 
-At the same time, we also construct a new dataset, which we call NYTimes+.
-NYTimes+ exhibits several advantages over GoodNews:
-
-\begin{itemize}
-   \item By increasing the collection period to the last 14 years (March 2005
-   -- September 2019), NYTimes+ contains 80\% more articles and images, thus
-   becoming the largest news captioning dataset.
-   \item NYTimes+ contains only English articles.
-   \item We are careful to include only images that are part of the main
-   article.
-   \item In addition to having a more complete coverage, we also collect
-   information about the image position in each article. As shown in Figure
-   \ref{fig:dist}, about 40\% of the articles have two or more images.
-\end{itemize}
-
-A summary of the datasets is shown in Table \ref{tab:datasets}.
-
-\begin{table}[h]
-	\caption {Summary of datasets}
+\begin{table}[t]
+	\caption {Summary of news captioning datasets}
 	\label{tab:datasets}
 	\centering
-	\begin{tabular}{llll}
+	\begin{tabular}{lll}
 		\toprule
-		  & GoodNews  & GoodNews+ &   NYTimes+ \\
+		  & GoodNews  &   NYTimes800k \\
 		\midrule
-      No. of articles & 241 808 & 241 808 & 445 828 \\
-      No. of images   & 462 642 & 440 112 & 794 085 \\
-      Article length & 451 & 963 & 974 \\
-      Caption length & 18 & 18 & 18 \\
-      Start month & Jan 10 & Jan 10 & Mar 05\\
-      End month & Jul 18 & Jul 18 & Sep 19 \\
+      Number of articles & 257 033 & 445 828 \\
+      Number of images   & 462 642 & 794 085 \\
+      Average article length & 451 & 974 \\
+      Average caption length & 18 & 18 \\
+      Collection start month & Jan 10 & Mar 05\\
+      Collection end month & Mar 18 & Sep 19 \\
+      \midrule
+      \% of words that are \\
+      \quad -- nouns & 16\% & 16\% \\
+      \quad -- pronouns & 1\% & 1\% \\
+      \quad -- proper nouns & 23\% & 22\% \\
+      \quad -- verbs & 9\% & 9\%  \\
+      \quad -- adjectives & 4\% & 4\% \\
+      \quad -- named entities & 27\% & 26\% \\
+      \quad -- person names & 9\% & 9\% \\
+      \midrule
+      \% of captions with \\
+      \quad -- named entities & 97\% & 97\% \\
+      \quad -- person names & 68\% & 68\% \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
+\subsection{NYTimes800k}
+
+At the same time, we also constructed a bigger and higher-quality dataset,
+which we call NYTimes800k. A comparison between GoodNews and NYTimes800k is
+summarized in Table \ref{tab:datasets}. NYTimes800k exhibits several
+advantages:
+
+\begin{itemize}
+   \item By increasing the collection period to the last 14 years (March 2005
+   -- September 2019), NYTimes800k contains 80\% more articles and images, thus
+   becoming the largest news image captioning dataset.
+   \item Using our custom parser, articles in NYTimes800k contain the full text
+   with no missing paragraphs.
+   \item NYTimes800k contains only English articles.
+   \item We are careful to include only images that are part of the main
+   article.
+   \item Unlike GoodNews, we also collect information about the image position
+   in each article. Most news articles have one image at the top that relates
+   to the key topic. However 39\% of the articles have at least one more image
+   somewhere in the middle of text. The image placement and hence the text
+   surrounding the image could be important information for captioning.
+\end{itemize}
+
+Named entities play an important role in the dataset, with 97\% of captions
+containing at least one named entity. As shown in Figure \ref{fig:entity_dist},
+the most popular entity type are person names, with 68\% of the captions
+mentioning at least one person.
+
+
+Rare names
 
 \begin{figure}[t]
    \begin{center}
-   \includegraphics[width=0.8\linewidth]{figures/caption_dist.png}
+   \includegraphics[width=0.99\linewidth]{figures/figure_2_entities.pdf}
    \end{center}
-      \caption{Distribution of images across articles.}
-   \label{fig:dist}
+      \caption{Distribution of entity types in NYTimes800k training captions.}
+   \label{fig:entity_dist}
    \end{figure}
 
 \section{Model}
@@ -351,7 +394,7 @@ will made public on GitHub.
 
 Table \ref{tab:results-goodnews} shows the results on the original GoodNews
 dataset. Table \ref{tab:results-nytimes} shows additional results done on
-our NYTimes+ dataset.
+our NYTimes800k dataset.
 
 
 \begin{table*}[t]
@@ -431,7 +474,7 @@ our NYTimes+ dataset.
 
 
 \begin{table*}[t]
-	\caption {Results on the NYTimes+ test set}
+	\caption {Results on the NYTimes800k test set}
 	\label{tab:results-nytimes}
 	\centering
 	\begin{tabular}{llllllll}
@@ -449,7 +492,7 @@ our NYTimes+ dataset.
 \end{table*}
 
 \begin{table*}[t]
-	\caption {Proper name metrics on the NYTimes+ test set}
+	\caption {Proper name metrics on the NYTimes800k test set}
 	\label{tab:results-names}
 	\centering
 	\begin{tabular}{lllllll}
@@ -467,7 +510,7 @@ our NYTimes+ dataset.
 \end{table*}
 
 \begin{table*}[t]
-	\caption {Word statistics on the NYTimes+ test set}
+	\caption {Word statistics on the NYTimes800k test set}
 	\label{tab:results-stats}
 	\centering
 	\begin{tabular}{lllllll}
