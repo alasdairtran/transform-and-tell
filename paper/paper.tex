@@ -245,7 +245,8 @@ recommendation sidebar which are not related to the main article.
 
 Despite the above limitations, we still use the original GoodNews dataset in
 our experiments, along with the original train-validation-test split, to make
-comparison to previous works easier.
+comparison to previous works easier. In the original split, the dataset was
+randomly divided into...
 
 % \begin{table}[t]
 % 	\caption {Summary of datasets}
@@ -287,11 +288,11 @@ comparison to previous works easier.
       \quad -- verbs & 9\% & 9\%  \\
       \quad -- adjectives & 4\% & 4\% \\
       \quad -- named entities & 27\% & 26\% \\
-      \quad -- person names & 9\% & 9\% \\
+      \quad -- personal names & 9\% & 9\% \\
       \midrule
       \% of captions with \\
       \quad -- named entities & 97\% & 97\% \\
-      \quad -- person names & 68\% & 68\% \\
+      \quad -- personal names & 68\% & 68\% \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -303,6 +304,28 @@ which we call NYTimes800k. A comparison between GoodNews and NYTimes800k is
 summarized in Table \ref{tab:datasets}. NYTimes800k exhibits several
 advantages:
 
+\begin{figure}[t]
+   \begin{center}
+   \includegraphics[width=0.99\linewidth]{figures/figure_2_entities.pdf}
+   \end{center}
+      \caption{Entity distribution in NYTimes800k training captions. The four
+               most common entity types are personal names, geopolitical
+               entities, organizations, and dates.}
+   \label{fig:entities}
+\end{figure}
+
+\begin{figure}[t]
+   \begin{center}
+   \includegraphics[width=0.99\linewidth]{figures/figure_3_faces.pdf}
+   \end{center}
+      \caption{Co-occurrence of faces and personal names in NYTimes800k
+               training data. The blue bars count how many images containing a
+               certain number of faces. The orange bars count how many captions
+               containing a certain number of personal names.}
+   \label{fig:faces}
+\end{figure}
+
+
 \begin{itemize}
    \item By increasing the collection period to the last 14 years (March 2005
    -- September 2019), NYTimes800k contains 80\% more articles and images, thus
@@ -312,28 +335,44 @@ advantages:
    \item NYTimes800k contains only English articles.
    \item We are careful to include only images that are part of the main
    article.
-   \item Unlike GoodNews, we also collect information about the image position
-   in each article. Most news articles have one image at the top that relates
-   to the key topic. However 39\% of the articles have at least one more image
-   somewhere in the middle of text. The image placement and hence the text
-   surrounding the image could be important information for captioning.
+   \item Unlike GoodNews, we also collect information about where an image is
+   located in the corresponding article. Most news articles have one image at
+   the top that relates to the key topic. However 39\% of the articles have at
+   least one more image somewhere in the middle of text. The image placement
+   and hence the text surrounding the image could be important information for
+   captioning.
 \end{itemize}
 
-Named entities play an important role in the dataset, with 97\% of captions
-containing at least one named entity. As shown in Figure \ref{fig:entity_dist},
-the most popular entity type are person names, with 68\% of the captions
-mentioning at least one person.
+Entities play an important role in the dataset, with 97\% of captions
+containing at least one named entity. As shown in Figure \ref{fig:entities},
+the most popular entity type are personal names, comprising a third of all
+named entities. Furthermore, 71\% of training images contain at least one face
+and 68\% of training captions mention at least one personal name. Figure
+\ref{fig:faces} provides a further breakdown of the co-occurrence of faces and
+personal names. One important observation is that the majority of captions
+contain at most four names.
 
 
-Rare names
+\begin{table}[t]
+	\caption {NYTimes800k training, validation, and test splits}
+	\label{tab:splits}
+	\centering
+	\begin{tabular}{llll}
+		\toprule
+		  & Training  &   Validation & Test \\
+		\midrule
+      Number of articles & &  \\
+      Number of images   &  &  \\
+      Start month &  & \\
+      End month &  & \\
+		\bottomrule
+	\end{tabular}
+\end{table}
 
-\begin{figure}[t]
-   \begin{center}
-   \includegraphics[width=0.99\linewidth]{figures/figure_2_entities.pdf}
-   \end{center}
-      \caption{Distribution of entity types in NYTimes800k training captions.}
-   \label{fig:entity_dist}
-   \end{figure}
+In order to study how rare names are generated, we split the training,
+validation, and test sets by time. The training set consists of 434K articles
+
+
 
 \section{Model}
 
