@@ -358,6 +358,49 @@ def compute_face_stats(nytimes):
     print()
 
 
+def compute_rare_stats(nytimes):
+    projection = ['_id', 'parsed_section.type', 'parsed_section.hash',
+                  'parsed_section.parts_of_speech']
+    cursor = nytimes.articles.find({'split': 'test'}, projection=projection)
+
+    path = './data/nytimes/name_counters.pkl'
+    with open(path, 'rb') as f:
+        name_counters = pickle.load(f)
+
+    full_counter = name_counters['caption'] + name_counters['context']
+
+    n_words = 0
+    n_propers = 0
+    n_rare_propers = 0
+    n_very_rare_propers = 0
+
+    for article in tqdm(cursor):
+        sections = article['parsed_section']
+        for s in sections:
+            if s['type'] == 'caption':
+                image_path = os.path.join('data/nytimes/images_processed',
+                                          f"{s['hash']}.jpg")
+                if not os.path.exists(image_path):
+                    continue
+
+                if 'parts_of_speech' in s:
+                    pos = s['parts_of_speech']
+                    n_words += len(pos)
+                    for p in pos:
+                        if p['pos'] == 'PROPN':
+                            n_propers += 1
+                            if p['text'] not in name_counters['caption']:
+                                n_rare_propers += 1
+                            if p['text'] not in full_counter:
+                                n_very_rare_propers += 1
+
+    print('No of words', n_words)
+    print('No of proper nouns', n_propers)
+    print('No of rare proper nouns', n_rare_propers)
+    print('No of very rare proper nouns', n_very_rare_propers)
+    print()
+
+
 def validate(args):
     """Validate command line arguments."""
     args = {k.lstrip('-').lower().replace('-', '_'): v
@@ -383,9 +426,10 @@ def main():
     goodnews = client.goodnews
 
     # compute_goodnews_stats(goodnews)
-    compute_nytimes_stats(nytimes)
+    # compute_nytimes_stats(nytimes)
     # compute_nytimes_exact_subset_statistics(nytimes, goodnews)
     # compute_face_stats(nytimes)
+    compute_rare_stats(nytimes)
 
 
 if __name__ == '__main__':
