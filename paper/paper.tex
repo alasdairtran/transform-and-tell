@@ -230,24 +230,6 @@ we also wrote a custom parser to re-extract the articles in the same period
 from the original web pages, with the help of The New York Times
 API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}.
 
-From the recollection, we observe that the average length of an article in
-GoodNews is 451 words, while it is 963 in our recollected dataset. Thus half of
-the article body is missing in GoodNews. This includes the first few paragraphs
-that might contain important information about the top caption. Looking through
-the publicly released code, we found that this is because the original parser
-used by \cite{Biten2019GoodNews} was designed to extract articles from a
-generic online news source and it fails to recognize certain HTML tags used
-specifically in New York Times web pages.
-
-In addition, we also found some noisy samples in GoodNews. This includes a
-small number of non-English articles, and captioned images from the
-recommendation sidebar which are not related to the main article.
-
-Despite the above limitations, we still use the original GoodNews dataset in
-our experiments, along with the original train-validation-test split, to make
-comparison to previous works easier. In the original split, the dataset was
-randomly divided into...
-
 % \begin{table}[t]
 % 	\caption {Summary of datasets}
 % 	\label{tab:datasets}
@@ -266,6 +248,7 @@ randomly divided into...
 % 	\end{tabular}
 % \end{table}
 
+
 \begin{table}[t]
 	\caption {Summary of news captioning datasets}
 	\label{tab:datasets}
@@ -274,8 +257,8 @@ randomly divided into...
 		\toprule
 		  & GoodNews  &   NYTimes800k \\
 		\midrule
-      Number of articles & 257 033 & 445 828 \\
-      Number of images   & 462 642 & 794 085 \\
+      Number of articles & 257 033 & 445 819 \\
+      Number of images   & 462 642 & 794 044 \\
       Average article length & 451 & 974 \\
       Average caption length & 18 & 18 \\
       Collection start month & Jan 10 & Mar 05\\
@@ -291,11 +274,32 @@ randomly divided into...
       \quad -- personal names & 9\% & 9\% \\
       \midrule
       \% of captions with \\
-      \quad -- named entities & 97\% & 97\% \\
+      \quad -- named entities & 97\% & 96\% \\
       \quad -- personal names & 68\% & 68\% \\
 		\bottomrule
 	\end{tabular}
 \end{table}
+
+From the recollection, we observe that the average length of an article in
+GoodNews is 451 words, while it is 963 in our recollected dataset. Thus half of
+the article body is missing in GoodNews. This includes the first few paragraphs
+that might contain important information about the top caption. Looking through
+the publicly released code, we found that this is because the original parser
+used by \cite{Biten2019GoodNews} was designed to extract articles from a
+generic online news source and it fails to recognize certain HTML tags used
+specifically in New York Times web pages.
+
+In addition, we also found some noisy samples in GoodNews. This includes a
+small number of non-English articles, and captioned images from the
+recommendation sidebar which are not related to the main article.
+
+Despite the above limitations, we still use the original GoodNews dataset and
+train-validation-test split in our experiments, in order to make comparison to
+previous works easier. Using the original split, we have 421K training, 18K
+validation, and 23K test captions. Given that the random split was done at the
+caption level, it is possible for a training and test caption to share the same
+article text.
+
 
 \subsection{NYTimes800k}
 
@@ -361,20 +365,37 @@ contain at most four names.
 		\toprule
 		  & Training  &   Validation & Test \\
 		\midrule
-      Number of articles & &  \\
-      Number of images   &  &  \\
-      Start month &  & \\
-      End month &  & \\
+      Number of articles & 434 272 & 3 052 & 8 495 \\
+      Number of images  & 764 049 & 7 852 & 22 143 \\
+      Start month & Mar 15 & May 19 & Jun 19 \\
+      End month & Apr 19 & May 19 & Aug 19 \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-In order to study how rare names are generated, we split the training,
-validation, and test sets by time. The training set consists of 434K articles
+We split the training, validation, and test sets according to time, as shown in
+Table \ref{tab:splits}. For example, the test set consists of all captions and
+articles in the final three months of the collection period, from June to
+August 2019. This has two advantages over the random split used in GoodNews.
+Firstly, it prevents captions in the training and test sets from sharing the
+same context article, thus making it better to see how well the model can
+generalize. Secondly, due of the shift in the coverage of news over time, there
+will be events and people in the test data that have never covered by the news
+before. In particular, out of the 100K proper nouns in the test captions, 4\%
+never appear in any training captions. Half of these also never appear in any
+training article. Thus splitting by time allows us study how well the model can
+generate rare names.
 
 
+\section{Model Architectures}
 
-\section{Model}
+\subsection{Context Inputs}
+
+We propose a fully end-to-end model to generate news image captions. There
+are three inputs to the model: the image, the faces, and article text. Using
+ResNet-152, we obtain an embedding $X_I \in \mathbb{R}^{1024}$:
+
+
 
 Devlin \etal \cite{Devlin2019BERT} introduced BERT, a language representation
 model which provides pretrained contextual embeddings for text. We use
