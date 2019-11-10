@@ -24,16 +24,20 @@ logger = setup_logger()
 
 
 def compute_nytimes_stats(nytimes):
-    projection = ['_id', 'parsed_section.type', 'pub_date',
+    projection = ['_id', 'parsed_section.type', 'pub_date', 'split',
                   'parsed_section.parts_of_speech',
                   'parsed_section.named_entities',
                   'parsed_section.hash', 'parsed_section.text']
-    cursor = nytimes.articles.find({}, projection=projection)
+    cursor = nytimes.articles.find(
+        {'split': {'$in': ['train', 'valid', 'test']}},
+        projection=projection)
 
     n_article_words = 0
     n_caption_words = 0
     n_captions = 0
     n_articles = 0
+    article_splits = defaultdict(int)
+    caption_splits = defaultdict(int)
 
     n_words = 0
     n_nouns = 0
@@ -91,6 +95,8 @@ def compute_nytimes_stats(nytimes):
         n_articles += 1
         n_caption_words += len(' '.join(captions).split())
         n_captions += len(captions)
+        caption_splits[article['split']] += len(captions)
+        article_splits[article['split']] += 1
 
         if article['pub_date'] < min_date:
             min_date = article['pub_date']
@@ -114,6 +120,8 @@ def compute_nytimes_stats(nytimes):
     print(f'Entity sents: {n_ent_sents} ({n_ent_sents / n_captions:.2%})')
     print(f'Person names: {n_person_names} ({n_person_names / n_words:.2%})')
     print(f'Person sents: {n_pers_sents} ({n_pers_sents / n_captions:.2%})')
+    print('Caption splits:', caption_splits)
+    print('Article splits:', article_splits)
     print()
 
 
@@ -202,6 +210,7 @@ def compute_nytimes_exact_subset_statistics(nytimes, goodnews):
 def compute_goodnews_stats(goodnews):
     cursor = goodnews.splits.find({})
     article_ids = set({})
+    split_ids = defaultdict(set)
     n_article_words = 0
     n_caption_words = 0
     n_captions = 0
@@ -219,7 +228,9 @@ def compute_goodnews_stats(goodnews):
     n_person_names = 0
     n_pers_sents = 0
 
-    projection = ['_id', 'article', 'language', 'images',
+    caption_splits = defaultdict(int)
+
+    projection = ['_id', 'article', 'language', 'images', 'split',
                   'caption_parts_of_speech', 'caption_ner']
 
     logger.info('Computing GoodNews statistics.')
@@ -239,9 +250,13 @@ def compute_goodnews_stats(goodnews):
             n_article_words += len(article['article'].strip().split())
             language_counter[article['language']] += 1
 
+        if sample['article_id'] not in split_ids[sample['split']]:
+            split_ids[sample['split']].add(sample['article_id'])
+
         caption = article['images'][sample['image_index']].strip()
         n_caption_words += len(caption.split())
         n_captions += 1
+        caption_splits[sample['split']] += 1
 
         pos = article['caption_parts_of_speech'][sample['image_index']]
         n_words += len(pos)
@@ -263,6 +278,12 @@ def compute_goodnews_stats(goodnews):
         if has_person:
             n_pers_sents += 1
 
+    article_splits = {
+        'train': len(split_ids['train']),
+        'val': len(split_ids['val']),
+        'test': len(split_ids['test']),
+    }
+
     print('Subset of GoodNews Dataset:')
     print('No of articles:', len(article_ids))
     print('No of captions:', n_captions)
@@ -282,6 +303,8 @@ def compute_goodnews_stats(goodnews):
     print(f'Entity sents: {n_ent_sents} ({n_ent_sents / n_captions:.2%})')
     print(f'Person names: {n_person_names} ({n_person_names / n_words:.2%})')
     print(f'Person sents: {n_pers_sents} ({n_pers_sents / n_captions:.2%})')
+    print('Caption splits:', caption_splits)
+    print('Article splits:', article_splits)
     print()
 
 
@@ -360,9 +383,9 @@ def main():
     goodnews = client.goodnews
 
     # compute_goodnews_stats(goodnews)
-    # compute_nytimes_stats(nytimes)
+    compute_nytimes_stats(nytimes)
     # compute_nytimes_exact_subset_statistics(nytimes, goodnews)
-    compute_face_stats(nytimes)
+    # compute_face_stats(nytimes)
 
 
 if __name__ == '__main__':
