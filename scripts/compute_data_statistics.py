@@ -285,6 +285,56 @@ def compute_goodnews_stats(goodnews):
     print()
 
 
+def compute_face_stats(nytimes):
+    projection = ['_id', 'n_images', 'n_images_with_faces', 'image_positions',
+                  'detected_face_positions', 'parsed_section.facenet_details',
+                  'parsed_section.named_entities']
+    cursor = nytimes.articles.find({'split': 'train'}, projection=projection)
+
+    n_images_with_faces = 0
+    n_images = 0
+    n_articles = 0
+    n_articles_with_faces = 0
+    face_count = defaultdict(int)
+    name_count = defaultdict(int)
+
+    for article in tqdm(cursor):
+        n_images += article['n_images']
+        n_articles += 1
+
+        if 'n_images_with_faces' in article and article['n_images_with_faces']:
+            n_images_with_faces += article['n_images_with_faces']
+            n_articles_with_faces += 1
+
+        if 'detected_face_positions' not in article:
+            continue
+
+        for pos in article['detected_face_positions']:
+            section = article['parsed_section'][pos]
+            if 'facenet_details' in section:
+                n_faces = section['facenet_details']['n_faces']
+                face_count[n_faces] += 1
+
+        for pos in article['image_positions']:
+            section = article['parsed_section'][pos]
+            if 'named_entities' in section:
+                c = 0
+                for ner in section['named_entities']:
+                    if ner['label'] == 'PERSON':
+                        c += 1
+                name_count[c] += 1
+
+    print('No of images with faces:', n_images_with_faces)
+    print('No of images:', n_images)
+    print('No of articles:', n_articles)
+    print('No of articles with faces:', n_articles_with_faces)
+    print('Face count:')
+    print(face_count)
+    print('Name count:')
+    print(name_count)
+    print()
+
+
 def validate(args):
     """Validate command line arguments."""
     args = {k.lstrip('-').lower().replace('-', '_'): v
@@ -309,9 +359,10 @@ def main():
     nytimes = client.nytimes
     goodnews = client.goodnews
 
-    compute_goodnews_stats(goodnews)
-    compute_nytimes_stats(nytimes)
-    compute_nytimes_exact_subset_statistics(nytimes, goodnews)
+    # compute_goodnews_stats(goodnews)
+    # compute_nytimes_stats(nytimes)
+    # compute_nytimes_exact_subset_statistics(nytimes, goodnews)
+    compute_face_stats(nytimes)
 
 
 if __name__ == '__main__':
