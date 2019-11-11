@@ -1,14 +1,17 @@
 import argparse
 import json
+import math
 import operator
 import os
 import re
+import string
 from collections import defaultdict, deque
 
 import numpy as np
 import ptvsd
 import spacy
 import stop_words
+import textstat
 import tqdm
 from nltk.tokenize import word_tokenize
 from pycocoevalcap.bleu.bleu import Bleu
@@ -218,12 +221,128 @@ def get_proper_nouns(text, nlp):
     return proper_nouns
 
 
+def get_entities(doc):
+    entities = []
+    for ent in doc.ents:
+        entities.append({
+            'text': ent.text,
+            'label': ent.label_,
+            'tokens': [{'text': tok.text, 'pos': tok.pos_} for tok in ent],
+        })
+    return entities
+
+
+def get_readability_scores(text):
+    scores = {
+        'flesch_reading_ease': textstat.flesch_reading_ease(text),
+        'flesch_kincaid_grade': textstat.flesch_kincaid_grade(text),
+        'gunning_fog': textstat.gunning_fog(text),
+        'smog_index': textstat.smog_index(text),
+        'automated_readability_index': textstat.automated_readability_index(text),
+        'coleman_liau_index': textstat.coleman_liau_index(text),
+        'linsear_write_formula': textstat.linsear_write_formula(text),
+        'dale_chall_readability_score': textstat.dale_chall_readability_score(text),
+        'text_standard': textstat.text_standard(text, float_output=True),
+        'difficult_words': textstat.difficult_words(text) / len(text.split()),
+    }
+    return scores
+
+
+def is_word(tok):
+    return tok not in string.punctuation
+
+
+def get_narrative_productivity(text):
+    doc = word_tokenize(text)
+    doc = list(filter(is_word, doc))
+    n_words = len(doc)
+    n_terms = len(set(doc))
+
+    scores = {
+        'basic_ttr': basic_ttr(n_terms, n_words),
+        'root_ttr': root_ttr(n_terms, n_words),
+        'corrected_ttr': corrected_ttr(n_terms, n_words),
+        'herdan': herdan(n_terms, n_words),
+        'summer': summer(n_terms, n_words),
+        'maas': maas(n_terms, n_words),
+    }
+
+    return scores
+
+
+def basic_ttr(n_terms, n_words):
+    """ Type-token ratio (TTR) computed as t/w, where t is the number of unique
+    terms/vocab, and w is the total number of words.
+    (Chotlos 1944, Templin 1957)
+    """
+    if n_words == 0:
+        return 0
+    return n_terms / n_words
+
+
+def root_ttr(n_terms, n_words):
+    """ Root TTR (RTTR) computed as t/sqrt(w), where t is the number of unique terms/vocab,
+        and w is the total number of words.
+        Also known as Guiraud's R and Guiraud's index.
+        (Guiraud 1954, 1960)
+    """
+    if n_words == 0:
+        return 0
+    return n_terms / math.sqrt(n_words)
+
+
+def corrected_ttr(n_terms, n_words):
+    """ Corrected TTR (CTTR) computed as t/sqrt(2 * w), where t is the number of unique terms/vocab,
+        and w is the total number of words.
+        (Carrol 1964)
+    """
+    if n_words == 0:
+        return 0
+    return n_terms / math.sqrt(2 * n_words)
+
+
+def herdan(n_terms, n_words):
+    """ Computed as log(t)/log(w), where t is the number of unique terms/vocab, and w is the
+        total number of words.
+        Also known as Herdan's C.
+        (Herdan 1960, 1964)
+    """
+    if n_words <= 1:
+        return 0
+    return math.log(n_terms) / math.log(n_words)
+
+
+def summer(n_terms, n_words):
+    """ Computed as log(log(t)) / log(log(w)), where t is the number of unique terms/vocab, and
+        w is the total number of words.
+        (Summer 1966)
+    """
+    try:
+        math.log(math.log(n_terms)) / math.log(math.log(n_words))
+    except ValueError:
+        return 0
+
+
+def maas(n_terms, n_words):
+    """ Maas's TTR, computed as (log(w) - log(t)) / (log(w) * log(w)), where t is the number of
+        unique terms/vocab, and w is the total number of words. Unlike the other measures, lower
+        maas measure indicates higher lexical richness.
+        (Maas 1972)
+    """
+    # We cap this score at 0.2
+    if n_words <= 1:
+        return 0.2
+    score = (math.log(n_words) - math.log(n_terms)) / \
+        (math.log(n_words) ** 2)
+    return min(score, 0.2)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Input paths
     parser.add_argument('--output', type=str, default='./data/goodnews/original_results/with article/vis_show_attend_tell_full_wavg.json',
                         help='path to model to evaluate')
-    parser.add_argument('--eval_file', type=str, default='./expt/2c_transformer_lr_newlines/serialization/generations.jsonl',
+    parser.add_argument('--eval_file', type=str, default='./expt/goodnews/4a_transformer_sorted/serialization/generations.jsonl',
                         help='Reference generation file, used to find common test examples.')
     parser.add_argument('--insertion_method', type=list, default=['ctx', 'rand', 'att'],
                         help='rand: random insertion, ctx: context/word2vec/glove insertion, att: attention insertion')
@@ -255,7 +374,7 @@ if __name__ == '__main__':
             raw_captions[image_id] = obj['raw_caption']
 
     print('Loading spacy model.')
-    nlp = spacy.load('en_core_web_lg', disable=['parser', 'ner'])
+    nlp = spacy.load('en_core_web_lg')
 
     print('Starting the insertion process.')
 
@@ -319,6 +438,10 @@ if __name__ == '__main__':
             for r, h, i in zip(ref, hypo, image_ids):
                 if i not in raw_captions:
                     continue
+
+                caption_doc = nlp(raw_captions[i])
+                gen_doc = nlp(h)
+
                 obj = {
                     'caption': r,
                     'raw_caption': raw_captions[i],
@@ -327,6 +450,12 @@ if __name__ == '__main__':
                     'caption_names': get_proper_nouns(raw_captions[i], nlp),
                     'processed_caption_names': get_proper_nouns(r, nlp),
                     'generated_names': get_proper_nouns(h, nlp),
+                    'gen_np': get_narrative_productivity(h),
+                    'caption_np': get_narrative_productivity(raw_captions[i]),
+                    'gen_readability': get_readability_scores(h),
+                    'caption_readability': get_readability_scores(raw_captions[i]),
+                    'caption_entities': get_entities(caption_doc),
+                    'generated_entities': get_entities(gen_doc),
                 }
                 with open(dump_path, 'a') as f:
                     f.write(f'{json.dumps(obj)}\n')
