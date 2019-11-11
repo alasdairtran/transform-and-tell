@@ -15,6 +15,7 @@ import os
 import pickle
 import re
 import types
+from collections import defaultdict
 
 import numpy as np
 import ptvsd
@@ -94,6 +95,8 @@ def main():
     gen_ttrs, cap_ttrs = [], []
     gen_flesch, cap_flesch = [], []
 
+    ent_counter = defaultdict(int)
+
     with open(args['file']) as f:
         for line in tqdm(f):
             obj = json.loads(line)
@@ -159,6 +162,8 @@ def main():
             cap_flesch.append(obj['caption_readability']
                               ['flesch_reading_ease'])
 
+            compute_entities(obj, ent_counter)
+
     meteor_scorer.meteor_p.stdin.write('{}\n'.format(eval_line).encode())
     meteor_scorer.meteor_p.stdin.flush()
     for _ in range(count):
@@ -217,6 +222,56 @@ def main():
         'Generation TTR': sum(gen_ttrs) / len(gen_ttrs),
         'Caption Flesch Reading Ease': sum(cap_flesch) / len(cap_flesch),
         'Generation Flesch Reading Ease': sum(gen_flesch) / len(gen_flesch),
+        'Entity all - recall': {
+            'count': ent_counter['n_caption_ent_matches'],
+            'total': ent_counter['n_caption_ents'],
+            'percentage': ent_counter['n_caption_ent_matches'] / ent_counter['n_caption_ents'],
+        },
+        'Entity all - precision': {
+            'count': ent_counter['n_gen_ent_matches'],
+            'total': ent_counter['n_gen_ents'],
+            'percentage': ent_counter['n_gen_ent_matches'] / ent_counter['n_gen_ents'],
+        },
+        'Entity person - recall': {
+            'count': ent_counter['n_caption_person_matches'],
+            'total': ent_counter['n_caption_persons'],
+            'percentage': ent_counter['n_caption_person_matches'] / ent_counter['n_caption_persons'],
+        },
+        'Entity person - precision': {
+            'count': ent_counter['n_gen_person_matches'],
+            'total': ent_counter['n_gen_persons'],
+            'percentage': ent_counter['n_gen_person_matches'] / ent_counter['n_gen_persons'],
+        },
+        'Entity GPE - recall': {
+            'count': ent_counter['n_caption_gpes_matches'],
+            'total': ent_counter['n_caption_gpes'],
+            'percentage': ent_counter['n_caption_gpes_matches'] / ent_counter['n_caption_gpes'],
+        },
+        'Entity GPE - precision': {
+            'count': ent_counter['n_gen_gpes_matches'],
+            'total': ent_counter['n_gen_gpes'],
+            'percentage': ent_counter['n_gen_gpes_matches'] / ent_counter['n_gen_gpes'],
+        },
+        'Entity ORG - recall': {
+            'count': ent_counter['n_caption_orgs_matches'],
+            'total': ent_counter['n_caption_orgs'],
+            'percentage': ent_counter['n_caption_orgs_matches'] / ent_counter['n_caption_orgs'],
+        },
+        'Entity ORG - precision': {
+            'count': ent_counter['n_gen_orgs_matches'],
+            'total': ent_counter['n_gen_orgs'],
+            'percentage': ent_counter['n_gen_orgs_matches'] / ent_counter['n_gen_orgs'],
+        },
+        'Entity DATE - recall': {
+            'count': ent_counter['n_caption_date_matches'],
+            'total': ent_counter['n_caption_date'],
+            'percentage': ent_counter['n_caption_date_matches'] / ent_counter['n_caption_date'],
+        },
+        'Entity DATE - precision': {
+            'count': ent_counter['n_gen_date_matches'],
+            'total': ent_counter['n_gen_date'],
+            'percentage': ent_counter['n_gen_date_matches'] / ent_counter['n_gen_date'],
+        },
     }
 
     serialization_dir = os.path.dirname(args['file'])
@@ -231,6 +286,74 @@ def main():
 
     for key, metric in final_metrics.items():
         print(f"{key}: {metric}")
+
+
+def compute_entities(obj, c):
+    caption_entities = obj['caption_entities']
+    gen_entities = obj['generated_entities']
+    # context_entities = obj['context_entities']
+
+    c['n_caption_ents'] += len(caption_entities)
+    c['n_gen_ents'] += len(gen_entities)
+    for ent in gen_entities:
+        if contain_entity(caption_entities, ent):
+            c['n_gen_ent_matches'] += 1
+    for ent in caption_entities:
+        if contain_entity(gen_entities, ent):
+            c['n_caption_ent_matches'] += 1
+
+    caption_persons = [e for e in caption_entities if e['label'] == 'PERSON']
+    gen_persons = [e for e in gen_entities if e['label'] == 'PERSON']
+    c['n_caption_persons'] += len(caption_persons)
+    c['n_gen_persons'] += len(gen_persons)
+    for ent in gen_persons:
+        if contain_entity(caption_persons, ent):
+            c['n_gen_person_matches'] += 1
+    for ent in caption_persons:
+        if contain_entity(gen_persons, ent):
+            c['n_caption_person_matches'] += 1
+
+    caption_orgs = [e for e in caption_entities if e['label'] == 'ORG']
+    gen_orgs = [e for e in gen_entities if e['label'] == 'ORG']
+    c['n_caption_orgs'] += len(caption_orgs)
+    c['n_gen_orgs'] += len(gen_orgs)
+    for ent in gen_orgs:
+        if contain_entity(caption_orgs, ent):
+            c['n_gen_orgs_matches'] += 1
+    for ent in caption_orgs:
+        if contain_entity(gen_orgs, ent):
+            c['n_caption_orgs_matches'] += 1
+
+    caption_gpes = [e for e in caption_entities if e['label'] == 'GPE']
+    gen_gpes = [e for e in gen_entities if e['label'] == 'GPE']
+    c['n_caption_gpes'] += len(caption_gpes)
+    c['n_gen_gpes'] += len(gen_gpes)
+    for ent in gen_gpes:
+        if contain_entity(caption_gpes, ent):
+            c['n_gen_gpes_matches'] += 1
+    for ent in caption_gpes:
+        if contain_entity(gen_gpes, ent):
+            c['n_caption_gpes_matches'] += 1
+
+    caption_date = [e for e in caption_entities if e['label'] == 'DATE']
+    gen_date = [e for e in gen_entities if e['label'] == 'DATE']
+    c['n_caption_date'] += len(caption_date)
+    c['n_gen_date'] += len(gen_date)
+    for ent in gen_date:
+        if contain_entity(caption_date, ent):
+            c['n_gen_date_matches'] += 1
+    for ent in caption_date:
+        if contain_entity(gen_date, ent):
+            c['n_caption_date_matches'] += 1
+
+    return c
+
+
+def contain_entity(entities, target):
+    for ent in entities:
+        if ent['text'] == target['text'] and ent['label'] == target['label']:
+            return True
+    return False
 
 
 def compute_recall(obj):
