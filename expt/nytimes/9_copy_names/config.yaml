@@ -21,7 +21,7 @@ vocabulary:
   directory_path: ./expt/vocabulary
 model:
   type: transformer_pointer
-  model_path: ./expt/nytimes/2b_position_aware_ordered/serialization/best.th
+  model_path: ./expt/nytimes/28_four_faces/serialization/best.th
   decoder:
     type: dynamic_conv_decoder_flattened
     embedder:
