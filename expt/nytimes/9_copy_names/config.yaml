@@ -153,7 +153,7 @@ trainer:
     - ^decoder.layers.(0|1|2|3)
     - ^decoder.adaptive_softmax
     - ^bert_weight$
-  num_epochs: 10
+  num_epochs: 20
   shuffle: true
   cuda_device: 0
   callbacks:
