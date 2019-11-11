@@ -91,6 +91,9 @@ def main():
     lengths, gt_lengths = [], []
     n_uniques, gt_n_uniques = [], []
 
+    gen_ttrs, cap_ttrs = [], []
+    gen_flesch, cap_flesch = [], []
+
     with open(args['file']) as f:
         for line in tqdm(f):
             obj = json.loads(line)
@@ -150,6 +153,12 @@ def main():
             eval_line += ' ||| {}'.format(stat)
             count += 1
 
+            gen_ttrs.append(obj['gen_np']['basic_ttr'])
+            cap_ttrs.append(obj['caption_np']['basic_ttr'])
+            gen_flesch.append(obj['gen_readability']['flesch_reading_ease'])
+            cap_flesch.append(obj['caption_readability']
+                              ['flesch_reading_ease'])
+
     meteor_scorer.meteor_p.stdin.write('{}\n'.format(eval_line).encode())
     meteor_scorer.meteor_p.stdin.flush()
     for _ in range(count):
@@ -204,6 +213,10 @@ def main():
         'Length - reference': sum(gt_lengths) / len(gt_lengths),
         'Unique words - generation': sum(n_uniques) / len(n_uniques),
         'Unique words - reference': sum(gt_n_uniques) / len(gt_n_uniques),
+        'Caption TTR': sum(cap_ttrs) / len(cap_ttrs),
+        'Generation TTR': sum(gen_ttrs) / len(gen_ttrs),
+        'Caption Flesch Reading Ease': sum(cap_flesch) / len(cap_flesch),
+        'Generation Flesch Reading Ease': sum(gen_flesch) / len(gen_flesch),
     }
 
     serialization_dir = os.path.dirname(args['file'])
