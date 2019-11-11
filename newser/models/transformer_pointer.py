@@ -146,12 +146,12 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
                 context: Dict[str, torch.LongTensor],
                 image: torch.Tensor,
                 caption: Dict[str, torch.LongTensor],
+                face_embeds: torch.Tensor,
                 metadata: List[Dict[str, Any]],
-                names=None,
-                face_embeds=None) -> Dict[str, torch.Tensor]:
+                names=None) -> Dict[str, torch.Tensor]:
 
         caption_ids, target_ids, contexts, X_sections_hiddens, article_padding_mask = self._forward(
-            context, image, caption)
+            context, image, caption, face_embeds)
         decoder_out = self.decoder(caption, contexts)
 
         # Assume we're using adaptive loss
@@ -384,7 +384,8 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
     def _forward(self,  # type: ignore
                  context: Dict[str, torch.LongTensor],
                  image: torch.Tensor,
-                 caption: Dict[str, torch.LongTensor]):
+                 caption: Dict[str, torch.LongTensor],
+                 face_embeds):
 
         # We assume that the first token in target is the <s> token. We
         # shall use it to seed the decoder. Here decoder_target is simply
@@ -443,6 +444,10 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
         # Create padding mask (1 corresponds to the padding index)
         image_padding_mask = X_image.new_zeros(B, P).bool()
 
+        # face_embeds.shape == [batch_size, n_faces, 512]
+        face_masks = torch.isnan(face_embeds).any(dim=-1)
+        face_embeds[face_masks] = 0
+
         # The quirks of dynamic convolution implementation: The context
         # embedding has dimension [seq_len, batch_size], but the mask has
         # dimension [batch_size, seq_len].
@@ -453,6 +458,8 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
             'article_mask': article_padding_mask,
             'sections': None,
             'sections_mask': None,
+            'faces': face_embeds.transpose(0, 1),
+            'faces_mask': face_masks,
         }
 
         return caption_ids, target_ids, contexts, X_sections_hiddens, article_padding_mask
@@ -507,6 +514,8 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
                 'image_mask': contexts['image_mask'][full_active_idx],
                 'article': contexts['article'][:, full_active_idx],
                 'article_mask': contexts['article_mask'][full_active_idx],
+                'faces': contexts['faces'][:, full_active_idx],
+                'faces_mask': contexts['faces_mask'][full_active_idx],
                 'sections':  None,
                 'sections_mask': None,
             }

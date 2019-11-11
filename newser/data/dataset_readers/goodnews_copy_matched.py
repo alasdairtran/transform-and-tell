@@ -51,6 +51,7 @@ class GoodNewsCopyMatchedReader(DatasetReader):
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
                  use_caption_names: bool = True,
+                 n_faces: int = None,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -64,6 +65,7 @@ class GoodNewsCopyMatchedReader(DatasetReader):
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.eval_limit = eval_limit
         self.use_caption_names = use_caption_names
+        self.n_faces = n_faces
         random.seed(1234)
         self.rs = np.random.RandomState(1234)
 
@@ -105,29 +107,31 @@ class GoodNewsCopyMatchedReader(DatasetReader):
             except (FileNotFoundError, OSError):
                 continue
 
-            # named_entities = sorted(self._get_named_entities(article))
+            named_entities = sorted(self._get_named_entities(article))
 
-            # if self.use_caption_names:
-            #     n_persons = len(self._get_person_names(
-            #         article, sample['image_index']))
-            # else:
-            #     n_persons = 4
+            if self.n_faces is not None:
+                n_persons = self.n_faces
+            elif self.use_caption_names:
+                n_persons = len(self._get_person_names(
+                    article, sample['image_index']))
+            else:
+                n_persons = 4
 
-            # if 'facenet_details' not in sample or n_persons == 0:
-            #     face_embeds = np.array([[]])
-            # else:
-            #     face_embeds = sample['facenet_details']['embeddings']
-            #     # Keep only the top faces (sorted by size)
-            #     face_embeds = np.array(face_embeds[:n_persons])
+            if 'facenet_details' not in sample or n_persons == 0:
+                face_embeds = np.array([[]])
+            else:
+                face_embeds = sample['facenet_details']['embeddings']
+                # Keep only the top faces (sorted by size)
+                face_embeds = np.array(face_embeds[:n_persons])
 
             copy_infos = self._get_caption_names(
                 article, sample['image_index'])
 
             self._process_copy_tokens(copy_infos, article)
 
-            yield self.article_to_instance(article, image, sample['image_index'], image_path, copy_infos)
+            yield self.article_to_instance(article, named_entities, face_embeds, image, sample['image_index'], image_path, copy_infos)
 
-    def article_to_instance(self, article, image, image_index, image_path, copy_infos) -> Instance:
+    def article_to_instance(self, article, named_entities, face_embeds, image, image_index, image_path, copy_infos) -> Instance:
         context = article['context'].strip()
 
         caption = article['images'][image_index]
@@ -136,27 +140,27 @@ class GoodNewsCopyMatchedReader(DatasetReader):
         context_tokens = self._tokenizer.tokenize(context)
         caption_tokens = self._tokenizer.tokenize(caption)
 
-        # name_token_list = [self._tokenizer.tokenize(n) for n in named_entities]
+        name_token_list = [self._tokenizer.tokenize(n) for n in named_entities]
 
-        # if name_token_list:
-        #     name_field = [TextField(tokens, self._token_indexers)
-        #                   for tokens in name_token_list]
-        # else:
-        #     stub_field = ListTextField(
-        #         [TextField(caption_tokens, self._token_indexers)])
-        #     name_field = stub_field.empty_field()
+        if name_token_list:
+            name_field = [TextField(tokens, self._token_indexers)
+                          for tokens in name_token_list]
+        else:
+            stub_field = ListTextField(
+                [TextField(caption_tokens, self._token_indexers)])
+            name_field = stub_field.empty_field()
 
         fields = {
             'context': CopyTextField(context_tokens, self._token_indexers, copy_infos, 'context'),
-            # 'names': ListTextField(name_field),
+            'names': ListTextField(name_field),
             'image': ImageField(image, self.preprocess),
             'caption': CopyTextField(caption_tokens, self._token_indexers, copy_infos, 'caption'),
-            # 'face_embeds': ArrayField(face_embeds, padding_value=np.nan),
+            'face_embeds': ArrayField(face_embeds, padding_value=np.nan),
         }
 
         metadata = {'context': context,
                     'caption': caption,
-                    # 'names': named_entities,
+                    'names': named_entities,
                     'web_url': article['web_url'],
                     'image_path': image_path}
         fields['metadata'] = MetadataField(metadata)

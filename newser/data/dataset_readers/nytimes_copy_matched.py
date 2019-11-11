@@ -56,6 +56,8 @@ class NYTimesCopyMatchedReader(DatasetReader):
                  image_dir: str,
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
+                 use_caption_names: bool = True,
+                 n_faces: int = None,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
         self._tokenizer = tokenizer
@@ -66,6 +68,8 @@ class NYTimesCopyMatchedReader(DatasetReader):
         self.preprocess = Compose([
             ToTensor(),
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        self.use_caption_names = use_caption_names
+        self.n_faces = n_faces
         random.seed(1234)
         self.rs = np.random.RandomState(1234)
 
@@ -90,7 +94,7 @@ class NYTimesCopyMatchedReader(DatasetReader):
 
         projection = ['_id', 'parsed_section.type', 'parsed_section.text',
                       'parsed_section.hash', 'parsed_section.parts_of_speech',
-                      #   'parsed_section.facenet_details',
+                      'parsed_section.facenet_details',
                       'parsed_section.named_entities',
                       'image_positions', 'headline',
                       'web_url', 'n_images_with_faces']
@@ -106,13 +110,13 @@ class NYTimesCopyMatchedReader(DatasetReader):
                     title = article['headline']['main'].strip()
                 paragraphs = []
                 pos_pars = []
-                # named_entities = set()
+                named_entities = set()
                 n_words = 0
                 if title:
                     paragraphs.append(title)
                     pos_pars.append(article['headline']['parts_of_speech'])
-                    # named_entities.union(
-                    #     self._get_named_entities(article['headline']))
+                    named_entities.union(
+                        self._get_named_entities(article['headline']))
                     n_words += len(self.to_token_ids(title))
 
                 caption = sections[pos]['text'].strip()
@@ -121,7 +125,12 @@ class NYTimesCopyMatchedReader(DatasetReader):
 
                 copy_infos = self._get_caption_names(sections[pos])
 
-                # n_persons = len(self._get_person_names(sections[pos]))
+                if self.n_faces is not None:
+                    n_persons = self.n_faces
+                elif self.use_caption_names:
+                    n_persons = len(self._get_person_names(sections[pos]))
+                else:
+                    n_persons = 4
 
                 before = []
                 before_pos = []
@@ -133,7 +142,7 @@ class NYTimesCopyMatchedReader(DatasetReader):
                     if section['type'] == 'paragraph':
                         paragraphs.append(section['text'])
                         pos_pars.append(section['parts_of_speech'])
-                        # named_entities |= self._get_named_entities(section)
+                        named_entities |= self._get_named_entities(section)
                         break
 
                 while True:
@@ -141,7 +150,7 @@ class NYTimesCopyMatchedReader(DatasetReader):
                         text = sections[i]['text']
                         before.insert(0, text)
                         before_pos.insert(0, sections[i]['parts_of_speech'])
-                        # named_entities |= self._get_named_entities(sections[i])
+                        named_entities |= self._get_named_entities(sections[i])
                         n_words += len(self.to_token_ids(text))
                     i -= 1
 
@@ -149,7 +158,7 @@ class NYTimesCopyMatchedReader(DatasetReader):
                         text = sections[j]['text']
                         after.append(text)
                         after_pos.append(sections[j]['parts_of_speech'])
-                        # named_entities |= self._get_named_entities(sections[j])
+                        named_entities |= self._get_named_entities(sections[j])
                         n_words += len(self.to_token_ids(text))
                     j += 1
 
@@ -163,41 +172,41 @@ class NYTimesCopyMatchedReader(DatasetReader):
                 except (FileNotFoundError, OSError):
                     continue
 
-                # if 'facenet_details' not in sections[pos] or n_persons == 0:
-                #     face_embeds = np.array([[]])
-                # else:
-                #     face_embeds = sections[pos]['facenet_details']['embeddings']
-                #     # Keep only the top faces (sorted by size)
-                #     face_embeds = np.array(face_embeds[:n_persons])
+                if 'facenet_details' not in sections[pos] or n_persons == 0:
+                    face_embeds = np.array([[]])
+                else:
+                    face_embeds = sections[pos]['facenet_details']['embeddings']
+                    # Keep only the top faces (sorted by size)
+                    face_embeds = np.array(face_embeds[:n_persons])
 
                 paragraphs = paragraphs + before + after
                 pos_pars = pos_pars + before_pos + after_pos
                 self._process_copy_tokens(copy_infos, paragraphs, pos_pars)
-                # named_entities = sorted(named_entities)
+                named_entities = sorted(named_entities)
 
-                yield self.article_to_instance(copy_infos, paragraphs, image, caption, image_path, article['web_url'], pos)
+                yield self.article_to_instance(copy_infos, paragraphs, named_entities, image, caption, image_path, article['web_url'], pos, face_embeds)
 
-    def article_to_instance(self, copy_infos, paragraphs, image, caption, image_path, web_url, pos) -> Instance:
+    def article_to_instance(self, copy_infos, paragraphs, named_entities, image, caption, image_path, web_url, pos, face_embeds) -> Instance:
         context = '\n'.join(paragraphs).strip()
 
         context_tokens = self._tokenizer.tokenize(context)
         caption_tokens = self._tokenizer.tokenize(caption)
-        # name_token_list = [self._tokenizer.tokenize(n) for n in named_entities]
+        name_token_list = [self._tokenizer.tokenize(n) for n in named_entities]
 
-        # if name_token_list:
-        #     name_field = [TextField(tokens, self._token_indexers)
-        #                   for tokens in name_token_list]
-        # else:
-        #     stub_field = ListTextField(
-        #         [TextField(caption_tokens, self._token_indexers)])
-        #     name_field = stub_field.empty_field()
+        if name_token_list:
+            name_field = [TextField(tokens, self._token_indexers)
+                          for tokens in name_token_list]
+        else:
+            stub_field = ListTextField(
+                [TextField(caption_tokens, self._token_indexers)])
+            name_field = stub_field.empty_field()
 
         fields = {
             'context': CopyTextField(context_tokens, self._token_indexers, copy_infos, 'context'),
-            # 'names': ListTextField(name_field),
+            'names': ListTextField(name_field),
             'image': ImageField(image, self.preprocess),
             'caption': CopyTextField(caption_tokens, self._token_indexers, copy_infos, 'caption'),
-            # 'face_embeds': ArrayField(face_embeds, padding_value=np.nan),
+            'face_embeds': ArrayField(face_embeds, padding_value=np.nan),
         }
 
         metadata = {'context': context,
