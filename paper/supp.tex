@@ -1,0 +1,131 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{multirow} % creates cells that span multiple rows in a table
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm} % bold fonts for math symbols
+\usepackage{booktabs}
+\usepackage[export]{adjustbox} % adds a frame around figures
+\usepackage{IEEEtrantools} % IEEEeqnarray math equation environment
+\usepackage{multirow} % merge multiple rows
+\usepackage{tabularx} % for 'tabularx' environment
+\usepackage{caption} % controls spacing between caption and table
+
+% Include other packages here, before hyperref.
+
+% If you comment hyperref and then uncomment it, you should delete
+% egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
+
+% \cvprfinalcopy % *** Uncomment this line for the final submission
+
+\def\cvprPaperID{****} % *** Enter the CVPR Paper ID here
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+
+% Pages are numbered in submission mode, and unnumbered in camera-ready
+\ifcvprfinal\pagestyle{empty}\fi
+\begin{document}
+
+%%%%%%%%% TITLE - suggestions and candidates
+\title{Transform and Tell:\\The News Image Caption Writer That Remembers Rare Names\\Supplementary Material}
+\title{Transforming Entities for News Image Captions\\Supplementary Material}
+
+\author{Alasdair Tran, Alexander P. Matthews, Lexing Xie\\
+Australian National University\\
+{\tt\small \{alasdair.tran,alex.matthews,lexing.xie\}@anu.edu.au}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+}
+
+\maketitle
+%\thispagestyle{empty}
+
+%%%%%%%%% BODY TEXT
+\section{More Results}
+
+
+\begin{table*}[t]
+	\caption {Proper name metrics on the GoodNews test set. We can't compute rare name statistics
+   since train-test split were created using a random shuffle.}
+	\label{tab:results-names}
+	\centering
+	\begin{tabularx}{\textwidth}{llXXXXXX}
+		\toprule
+      &  & \multicolumn{2}{c}{All proper nouns} & \multicolumn{2}{c}{Rare proper nouns in article } \\
+      &  & Recall  & Precision & Recall  & Precision \\
+      \midrule
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 12.2\% & 16.5\% & -- & -- \\
+      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 12.0\% & 17.1\% \\
+      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 11.7\% & 17.1\% \\
+      % Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 17.9\% \\
+      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 19.0\% \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 11.0\% & 19.2\% & -- & -- \\
+      \cmidrule{2-6}
+      & GloVe + LSTM & \% & \% & -- & --  \\
+      & GloVe + Transformer & \% & \% & -- & -- \\
+      & RoBERTa + LSTM & \% & \%  & -- & -- \\
+      & RoBERTa + Transformer & 29.5\% & 33.9\%  & -- & -- \\
+      & \quad + faces & 29.9\% & 34.4\% & -- & -- \\
+      & \quad\quad + copying \\
+      \midrule
+      \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & GloVe + LSTM & 12.4\% & 15.6\% & 0\%  & 0\%  \\
+      & GloVe + Transformer & 18.3\% & 21.7\%  & 0\% & 0\%  \\
+      & RoBERTa + LSTM & 24.8\% & 27.0\% & 13.1\%  & 8.93\%  \\
+      & RoBERTa + Transformer & 30.3\% & 32.2\% & 20.1\% & 21.3\%  \\
+      & \quad + location-aware & 33.8\% & 36.5\% & 24.0\% & 25.6\%   \\
+      & \quad\quad + faces & 34.5\% & 37.1\% & 25.0\% & 26.2\% \\
+      & \quad\quad\quad + copying \\
+		\bottomrule
+	\end{tabularx}
+\end{table*}
+
+\begin{table*}[t]
+	\caption {Proper name metrics on the GoodNews test set. We can't compute rare name statistics
+   since train-test split were created using a random shuffle.}
+	\label{tab:results-names}
+	\centering
+	\begin{tabularx}{\textwidth}{llXXXXXX}
+		\toprule
+      &  & \multicolumn{2}{c}{GPE} & \multicolumn{2}{c}{ORG} & \multicolumn{2}{c}{DATE} \\
+      &  & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
+      \midrule
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 11.5\% & 12.0\% & 7.45\% & 5.67\% & 4.03\% & 6.12\% \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 8.41\% & 12.8\% & 7.36\% & 5.81\% & 4.06\% & 5.86\% \\
+      \cmidrule{2-8}
+      & GloVe + LSTM & & &  &  &  &   \\
+      & GloVe + Transformer & & &  &  &  &  \\
+      & RoBERTa + LSTM & &  &  &  &  &  \\
+      & RoBERTa + Transformer & 24.7\% & 25.1\% & 18.3\% & 21.4\% & 13.3\% & 14.6\% \\
+      & \quad + faces & 24.6\% & 25.2\% & 18.8\% & 22.2\% & 13.4\% & 14.8 \% \\
+      & \quad\quad + copying \\
+      \midrule
+      \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & GloVe + LSTM & 15.1\% & 16.2\% & 4.75\% & 8.67\% & 8.19\% & 10.5\%  \\
+      & GloVe + Transformer & 21.8\% & 19.7\% & 8.04\% & 12.5\% & 10.5\% & 11.7\%  \\
+      & RoBERTa + LSTM & 23.8\% & 20.9\% & 11.1\% & 14.8\% & 12.2\% & 12.7\% \\
+      & RoBERTa + Transformer & 28.1\% & 24.4\% & 15.1\% & 18.6\% & 13.7\% & 13.4\%   \\
+      & \quad + location-aware & 30.3\% & 27.0\% & 16.9\% & 21.2\% & 13.8\% & 14.1\%   \\
+      & \quad\quad + faces & 30.5\% & 27.0\% & 17.5\% & 21.4\% & 13.7\% & 13.9\% \\
+      & \quad\quad\quad + copying \\
+		\bottomrule
+	\end{tabularx}
+\end{table*}
+
+
+{\small
+\bibliographystyle{ieee_fullname}
+\bibliography{paper}
+}
+
+\end{document}
