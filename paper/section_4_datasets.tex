@@ -1,0 +1,172 @@
+% !TEX root = main.tex
+
+% \begin{table}[t]
+% 	\caption {Summary of datasets}
+% 	\label{tab:datasets}
+% 	\centering
+% 	\begin{tabular}{llll}
+% 		\toprule
+% 		  & GoodNews  & GoodNews+ &   NYTimes800k \\
+% 		\midrule
+%       No. of articles & 241 808 & 241 808 & 445 828 \\
+%       No. of images   & 462 642 & 440 112 & 794 085 \\
+%       Article length & 451 & 963 & 974 \\
+%       Caption length & 18 & 18 & 18 \\
+%       Start month & Jan 10 & Jan 10 & Mar 05\\
+%       End month & Jul 18 & Jul 18 & Sep 19 \\
+% 		\bottomrule
+% 	\end{tabular}
+% \end{table}
+
+
+\begin{table}[t]
+	\caption {Summary of news captioning datasets}
+	\label{tab:datasets}
+	\centering
+	\begin{tabularx}{\linewidth}{lXX}
+		\toprule
+		  & GoodNews  &   NYTimes800k \\
+		\midrule
+      Number of articles & 257 033 & 445 819 \\
+      Number of images   & 462 642 & 794 044 \\
+      Average article length & 451 & 974 \\
+      Average caption length & 18 & 18 \\
+      Collection start month & Jan 10 & Mar 05\\
+      Collection end month & Mar 18 & Sep 19 \\
+      \midrule
+      \% of words that are \\
+      \quad -- nouns & 16\% & 16\% \\
+      \quad -- pronouns & 1\% & 1\% \\
+      \quad -- proper nouns & 23\% & 22\% \\
+      \quad -- verbs & 9\% & 9\%  \\
+      \quad -- adjectives & 4\% & 4\% \\
+      \quad -- named entities & 27\% & 26\% \\
+      \quad -- personal names & 9\% & 9\% \\
+      \midrule
+      \% of captions with \\
+      \quad -- named entities & 97\% & 96\% \\
+      \quad -- personal names & 68\% & 68\% \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\section{Datasets}
+
+\subsection{GoodNews}
+
+As a starting point, we use the GoodNews dataset, previously the largest
+dataset on news image captioning \cite{Biten2019GoodNews}. Each sample in the
+dataset is a triplet containing an article, an image, and a caption. Since only
+the article text and captions were publicly released, we had to crawl the
+images ourselves. Out of the 466K image URLs provided by
+\cite{Biten2019GoodNews}, we were able to crawl 463K images, or 99.2\% of the
+original dataset. The remaining are broken links. As part of the quality check,
+we also wrote a custom parser to re-extract the articles in the same period
+from the original web pages, with the help of The New York Times
+API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}.
+
+From the recollection, we observe that the average length of an article in
+GoodNews is 451 words, while it is 963 in our recollected dataset. Thus half of
+the article body is missing in GoodNews. This includes the first few paragraphs
+that might contain important information about the top caption. Looking through
+the publicly released code, we found that this is because the original parser
+used by \cite{Biten2019GoodNews} was designed to extract articles from a
+generic online news source and it fails to recognize certain HTML tags used
+specifically in New York Times web pages.
+
+In addition, we also found some noisy samples in GoodNews. This includes a
+small number of non-English articles, and captioned images from the
+recommendation sidebar which are not related to the main article.
+
+Despite the above limitations, we still use the original GoodNews dataset and
+train-validation-test split in our experiments, in order to make comparison to
+previous works easier. Using the original split, we have 421K training, 18K
+validation, and 23K test captions. Given that the random split was done at the
+caption level, it is possible for a training and test caption to share the same
+article text.
+
+
+\begin{figure}[t]
+   \begin{center}
+   \includegraphics[width=0.99\linewidth]{figures/figure_2_entities.pdf}
+   \end{center}
+      \caption{Entity distribution in NYTimes800k training captions. The four
+               most common entity types are personal names, geopolitical
+               entities, organizations, and dates.}
+   \label{fig:entities}
+\end{figure}
+
+\begin{figure}[t]
+   \begin{center}
+   \includegraphics[width=0.99\linewidth]{figures/figure_3_faces.pdf}
+   \end{center}
+      \caption{Co-occurrence of faces and personal names in NYTimes800k
+               training data. The blue bars count how many images containing a
+               certain number of faces. The orange bars count how many captions
+               containing a certain number of personal names.}
+   \label{fig:faces}
+\end{figure}
+
+
+\subsection{NYTimes800k}
+
+At the same time, we also constructed a bigger and higher-quality dataset,
+which we call NYTimes800k. A comparison between GoodNews and NYTimes800k is
+summarized in Table \ref{tab:datasets}. NYTimes800k exhibits several
+advantages:
+
+\begin{itemize}
+   \item By increasing the collection period to the last 14 years (March 2005
+   -- September 2019), NYTimes800k contains 80\% more articles and images, thus
+   becoming the largest news image captioning dataset.
+   \item Using our custom parser, articles in NYTimes800k contain the full text
+   with no missing paragraphs.
+   \item NYTimes800k contains only English articles.
+   \item We are careful to include only images that are part of the main
+   article.
+   \item Unlike GoodNews, we also collect information about where an image is
+   located in the corresponding article. Most news articles have one image at
+   the top that relates to the key topic. However 39\% of the articles have at
+   least one more image somewhere in the middle of text. The image placement
+   and hence the text surrounding the image could be important information for
+   captioning.
+\end{itemize}
+
+Entities play an important role in the dataset, with 97\% of captions
+containing at least one named entity. As shown in Figure \ref{fig:entities},
+the most popular entity type are personal names, comprising a third of all
+named entities. Furthermore, 71\% of training images contain at least one face
+and 68\% of training captions mention at least one personal name. Figure
+\ref{fig:faces} provides a further breakdown of the co-occurrence of faces and
+personal names. One important observation is that the majority of captions
+contain at most four names.
+
+
+\begin{table}[t]
+	\caption {NYTimes800k training, validation, and test splits}
+	\label{tab:splits}
+	\centering
+	\begin{tabularx}{\linewidth}{lXXX}
+		\toprule
+		  & Training  &   Validation & Test \\
+		\midrule
+      Number of articles & 434 272 & 3 052 & 8 495 \\
+      Number of images  & 764 049 & 7 852 & 22 143 \\
+      Start month & Mar 15 & May 19 & Jun 19 \\
+      End month & Apr 19 & May 19 & Aug 19 \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+We split the training, validation, and test sets according to time, as shown in
+Table \ref{tab:splits}. For example, the test set consists of all captions and
+articles in the final three months of the collection period, from June to
+August 2019. This has two advantages over the random split used in GoodNews.
+Firstly, it prevents captions in the training and test sets from sharing the
+same context article, thus making it better to see how well the model can
+generalize. Secondly, due of the shift in the coverage of news over time, there
+will be events and people in the test data that have never covered by the news
+before. In particular, out of the 100K proper nouns in the test captions, 4\%
+never appear in any training captions. Half of these also never appear in any
+training article. Thus splitting by time allows us study how well the model can
+generate rare names.

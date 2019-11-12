@@ -1,0 +1,68 @@
+% !TEX root = main.tex
+
+\section{Related Works}
+
+Early image captioning systems mainly used an RNN architecture with a closed
+vocabulary \cite{Karpathy2015DeepVA, Donahue2015LongTR, Vinyals2015ShowAT}.
+Attention over image patches was later introduced in ``Show, Attend and Tell"
+\cite{Xu2015ShowAA}, in which the attention weights are obtained by feeding the
+image embeddings and the previous hidden state of the RNN through a multilayer
+perception. Later improvements include giving the model the option to not
+attend to any image region \cite{Lu2017KnowingWT}, using reinforcement learning
+to directly optimize for the CIDEr metric \cite{Rennie2017SelfCriticalST,
+Gao2019DeliberateAN}, and using a bottom-up approach to propose a region to
+attend to \cite{Anderson2017BottomUpAT}. All of these systems can only generate
+generic captions with a limited vocabulary.
+
+A more challenging task is to produce captions for news images, in which we
+need to be able to generate entity names. Early non-neural approaches include
+extractive methods that use n-gram models to combine existing phrases
+\cite{Feng2013AutomaticCG} or simply retrieving the most representative
+sentence \cite{Tariq2017ACE} in the article. Ramisa \etal
+\cite{Ramisa2016BreakingNewsAA} concatenated the word2vec representation of the
+article and and the VGG19 representation of the image, and feed them as inputs
+to an LSTM generator. However the generator still cannot produce names not
+seen in training.
+
+To overcome the limitation of a fixed-size vocabulary, template-based methods
+have been used to insert named entities. This involves first generating a
+template sentence with placeholders, e.g. ``PERSON speaks at BUILDING in
+DATE.'' Afterwards, a selection algorithm is used to pick the best candidate
+for each placeholder. Lu \etal \cite{Lu2018EntityAI} built a knowledge graph
+for each combination of entities and select the most likely combination.
+Meanwhile Biten \etal~\cite{Biten2019GoodNews}, whose GoodNews dataset we will
+benchmark against, picked the sentence with the highest cosine similarity with
+the template and then found the first entity that matches the type of each
+placeholder for insertion. Our proposed model differs from
+\cite{Lu2018EntityAI} and \cite{Biten2019GoodNews} in that we are able to
+generate a caption with named entities directly without using any intermediate
+template.
+
+Transformers are still scarcely used in image captioning. They have been shown
+to yield competitive results in generating generic MS COCO captions
+\cite{Zhu2018CaptioningTW, Li2019Boosted}. Zhao \etal
+\cite{Zhao2019InformativeIC} have gone further and trained transformers to
+produce named entities in the Conceptual Captions dataset
+\cite{Sharma2018ConceptualCA}. However Conceptual Captions have no additional
+context apart from the image itself, and the authors used web-entity labels,
+extracted using Google Cloud Vision API, as inputs to the model. In our work,
+we are more ambitious in that we do not explicitly give the model a list of
+entities that should appear in the caption. Instead the model has to determine
+on its own which entities to generate by scanning through and attending to the
+article.
+
+BPE offers an elegant solution to handling an open vocabulary. To date the only
+image captioning work that uses BPE is \cite{Sharma2018ConceptualCA}, but in
+their data preprocessing step, they explicitly removed rare named entities from
+the captions. We attempt to fill this gap and in particular examine how much
+better BPE can generate rare names compared to template-based methods.
+
+In addition to attending to image patches, some captioning models also attend
+to object regions \cite{Wang2019Hierarchical} and visual concepts
+\cite{You2016ImageCW,Li2019Boosted,Wang2019Hierarchical}, both of which are
+derived from the image itself. When attending to more than one modality, there
+are various strategies on how to combine embeddings such as addition,
+concatenation, and using multivariate residual modules (MRMs)
+\cite{Kim2016MultimodalRL}. In our models, we use a simple concatenation since
+more complex strategies such as MRMs have shown to yield only minor improvement
+\cite{Wang2019Hierarchical}.

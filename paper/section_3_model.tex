@@ -1,0 +1,110 @@
+% !TEX root = main.tex
+
+
+\section{Model Architecture}
+
+\begin{figure*}[t]
+   \begin{center}
+   \fbox{\rule{0pt}{2in} \rule{.9\linewidth}{0pt}}
+   \end{center}
+      \caption{Overall architecture of the model.}
+   \label{fig:short}
+\end{figure*}
+
+
+\subsection{Model Inputs}
+
+Our proposed model takes three inputs: the image, the faces, and article text.
+Each of these inputs first goes through an encoder to give us a vector
+representation.
+
+\subsubsection{Image Embedding}
+
+For the image, we feed it through a pretrained ResNet-152 model
+\cite{He2016ResNet} and use the output of the final block, just before the
+pooling layer, as the image embedding $\bm{x}_I \in \mathbb{R}^{2048 \times 7
+\times 7}$. The embedding forms a 7 by 7 block, allowing the transformer to
+attend to 49 different patches in the image.
+
+\subsubsection{Article Embedding}
+
+For the article, we use RoBERTa \cite{Liu2019RoBERTaAR} to encode the text.
+RoBERTa is a language representation model that provides pretrained contextual
+embeddings for text. It consists of 24 layers of bidirectional transformer
+blocks. It is a more carefully trained BERT \cite{Devlin2019BERT} model.
+
+Unlike GloVe \cite{Pennington2014Glove} and word2vec
+\cite{Mikolov2013DistributedRO} embeddings, where each word has exactly one
+representation, the bidirectionality and the attention mechanism in the
+transformer allow a word to have different vector representations depending on
+the surrounding context.
+
+The largest GloVe model has a vocabulary size of 1.2 million. Although this is
+large, many rare names will still get mapped to the unknown token. In contrast,
+RoBERTa uses BPE \cite{Sennrich2015NeuralMT,Radford2019LanguageMA} which can
+encode any word that can be written in Unicode characters.
+
+Given an input of length $S$, the pretrained RoBERTa encoder will return 25
+sequences of embeddings, $\bm{h}_i \in \mathbb{R}^{2048 \times S}$ for $i \in
+\{0,1, 2,...,24\}$. This includes the initial uncontextualized embeddings and
+the output of each of the 24 layers. Inspired by Tenney \etal
+\cite{Tenney2019BertRT}, who showed that different layers in BERT represent
+different steps in the traditional NLP pipeline, we take a weighted sum
+across all layers to obtain the article embedding:
+\begin{IEEEeqnarray*}{lCl}
+   \bm{x}_T &=& \sum_{i=0}^{24} w_i \bm{h}_i
+\end{IEEEeqnarray*}
+where $\bm{x}_T \in \mathbb{R}^{1024 \times S}$ is the article embedding
+and $w_i$ are learnable weights.
+
+One limitation of RoBERTa is that the maximum length of the input sequence is
+512. For GoodNews, we simply encode the first 512 tokens of the article. For
+NYTimes800k, since we have the image position, we concatenate the title, the
+first paragraph, and as many paragraphs above and below the image as we can
+fit, until we reach the 512 token limit. Note that since we are using BPE, a
+token can be part of a word. On average, we can only encode ...... words of
+the article.
+
+
+\subsubsection{Face Embedding}
+
+To embed the faces, we first use MTCNN \cite{Zhang2016JointFD} to detect the
+face bounding boxes. We then select the top $M$ faces and feed them through a
+FaceNet model \cite{Schroff2015FaceNetAU}, pretrained on the VGGFace2 dataset
+\cite{Cao2017VGGFace2AD}, to obtain a face embedding $\bm{x}_F \in
+\mathbb{R}^{512 \times M}$ where $M$ is the number of faces.
+
+\subsection{Decoder}
+
+\subsubsection{Dynamic Convolutions}
+
+Our decoder is a transformer architecture with dynamic convolutions
+\cite{Wu2018PayLA} containing four layers with kernel sizes 3, 7, 15 and 31. We
+found that using dynamic convolutions allows the training to converge faster
+than using the current state-of-the-art GPT-2 architecture
+\cite{Radford2019LanguageMA}.
+
+In the standard self-attention module, the input embedding $\bm{x} \in
+\mathbb{R}^{1024}$ is first projected linearly into a query, key, and value
+$\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$. Then the attention is the
+weighted sum of the values, where the weights are obtained from the dot product
+between the key and value:
+\begin{IEEEeqnarray*}{lCl}
+   \text{Attention}(\bm{x}) &=&
+   \text{softmax}\left( \dfrac{\bm{q} \bm{k}^T}{\sqrt{d_K}} \right) \bm{v}
+\end{IEEEeqnarray*}
+
+\subsubsection{Adaptive Softmax}
+
+The BPE vocabulary size is 50265. To make training more efficient, we use adaptive softmax
+\cite{Grave2016EfficientSA} and divide the vocabulary into three clusters: 5K,
+15K, and 25K. We tie the adaptive weights and we share the decoder input and
+output embeddings. We use sinusoidal positional encoding
+\cite{Vaswani2017AttentionIA} to represent the position of each token.
+
+\subsubsection{Encoder Attention}
+
+For each generation step, we use the Scalar-Dot-Product attention
+\cite{Vaswani2017AttentionIA} to attend to the image, article, and faces. All
+of the three attended representations are then concatenated and fed as input to
+the self-attention layer.

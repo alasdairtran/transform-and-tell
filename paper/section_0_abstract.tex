@@ -1,0 +1,18 @@
+% !TEX root = main.tex
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+    We propose an end-to-end model to generate image captions in news articles.
+    By combining the transformer architecture, byte-pair encoding, and
+    pretrained embeddings from three different modalities (RoBERTa for text,
+    ResNet-152 for images, and FaceNet for faces), our system is able to
+    describe an image with specific named entities mentioned in the article. Our
+    model achieves a CIDEr score of 54 on the GoodNews dataset, significantly
+    outperforming the previous state-of-art CIDEr of 13. We also introduce the
+    NYTimes800k dataset, the largest news image captioning dataset to date.
+    NYTimes800k is an extended version of GoodNews with higher-quality articles and
+    metadata that allow us to study the importance of the image location within
+    the text. On NYTimes800k, we achieve a CIDEr of 55. Pretrained models and
+    source code are available from
+    \href{https://github.com}{https://github.com/anonymized-link}.
+ \end{abstract}

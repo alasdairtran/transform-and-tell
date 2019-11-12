@@ -1,0 +1,210 @@
+% !TEX root = main.tex
+
+
+
+\begin{table*}[t]
+   \caption {BLEU, ROUGE, METEOR, and CIDEr metrics on GoodNews and
+             NYTimes800k.}
+
+	\label{tab:results}
+	\centering
+	\begin{tabularx}{\textwidth}{llXXXXXXX}
+		\toprule
+		 & & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr\\
+      \midrule
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 9.04 & 3.66 & 1.71 & 0.89 & 12.2 & 4.37 & 13.1 \\
+      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 8.10 & 3.33 & 1.60 & 0.85 & 11.9 & 4.23 & 12.8 \\
+      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 8.44 & 3.42 & 1.62 & 0.87 & 12.2 & 4.30 & 13.1 \\
+      % Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 8.68 & 3.47 & 1.58 & 0.82 & 12.1 & 4.23 & 12.6 \\
+      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 7.74 & 3.15 & 1.45 & 0.75 & 11.9 & 4.10 & 12.5 \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 8.10 & 3.26 & 1.48 & 0.76 & 12.2 & 4.17 & 12.7 \\
+      \cmidrule{2-9}
+      % & GloVe + LSTM & 13.6 & 6.19 & 3.13 & 1.81 & 13.5 & 5.26 & 11.9 \\
+      % & GloVe + Transformer & 17.2 & 8.68 & 4.81 & 2.91 & 16.4 & 7.13 & 22.2 \\
+      % & RoBERTa + LSTM & 18.7  & 10.3 & 6.09 & 3.89  & 18.0  & 8.19 & 34.8  \\
+      & GloVe + LSTM &  &  &  &  &  &  &  \\
+      & GloVe + Transformer &  &  &  &  &  &  &  \\
+      & RoBERTa + LSTM &  &  &  &  &  &  &   \\
+      & RoBERTa + Transformer & 22.2 & 13.4 & 8.68 & 5.99 & 21.2 & 10.1 & 52.9 \\ % Final
+      & \quad + faces & 22.4 & 13.6 & 8.84 & 6.10 & 21.3 & 10.3 & 53.9 \\ % Final
+      & \quad\quad + copying \\
+      \midrule
+      \multirow{6}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & GloVe + LSTM & 13.4 & 6.00 & 3.05 & 1.76 & 13.2 & 5.36 & 12.2 \\ % Final
+      & GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\ % Final
+      & RoBERTa + LSTM & 18.0 & 9.88 & 5.97 & 3.91 & 17.1 & 7.96 & 30.8 \\ % Final
+      & RoBERTa + Transformer & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
+      & \quad + location-aware & 21.7 & 13.3 & 8.84 & 6.25 & 21.3 & 10.3 & 52.4 \\ % Final
+      & \quad\quad + faces & 22.1 & 13.6 & 9.05 & 6.41 & 21.7 & 10.4 & 54.7 \\ % Final
+      & \quad\quad\quad + copying \\
+      \bottomrule
+	\end{tabularx}
+\end{table*}
+
+
+
+\begin{table*}[t]
+   \caption {Named entity, personal name, and rare proper noun recall \&
+             precision on GoodNews and NYTimes800k.}
+	\label{tab:names}
+	\centering
+	\begin{tabularx}{\textwidth}{llXXXXXX}
+		\toprule
+      &  & \multicolumn{2}{c}{Named entities} & \multicolumn{2}{c}{Personal names} & \multicolumn{2}{c}{Rare proper nouns} \\
+      &  & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
+      \midrule
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 6.06\% & 8.23\% & 6.55\% & 9.38\% & -- & -- \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 5.64\% & 8.87\% & 6.98\% & 11.9\% & -- & -- \\
+      \cmidrule{2-8}
+      & GloVe + LSTM & & &  &  & -- & --  \\
+      & GloVe + Transformer & & &  &  & -- & -- \\
+      & RoBERTa + LSTM & &  &  &  & -- & -- \\
+      & RoBERTa + Transformer & 18.4\% & 21.6\% & 22.4\% & 28.1\% & -- & -- \\
+      & \quad + faces & 18.7\% & 22.1\% & 23.2\% & 29.2\% & -- & -- \\
+      & \quad\quad + copying \\
+      \midrule
+      \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & GloVe + LSTM & 7.26\% & 10.2\% & 5.69\% & 8.61\% & 0\% & 0\%  \\
+      & GloVe + Transformer & 10.9\% & 13.4\% & 9.50\% & 13.5\% & 0\% & 0\%  \\
+      & RoBERTa + LSTM & 15.0\% & 17.1\% & 18.1\% & 22.6\% & 15.1\% & 15.2\% \\
+      & RoBERTa + Transformer & 19.5\% & 21.0\% & 25.5\% & 30.3\% & 22.6\% & 29.1\% \\
+      & \quad + location-aware & 21.9\% & 24.1\% & 30.2\% & 35.5\% & 26.2\% & 32.5\% \\
+      & \quad\quad + faces & 22.3\% & 24.5\% & 31.3\% & 37.1\% & 26.6\% & 33.6\% \\
+      & \quad\quad\quad + copying \\
+		\bottomrule
+	\end{tabularx}
+\end{table*}
+
+\section{Experiments}
+
+\subsection{Training Details}
+
+In all experiments, we use Adam \cite{Kingma2015Adam} with the weight decay fix
+\cite{Loshchilov2018DecoupledWD} to optimize the models. We use the following
+parameters: $\beta_1 = 0.9, \beta_2 = 0.98, \epsilon = 10^{-6}$, and a weight
+decay of $10^{-5}$. We clip the gradient norm at 0.1. All models see the same
+number of training examples, which is 6.6 million. This is equivalent to 16
+epochs through GoodNews and 9 epochs through NYTimes800k. We warm up the
+learning rate in the first 5\% of the training steps to $10^{-4}$, and
+afterward decays it linearly. Training the full model takes 5 days on one Titan
+V GPU.
+
+As shown in Table \ref{tab:models}, all of our baselines are designed to have
+roughly the same number of trainable parameters. This allows us to attribute
+improvement to the individual model components rather than to simply having a
+bigger model.
+
+The training pipeline is written in PyTorch \cite{Paszke2017Automatic} using
+the AllenNLP framework \cite{Gardner2017AllenNLP}. The RoBERTa model and
+dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
+
+\begin{table}[t]
+	\caption {Model complexity}
+	\label{tab:models}
+	\centering
+	\begin{tabularx}{\linewidth}{Xc}
+		\toprule
+        & No. of Parameters \\
+      \midrule
+      GloVe + LSTM & 157M \\
+      GloVe + Transformer & 148M \\
+      RoBERTa + LSTM & 159M \\
+      RoBERTa + Transformer & 154M \\
+      \quad + faces & 171M \\
+      \quad\quad + copying & 207M \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\subsection{Results}
+
+
+Table \ref{tab:results} shows the BLEU \cite{Papineni2002Bleu}, ROUGE
+\cite{Lin2004ROUGE}, METEOR \cite{Denkowski2014Meteor}, and CIDEr
+\cite{Vedantam2015CIDEr} metrics on GoodNews and NYTimes800k. We show two best
+results from the previous state-of-the-art \cite{Biten2019GoodNews}. Note that
+the numbers reported here are slightly different from the original paper since
+we had to remove a few samples from the test set where the image is no longer
+available. \cite{Biten2019GoodNews} also did some post-processing on the
+ground-truth captions such as removing contractions and non-ASCII characters,
+both of which we did not do. Despite these differences, the final metrics
+are the same if rounded to the nearest whole number.
+
+There is a strong correlation between of all these metrics, and in general, we
+mainly look at CIDEr since it uses Term Frequency Inverse Document Frequency
+(TF-IDF) to put more importance on less common words such as entity names.
+Table \ref{tab:names} shows the recall and precision of the named entities,
+personal names, and rare proper nouns.
+
+We can make the following observations:
+
+\begin{itemize}
+   \item Our baseline LSTM model with GloVe embeddings yields competitive
+   results to previous the state-of-the-art \cite{Biten2019GoodNews}. This
+   means that BPE offers a viable alternative to template-based methods.
+
+   \item Models with GloVe embeddings are unable to generate rare proper nouns.
+   This is expected since GloVe has a fixed vocabulary and if there is a
+   unknown word in the article, the encoder will simply skip it.
+
+   \item Switching from an LSTM to a transformer architecture improves the
+   CIDEr score on NYTimes800k by 8 points, from 12 to 20. If we then use the
+   contextualize RoBERTa embeddings instead of GloVe, CIDEr more than doubles
+   to 44.
+
+   \item Adding attention over the faces improves both the recall and precision
+   of personal names. It has no significant effect on other entity types (see
+   the supplementary materials for a detailed breakdown).
+\end{itemize}
+
+\begin{table}[t]
+   \caption {Linguistic measures on the generated captions: caption length (CL),
+             type-token ratio (TTR), and Flesch readability ease (FRE).}
+	\label{tab:caption}
+	\centering
+	\begin{tabularx}{\linewidth}{llXXX}
+		\toprule
+       &  &  CL  & TTR & FRE \\
+      \midrule
+      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Ground Truths & 18.1 & 94.9 & 65.4 \\
+      \cmidrule{2-5}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 92.2 & 78.3 \\
+      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
+      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
+      % Biten (Avg + AttIns) \cite{Biten2019GoodNews}  & 9.7 &  \\
+      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 &  \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.1 & 90.7 & 77.6 \\
+      \cmidrule{2-5}
+      & GloVe + LSTM &  &  \\
+      & GloVe + Transformer &  &  \\
+      & RoBERTa + LSTM &  &   \\
+      & RoBERTa + Transformer & 15.5 & 91.0 & 72.0 \\
+      & \quad + faces & 15.5 & 90.7 & 71.9 \\
+      & \quad\quad + copying \\
+      \midrule
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & Ground Truths & 18.4 & 94.6 & 63.9 \\
+      & GloVe + LSTM  & 13.8 & 89.0 & 77.8 \\
+      & GloVe + Transformer  & 15.1 & 88.6 & 73.8 \\
+      & RoBERTa + LSTM  & 14.9 & 90.2 & 72.6 \\
+      & RoBERTa + Transformer  & 15.3 & 91.5 & 70.4 \\
+      & \quad + location-aware & 15.1 & 91.7 & 70.4  \\
+      & \quad\quad + faces & 15.2 & 91.6 & 70.5 \\
+      & \quad\quad\quad + copying \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Table \ref{tab:caption} look at the quality of the generated captions. We look
+at three metrics: caption length, type-token ratio (TTR), and Flesch reading
+ease. TTR is the ratio of the number of unique words to the total number of
+words in a caption. The Flesch reading ease takes into account the number of
+words and syllables and produces a score between 0 and 100, where higher means
+being easier to read.
+
+From these metrics, we see that our generated captions are in general still
+shorter than real-life captions, have lower lexical diversity (lower TTR)
+and still use simpler language (higher Flesch reading ease).

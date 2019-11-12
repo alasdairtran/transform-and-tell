@@ -1,0 +1,64 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{multirow} % creates cells that span multiple rows in a table
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm} % bold fonts for math symbols
+\usepackage{booktabs}
+\usepackage[export]{adjustbox} % adds a frame around figures
+\usepackage{IEEEtrantools} % IEEEeqnarray math equation environment
+\usepackage{multirow} % merge multiple rows
+\usepackage{tabularx} % for 'tabularx' environment
+\usepackage{caption} % controls spacing between caption and table
+
+% Include other packages here, before hyperref.
+
+% If you comment hyperref and then uncomment it, you should delete
+% egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
+
+% \cvprfinalcopy % *** Uncomment this line for the final submission
+
+\def\cvprPaperID{****} % *** Enter the CVPR Paper ID here
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+
+% Pages are numbered in submission mode, and unnumbered in camera-ready
+\ifcvprfinal\pagestyle{empty}\fi
+\begin{document}
+
+%%%%%%%%% TITLE - suggestions and candidates
+\title{Transform and Tell:\\The News Image Caption Writer That Remembers Rare Names}
+\title{Transforming Entities for News Image Captions}
+
+\author{Alasdair Tran, Alexander P. Matthews, Lexing Xie\\
+Australian National University\\
+{\tt\small \{alasdair.tran,alex.matthews,lexing.xie\}@anu.edu.au}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+}
+
+\maketitle
+%\thispagestyle{empty}
+
+\input{section_0_abstract}
+\input{section_1_intro.tex}
+\input{section_2_literature}
+\input{section_3_model}
+\input{section_4_datasets}
+\input{section_5_experiments}
+\input{section_6_conclusion}
+
+{\small
+\bibliographystyle{ieee_fullname}
+\bibliography{main}
+}
+
+\end{document}
