@@ -128,7 +128,7 @@ trainer:
     type: bert_adam
     lr: 0.0001
     warmup: 0.05
-    t_total: 43760 # Takees 43m to go through 4376 batches per epoch
+    t_total: 87520 # Takees 43m to go through 4376 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
