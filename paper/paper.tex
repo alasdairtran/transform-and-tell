@@ -55,12 +55,12 @@ Australian National University\\
    pretrained embeddings from three different modalities (RoBERTa for text,
    ResNet-152 for images, and FaceNet for faces), our system is able to
    describe an image with specific named entities mentioned in the article. Our
-   model achieves a CIDEr score of 53 on the GoodNews dataset, significantly
+   model achieves a CIDEr score of 54 on the GoodNews dataset, significantly
    outperforming the previous state-of-art CIDEr of 13. We also introduce the
    NYTimes800k dataset, the largest news image captioning dataset to date.
    NYTimes800k is an extended version of GoodNews with higher-quality articles and
    metadata that allow us to study the importance of the image location within
-   the text. On NYTimes800k, we achieve a CIDEr of 51. Pretrained models and
+   the text. On NYTimes800k, we achieve a CIDEr of 55. Pretrained models and
    source code are available from
    \href{https://github.com}{https://github.com/anonymized-link}.
 \end{abstract}
@@ -403,111 +403,116 @@ generate rare names.
 
 
 \begin{table*}[t]
-   \caption {Results on the GoodNews and NYTimes800k dataset}
+   \caption {BLEU, ROUGE, METEOR, and CIDEr metrics on GoodNews and
+             NYTimes800k.}
 
-	\label{tab:results-goodnews}
+	\label{tab:results}
 	\centering
 	\begin{tabularx}{\textwidth}{llXXXXXXX}
 		\toprule
 		 & & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr\\
       \midrule
-      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}} & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 9.04 & 3.65 & 1.71 & 0.89 & 12.2 & 4.37 & 13.1 \\
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 9.04 & 3.66 & 1.71 & 0.89 & 12.2 & 4.37 & 13.1 \\
       % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 8.10 & 3.33 & 1.60 & 0.85 & 11.9 & 4.23 & 12.8 \\
       % Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 8.44 & 3.42 & 1.62 & 0.87 & 12.2 & 4.30 & 13.1 \\
       % Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 8.68 & 3.47 & 1.58 & 0.82 & 12.1 & 4.23 & 12.6 \\
       % Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 7.74 & 3.15 & 1.45 & 0.75 & 11.9 & 4.10 & 12.5 \\
       & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 8.10 & 3.26 & 1.48 & 0.76 & 12.2 & 4.17 & 12.7 \\
       \cmidrule{2-9}
-      & GloVe + LSTM & 13.6 & 6.19 & 3.13 & 1.81 & 13.5 & 5.26 & 11.9 \\
-      & GloVe + Transformer & 17.2 & 8.68 & 4.81 & 2.91 & 16.4 & 7.13 & 22.2 \\
-      & RoBERTa + LSTM & 18.7  & 10.3 & 6.09 & 3.89  & 18.0  & 8.19 & 34.8  \\
+      % & GloVe + LSTM & 13.6 & 6.19 & 3.13 & 1.81 & 13.5 & 5.26 & 11.9 \\
+      % & GloVe + Transformer & 17.2 & 8.68 & 4.81 & 2.91 & 16.4 & 7.13 & 22.2 \\
+      % & RoBERTa + LSTM & 18.7  & 10.3 & 6.09 & 3.89  & 18.0  & 8.19 & 34.8  \\
+      & GloVe + LSTM &  &  &  &  &  &  &  \\
+      & GloVe + Transformer &  &  &  &  &  &  &  \\
+      & RoBERTa + LSTM &  &  &  &  &  &  &   \\
       & RoBERTa + Transformer & 22.2 & 13.4 & 8.68 & 5.99 & 21.2 & 10.1 & 52.9 \\ % Final
-      \\
-      \\
+      & \quad + faces & 22.4 & 13.6 & 8.84 & 6.10 & 21.3 & 10.3 & 53.9 \\ % Final
+      & \quad\quad + copying \\
       \midrule
-      \multirow{6}{*}{\rotatebox[origin=c]{90}{NYTimes800k}} & GloVe + LSTM & 13.4 & 6.00 & 3.05 & 1.76 & 13.2 & 5.36 & 12.2 \\ % Final
+      \multirow{6}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & GloVe + LSTM & 13.4 & 6.00 & 3.05 & 1.76 & 13.2 & 5.36 & 12.2 \\ % Final
       & GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\ % Final
       & RoBERTa + LSTM & 18.0 & 9.88 & 5.97 & 3.91 & 17.1 & 7.96 & 30.8 \\ % Final
-      & Transformer (first 512 tokens) & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
-      & Transformer (location-aware) & 21.7 & 13.3 & 8.84 & 6.25 & 21.3 & 10.3 & 52.4 \\ % Final
-      & \\
-      \\
+      & RoBERTa + Transformer & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
+      & \quad + location-aware & 21.7 & 13.3 & 8.84 & 6.25 & 21.3 & 10.3 & 52.4 \\ % Final
+      & \quad\quad + faces & 22.1 & 13.6 & 9.05 & 6.41 & 21.7 & 10.4 & 54.7 \\ % Final
+      & \quad\quad\quad + copying \\
       \bottomrule
 	\end{tabularx}
 \end{table*}
 
 \begin{table*}[t]
-	\caption {Proper name metrics on the GoodNews test set. We can't compute rare name statistics
-   since train-test split were created using a random shuffle.}
+   \caption {Named entity, personal name, and rare proper noun recall \&
+             precision on GoodNews and NYTimes800k.}
 	\label{tab:results-names}
 	\centering
 	\begin{tabularx}{\textwidth}{llXXXXXX}
 		\toprule
-      &  & \multicolumn{2}{c}{All names} & \multicolumn{2}{c}{Rare names in caption } & \multicolumn{2}{c}{Rare names in article } \\
+      &  & \multicolumn{2}{c}{Named entities} & \multicolumn{2}{c}{Personal names} & \multicolumn{2}{c}{Rare proper nouns} \\
       &  & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
       \midrule
       \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
-      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 12.2\% & 16.5\% & -- & -- & -- & -- \\
-      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 12.0\% & 17.1\% \\
-      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 11.7\% & 17.1\% \\
-      % Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 17.9\% \\
-      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 19.0\% \\
-      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 11.0\% & 19.2\% & -- & -- & -- & -- \\
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 6.06\% & 8.23\% & 6.55\% & 9.38\% & -- & -- \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 5.64\% & 8.87\% & 6.98\% & 11.9\% & -- & -- \\
       \cmidrule{2-8}
-      & GloVe + LSTM & 10.1\% & 14.9\% & -- & -- & -- & --  \\
-      & GloVe + Transformer & 16.6\% & 21.7\% & -- & -- & -- & -- \\
-      & RoBERTa + LSTM & 23.4\% & 28.8\%  & -- & -- & -- & -- \\
-      & RoBERTa + Transformer & 29.5\% & 33.9\%  & -- & -- & -- & -- \\
-      \\
-      \\
+      & GloVe + LSTM & & &  &  & -- & --  \\
+      & GloVe + Transformer & & &  &  & -- & -- \\
+      & RoBERTa + LSTM & &  &  &  & -- & -- \\
+      & RoBERTa + Transformer & 18.4\% & 21.6\% & 22.4\% & 28.1\% & -- & -- \\
+      & \quad + faces & 18.7\% & 22.1\% & 23.2\% & 29.2\% & -- & -- \\
+      & \quad\quad + copying \\
       \midrule
       \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
-      & GloVe + LSTM & 12.4\% & 15.6\% & 0\% & 0\% & 0\% & 0\%  \\
-      & GloVe + Transformer & 18.3\% & 21.7\% & 0\% & 0\% & 0\% & 0\%  \\
-      & RoBERTa + LSTM & 24.8\% & 27.0\% & 15.1\% & 15.2\% & 13.1\% & 8.93\%  \\
-      & Transformer (first 512 tokens) & 30.3\% & 32.2\% & 22.6\% & 29.1\% & 20.1\% & 21.3\%  \\
-      & Transformer (location-aware) & 33.8\% & 36.5\% & 26.2\% & 32.5\% & 24.0\% & 25.6\%   \\
-      \\
-      \\
+      & GloVe + LSTM & 7.26\% & 10.2\% & 5.69\% & 8.61\% & 0\% & 0\%  \\
+      & GloVe + Transformer & 10.9\% & 13.4\% & 9.50\% & 13.5\% & 0\% & 0\%  \\
+      & RoBERTa + LSTM & 15.0\% & 17.1\% & 18.1\% & 22.6\% & 15.1\% & 15.2\% \\
+      & RoBERTa + Transformer & 19.5\% & 21.0\% & 25.5\% & 30.3\% & 22.6\% & 29.1\% \\
+      & \quad + location-aware & 21.9\% & 24.1\% & 30.2\% & 35.5\% & 26.2\% & 32.5\% \\
+      & \quad\quad + faces & 22.3\% & 24.5\% & 31.3\% & 37.1\% & 26.6\% & 33.6\% \\
+      & \quad\quad\quad + copying \\
 		\bottomrule
 	\end{tabularx}
 \end{table*}
 
-\begin{table*}[t]
-	\caption {Word statistics on the GoodNews test set}
+\begin{table}[t]
+   \caption {Linguistic measures on the generated captions: caption length (CL),
+             type-token ratio (TTR), and Flesch readability ease (FRE).}
 	\label{tab:results-stats}
 	\centering
-	\begin{tabular}{lllllll}
+	\begin{tabularx}{\linewidth}{llXXX}
 		\toprule
-       &  & Caption length  & Unique words \\
+       &  &  CL  & TTR & FRE \\
       \midrule
-      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}  & Ground Truths & 18.1 & 17.0 \\
-      \cmidrule{2-4}
-      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 8.8 \\
-      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 & 8.4 \\
-      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 & 8.4 \\
-      % Biten (Avg + AttIns) \cite{Biten2019GoodNews}  & 9.7 & 8.4 \\
-      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 & 7.9 \\
-      & Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.3 & 8.5 \\
-      \cmidrule{2-4}
-      & GloVe + LSTM & 13.9 & 11.4 \\
-      & GloVe + Transformer & 14.9 & 12.9 \\
-      & RoBERTa + LSTM & 14.7 & 12.7  \\
-      & RoBERTa + Transformer & 15.5 & 13.7 \\
-      \\
-      \\
+      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Ground Truths & 18.1 & 94.9 & 65.4 \\
+      \cmidrule{2-5}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 92.2 & 78.3 \\
+      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
+      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
+      % Biten (Avg + AttIns) \cite{Biten2019GoodNews}  & 9.7 &  \\
+      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 &  \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.1 & 90.7 & 77.6 \\
+      \cmidrule{2-5}
+      & GloVe + LSTM &  &  \\
+      & GloVe + Transformer &  &  \\
+      & RoBERTa + LSTM &  &   \\
+      & RoBERTa + Transformer & 15.5 & 91.0 & 72.0 \\
+      & \quad + faces & 15.5 & 90.7 & 71.9 \\
+      & \quad\quad + copying \\
       \midrule
-      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}} & Ground Truths & 18.4 & 17.1 \\
-      & GloVe + LSTM  & 13.8 & 11.8 \\
-      & GloVe + Transformer  & 15.1 & 12.9 \\
-      & RoBERTa + LSTM  & 14.9 & 13.0 \\
-      & Transformer (first 512 tokens)  & 15.3 & 13.6 \\
-      & Transformer (location-aware) & 15.1 & 13.5  \\
-      \\
-      \\
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & Ground Truths & 18.4 & 94.6 & 63.9 \\
+      & GloVe + LSTM  & 13.8 & 89.0 & 77.8 \\
+      & GloVe + Transformer  & 15.1 & 88.6 & 73.8 \\
+      & RoBERTa + LSTM  & 14.9 & 90.2 & 72.6 \\
+      & RoBERTa + Transformer  & 15.3 & 91.5 & 70.4 \\
+      & \quad + location-aware & 15.1 & 91.7 & 70.4  \\
+      & \quad\quad + faces & 15.2 & 91.6 & 70.5 \\
+      & \quad\quad\quad + copying \\
 		\bottomrule
-	\end{tabular}
-\end{table*}
+	\end{tabularx}
+\end{table}
 
 
 
@@ -602,38 +607,45 @@ The two attended representations are then concatenated and fed as input to
 the self-attention layer.
 
 
-
-
-
-
 \section{Experiments}
+
+\subsection{Training Details}
+
+In all experiments, we use Adam \cite{Kingma2015Adam} with the weight decay fix
+\cite{Loshchilov2018DecoupledWD} to optimize the models. We use the following
+parameters: $\beta_1 = 0.9, \beta_2 = 0.98, \epsilon = 10^{-6}$, and a weight
+decay of $10^{-5}$. We clip the gradient norm at 0.1. All models see the same
+number of training examples, which is 6.6 million. This is equivalent to 16
+epochs through GoodNews and 9 epochs through NYTimes800k. We warm up the
+learning rate in the first 5\% of the training steps to $10^{-4}$, and
+afterward decays it linearly. Training the full model takes 5 days on one Titan
+V.
 
 The training pipeline is written in PyTorch \cite{Paszke2017Automatic} using
 the AllenNLP framework \cite{Gardner2017AllenNLP}. The RoBERTa model and
-dynamic convolution code comes from fairseq \cite{Ott2019Fairseq}. The code
-will made public on GitHub.
+dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
 
-Table \ref{tab:results-goodnews} shows the results on the original GoodNews
-and NYTimes800k datasets.
+\subsection{Results}
+
+Table \ref{tab:results} shows the results on GoodNews and NYTimes800k.
 
 
 \begin{table}[t]
-	\caption {Model complexity: Number of trainable parameters}
+	\caption {Model complexity}
 	\label{tab:models}
 	\centering
-	\begin{tabular}{lllllll}
+	\begin{tabularx}{\linewidth}{Xc}
 		\toprule
-        & Parameters \\
+        & No. of Parameters \\
       \midrule
       GloVe + LSTM & 157M \\
       GloVe + Transformer & 148M \\
       RoBERTa + LSTM & 159M \\
       RoBERTa + Transformer & 154M \\
-        + faces & 171M \\
-      %   + names & 175M \\
-      %   + faces + names & 192M \\
+      \quad + faces & 171M \\
+      \quad\quad + copying & 207M \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 \section{Discussion}
