@@ -442,79 +442,6 @@ generate rare names.
 	\end{tabularx}
 \end{table*}
 
-\begin{table*}[t]
-   \caption {Named entity, personal name, and rare proper noun recall \&
-             precision on GoodNews and NYTimes800k.}
-	\label{tab:results-names}
-	\centering
-	\begin{tabularx}{\textwidth}{llXXXXXX}
-		\toprule
-      &  & \multicolumn{2}{c}{Named entities} & \multicolumn{2}{c}{Personal names} & \multicolumn{2}{c}{Rare proper nouns} \\
-      &  & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
-      \midrule
-      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
-      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 6.06\% & 8.23\% & 6.55\% & 9.38\% & -- & -- \\
-      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 5.64\% & 8.87\% & 6.98\% & 11.9\% & -- & -- \\
-      \cmidrule{2-8}
-      & GloVe + LSTM & & &  &  & -- & --  \\
-      & GloVe + Transformer & & &  &  & -- & -- \\
-      & RoBERTa + LSTM & &  &  &  & -- & -- \\
-      & RoBERTa + Transformer & 18.4\% & 21.6\% & 22.4\% & 28.1\% & -- & -- \\
-      & \quad + faces & 18.7\% & 22.1\% & 23.2\% & 29.2\% & -- & -- \\
-      & \quad\quad + copying \\
-      \midrule
-      \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
-      & GloVe + LSTM & 7.26\% & 10.2\% & 5.69\% & 8.61\% & 0\% & 0\%  \\
-      & GloVe + Transformer & 10.9\% & 13.4\% & 9.50\% & 13.5\% & 0\% & 0\%  \\
-      & RoBERTa + LSTM & 15.0\% & 17.1\% & 18.1\% & 22.6\% & 15.1\% & 15.2\% \\
-      & RoBERTa + Transformer & 19.5\% & 21.0\% & 25.5\% & 30.3\% & 22.6\% & 29.1\% \\
-      & \quad + location-aware & 21.9\% & 24.1\% & 30.2\% & 35.5\% & 26.2\% & 32.5\% \\
-      & \quad\quad + faces & 22.3\% & 24.5\% & 31.3\% & 37.1\% & 26.6\% & 33.6\% \\
-      & \quad\quad\quad + copying \\
-		\bottomrule
-	\end{tabularx}
-\end{table*}
-
-\begin{table}[t]
-   \caption {Linguistic measures on the generated captions: caption length (CL),
-             type-token ratio (TTR), and Flesch readability ease (FRE).}
-	\label{tab:results-stats}
-	\centering
-	\begin{tabularx}{\linewidth}{llXXX}
-		\toprule
-       &  &  CL  & TTR & FRE \\
-      \midrule
-      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}
-      & Ground Truths & 18.1 & 94.9 & 65.4 \\
-      \cmidrule{2-5}
-      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 92.2 & 78.3 \\
-      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
-      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
-      % Biten (Avg + AttIns) \cite{Biten2019GoodNews}  & 9.7 &  \\
-      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 &  \\
-      & Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.1 & 90.7 & 77.6 \\
-      \cmidrule{2-5}
-      & GloVe + LSTM &  &  \\
-      & GloVe + Transformer &  &  \\
-      & RoBERTa + LSTM &  &   \\
-      & RoBERTa + Transformer & 15.5 & 91.0 & 72.0 \\
-      & \quad + faces & 15.5 & 90.7 & 71.9 \\
-      & \quad\quad + copying \\
-      \midrule
-      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
-      & Ground Truths & 18.4 & 94.6 & 63.9 \\
-      & GloVe + LSTM  & 13.8 & 89.0 & 77.8 \\
-      & GloVe + Transformer  & 15.1 & 88.6 & 73.8 \\
-      & RoBERTa + LSTM  & 14.9 & 90.2 & 72.6 \\
-      & RoBERTa + Transformer  & 15.3 & 91.5 & 70.4 \\
-      & \quad + location-aware & 15.1 & 91.7 & 70.4  \\
-      & \quad\quad + faces & 15.2 & 91.6 & 70.5 \\
-      & \quad\quad\quad + copying \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
-
-
 
 \section{Model Architecture}
 
@@ -588,12 +515,54 @@ Our decoder is a transformer architecture with dynamic convolutions
 \cite{Wu2018PayLA} containing four layers with kernel sizes 3, 7, 15 and 31. We
 found that using dynamic convolutions allows the training to converge faster
 than using the current state-of-the-art GPT-2 architecture
-\cite{Radford2019LanguageMA}. We don't have the computational resource to study
-the performance of GPT-2.
+\cite{Radford2019LanguageMA}.
+
+In the standard self-attention module, the input embedding $\bm{x} \in
+\mathbb{R}^{1024}$ is first projected linearly into a query, key, and value
+$\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$. Then the attention is the
+weighted sum of the values, where the weights are obtained from the dot product
+between the key and value:
+\begin{IEEEeqnarray*}{lCl}
+   \text{Attention}(\bm{x}) &=&
+   \text{softmax}\left( \dfrac{\bm{q} \bm{k}^T}{\sqrt{d_K}} \right) \bm{v}
+\end{IEEEeqnarray*}
+
+\begin{table*}[t]
+   \caption {Named entity, personal name, and rare proper noun recall \&
+             precision on GoodNews and NYTimes800k.}
+	\label{tab:names}
+	\centering
+	\begin{tabularx}{\textwidth}{llXXXXXX}
+		\toprule
+      &  & \multicolumn{2}{c}{Named entities} & \multicolumn{2}{c}{Personal names} & \multicolumn{2}{c}{Rare proper nouns} \\
+      &  & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
+      \midrule
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 6.06\% & 8.23\% & 6.55\% & 9.38\% & -- & -- \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 5.64\% & 8.87\% & 6.98\% & 11.9\% & -- & -- \\
+      \cmidrule{2-8}
+      & GloVe + LSTM & & &  &  & -- & --  \\
+      & GloVe + Transformer & & &  &  & -- & -- \\
+      & RoBERTa + LSTM & &  &  &  & -- & -- \\
+      & RoBERTa + Transformer & 18.4\% & 21.6\% & 22.4\% & 28.1\% & -- & -- \\
+      & \quad + faces & 18.7\% & 22.1\% & 23.2\% & 29.2\% & -- & -- \\
+      & \quad\quad + copying \\
+      \midrule
+      \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & GloVe + LSTM & 7.26\% & 10.2\% & 5.69\% & 8.61\% & 0\% & 0\%  \\
+      & GloVe + Transformer & 10.9\% & 13.4\% & 9.50\% & 13.5\% & 0\% & 0\%  \\
+      & RoBERTa + LSTM & 15.0\% & 17.1\% & 18.1\% & 22.6\% & 15.1\% & 15.2\% \\
+      & RoBERTa + Transformer & 19.5\% & 21.0\% & 25.5\% & 30.3\% & 22.6\% & 29.1\% \\
+      & \quad + location-aware & 21.9\% & 24.1\% & 30.2\% & 35.5\% & 26.2\% & 32.5\% \\
+      & \quad\quad + faces & 22.3\% & 24.5\% & 31.3\% & 37.1\% & 26.6\% & 33.6\% \\
+      & \quad\quad\quad + copying \\
+		\bottomrule
+	\end{tabularx}
+\end{table*}
 
 \subsubsection{Adaptive Softmax}
 
-To make training more efficient, we use adaptive softmax
+The BPE vocabulary size is 50265. To make training more efficient, we use adaptive softmax
 \cite{Grave2016EfficientSA} and divide the vocabulary into three clusters: 5K,
 15K, and 25K. We tie the adaptive weights and we share the decoder input and
 output embeddings. We use sinusoidal positional encoding
@@ -602,10 +571,9 @@ output embeddings. We use sinusoidal positional encoding
 \subsubsection{Encoder Attention}
 
 For each generation step, we use the Scalar-Dot-Product attention
-\cite{Vaswani2017AttentionIA} to attend to the image and to article separate.
-The two attended representations are then concatenated and fed as input to
+\cite{Vaswani2017AttentionIA} to attend to the image, article, and faces. All
+of the three attended representations are then concatenated and fed as input to
 the self-attention layer.
-
 
 \section{Experiments}
 
@@ -619,16 +587,16 @@ number of training examples, which is 6.6 million. This is equivalent to 16
 epochs through GoodNews and 9 epochs through NYTimes800k. We warm up the
 learning rate in the first 5\% of the training steps to $10^{-4}$, and
 afterward decays it linearly. Training the full model takes 5 days on one Titan
-V.
+V GPU.
+
+As shown in Table \ref{tab:models}, all of our baselines are designed to have
+roughly the same number of trainable parameters. This allows us to attribute
+improvement to the individual model components rather than to simply having a
+bigger model.
 
 The training pipeline is written in PyTorch \cite{Paszke2017Automatic} using
 the AllenNLP framework \cite{Gardner2017AllenNLP}. The RoBERTa model and
 dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
-
-\subsection{Results}
-
-Table \ref{tab:results} shows the results on GoodNews and NYTimes800k.
-
 
 \begin{table}[t]
 	\caption {Model complexity}
@@ -648,7 +616,99 @@ Table \ref{tab:results} shows the results on GoodNews and NYTimes800k.
 	\end{tabularx}
 \end{table}
 
-\section{Discussion}
+\subsection{Results}
+
+
+Table \ref{tab:results} shows the BLEU \cite{Papineni2002Bleu}, ROUGE
+\cite{Lin2004ROUGE}, METEOR \cite{Denkowski2014Meteor}, and CIDEr
+\cite{Vedantam2015CIDEr} metrics on GoodNews and NYTimes800k. We show two best
+results from the previous state-of-the-art \cite{Biten2019GoodNews}. Note that
+the numbers reported here are slightly different from the original paper since
+we had to remove a few samples from the test set where the image is no longer
+available. \cite{Biten2019GoodNews} also did some post-processing on the
+ground-truth captions such as removing contractions and non-ASCII characters,
+both of which we did not do. Despite these differences, the final metrics
+are the same if rounded to the nearest whole number.
+
+There is a strong correlation between of all these metrics, and in general, we
+mainly look at CIDEr since it uses Term Frequency Inverse Document Frequency
+(TF-IDF) to put more importance on less common words such as entity names.
+Table \ref{tab:names} shows the recall and precision of the named entities,
+personal names, and rare proper nouns.
+
+We can make the following observations:
+
+\begin{itemize}
+   \item Our baseline LSTM model with GloVe embeddings yields competitive
+   results to previous the state-of-the-art \cite{Biten2019GoodNews}. This
+   means that BPE offers a viable alternative to template-based methods.
+
+   \item Models with GloVe embeddings are unable to generate rare proper nouns.
+   This is expected since GloVe has a fixed vocabulary and if there is a
+   unknown word in the article, the encoder will simply skip it.
+
+   \item Switching from an LSTM to a transformer architecture improves the
+   CIDEr score on NYTimes800k by 8 points, from 12 to 20. If we then use the
+   contextualize RoBERTa embeddings instead of GloVe, CIDEr more than doubles
+   to 44.
+
+   \item Adding attention over the faces improves both the recall and precision
+   of personal names. It has no significant effect on other entity types (see
+   the supplementary materials for a detailed breakdown).
+\end{itemize}
+
+\begin{table}[t]
+   \caption {Linguistic measures on the generated captions: caption length (CL),
+             type-token ratio (TTR), and Flesch readability ease (FRE).}
+	\label{tab:caption}
+	\centering
+	\begin{tabularx}{\linewidth}{llXXX}
+		\toprule
+       &  &  CL  & TTR & FRE \\
+      \midrule
+      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      & Ground Truths & 18.1 & 94.9 & 65.4 \\
+      \cmidrule{2-5}
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 92.2 & 78.3 \\
+      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
+      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
+      % Biten (Avg + AttIns) \cite{Biten2019GoodNews}  & 9.7 &  \\
+      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 &  \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.1 & 90.7 & 77.6 \\
+      \cmidrule{2-5}
+      & GloVe + LSTM &  &  \\
+      & GloVe + Transformer &  &  \\
+      & RoBERTa + LSTM &  &   \\
+      & RoBERTa + Transformer & 15.5 & 91.0 & 72.0 \\
+      & \quad + faces & 15.5 & 90.7 & 71.9 \\
+      & \quad\quad + copying \\
+      \midrule
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & Ground Truths & 18.4 & 94.6 & 63.9 \\
+      & GloVe + LSTM  & 13.8 & 89.0 & 77.8 \\
+      & GloVe + Transformer  & 15.1 & 88.6 & 73.8 \\
+      & RoBERTa + LSTM  & 14.9 & 90.2 & 72.6 \\
+      & RoBERTa + Transformer  & 15.3 & 91.5 & 70.4 \\
+      & \quad + location-aware & 15.1 & 91.7 & 70.4  \\
+      & \quad\quad + faces & 15.2 & 91.6 & 70.5 \\
+      & \quad\quad\quad + copying \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Table \ref{tab:caption} look at the quality of the generated captions. We look
+at three metrics: caption length, type-token ratio (TTR), and Flesch reading
+ease. TTR is the ratio of the number of unique words to the total number of
+words in a caption. The Flesch reading ease takes into account the number of
+words and syllables and produces a score between 0 and 100, where higher means
+being easier to read.
+
+From these metrics, we see that our generated captions are in general still
+shorter than real-life captions, have lower lexical diversity (lower TTR)
+and still use simpler language (higher Flesch reading ease).
+
+
+
 
 
 
