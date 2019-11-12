@@ -24,7 +24,7 @@ model:
   type: transformer_pointer
   model_path: ./expt/nytimes/28_four_faces/serialization/best.th
   decoder:
-    type: dynamic_conv_decoder_flattened
+    type: dynamic_conv_decoder_faces_parallel
     embedder:
       type: sum
       token_embedders:

@@ -504,12 +504,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
             dropout=attention_dropout)
         self.context_attn_lns['article'] = nn.LayerNorm(self.embed_dim)
 
-        self.context_attns['faces'] = MultiHeadAttention(
-            self.embed_dim, decoder_attention_heads, kdim=512, vdim=512,
-            dropout=attention_dropout)
-        self.context_attn_lns['faces'] = nn.LayerNorm(self.embed_dim)
-
-        context_size = self.embed_dim * 3
+        context_size = self.embed_dim * 2
 
         self.context_fc = GehringLinear(context_size, self.embed_dim)
 
@@ -581,25 +576,6 @@ class DynamicConvDecoderLayer(DecoderLayer):
             self.context_attn_lns['article'], X_article, after=True)
 
         X_contexts.append(X_article)
-
-        # Face attention
-        residual = X
-        X_faces = self.maybe_layer_norm(
-            self.context_attn_lns['faces'], X, before=True)
-        X_faces, attn = self.context_attns['faces'](
-            query=X_faces,
-            key=contexts['faces'],
-            value=contexts['faces'],
-            key_padding_mask=contexts['faces_mask'],
-            incremental_state=None,
-            static_kv=True,
-            need_weights=(not self.training and self.need_attn))
-        X_faces = F.dropout(X_faces, p=self.dropout,
-                            training=self.training)
-        X_faces = residual + X_faces
-        X_faces = self.maybe_layer_norm(
-            self.context_attn_lns['faces'], X_faces, after=True)
-        X_contexts.append(X_faces)
 
         X_context = torch.cat(X_contexts, dim=-1)
         X = self.context_fc(X_context)
