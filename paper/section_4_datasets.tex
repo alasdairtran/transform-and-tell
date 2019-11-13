@@ -55,35 +55,22 @@
 \subsection{GoodNews}
 
 As a starting point, we use the GoodNews dataset, previously the largest
-dataset on news image captioning \cite{Biten2019GoodNews}. Each sample in the
+dataset on news image captioning~\cite{Biten2019GoodNews}. Each example in the
 dataset is a triplet containing an article, an image, and a caption. Since only
-the article text and captions were publicly released, we had to crawl the
-images ourselves. Out of the 466K image URLs provided by
-\cite{Biten2019GoodNews}, we were able to crawl 463K images, or 99.2\% of the
-original dataset. The remaining are broken links. As part of the quality check,
-we also wrote a custom parser to re-extract the articles in the same period
-from the original web pages, with the help of The New York Times
-API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}.
+the article text, captions, and image URLs were publicly released
+the images had to be downloaded from the original source. Out of the 466K image
+URLs provided by
+\cite{Biten2019GoodNews}, we were able to download 463K images, or 99.2\% of the
+original dataset -- the remaining are broken links.
 
-From the recollection, we observe that the average length of an article in
-GoodNews is 451 words, while it is 963 in our recollected dataset. Thus half of
-the article body is missing in GoodNews. This includes the first few paragraphs
-that might contain important information about the top caption. Looking through
-the publicly released code, we found that this is because the original parser
-used by \cite{Biten2019GoodNews} was designed to extract articles from a
-generic online news source and it fails to recognize certain HTML tags used
-specifically in New York Times web pages.
+We use this 99.2\% sample of the GoodNews dataset and the
+train-validation-test split provided by~\cite{Biten2019GoodNews}. This split
+consists of 421K training, 18K validation, and 23K test captions. Note that
+this split was done on captions, so it is possible for a training and test
+caption to share the same article text (since articles have multiple images).
 
-In addition, we also found some noisy samples in GoodNews. This includes a
-small number of non-English articles, and captioned images from the
-recommendation sidebar which are not related to the main article.
 
-Despite the above limitations, we still use the original GoodNews dataset and
-train-validation-test split in our experiments, in order to make comparison to
-previous works easier. Using the original split, we have 421K training, 18K
-validation, and 23K test captions. Given that the random split was done at the
-caption level, it is possible for a training and test caption to share the same
-article text.
+
 
 
 \begin{figure}[t]
@@ -110,8 +97,31 @@ article text.
 
 \subsection{NYTimes800k}
 
-At the same time, we also constructed a bigger and higher-quality dataset,
-which we call NYTimes800k. A comparison between GoodNews and NYTimes800k is
+We also constructed the NYTimes800k which is a larger and more complete dataset
+of New York Times articles, images, and captions. The construction of this
+dataset was motivated by the desire to clean up data quality issues in the
+GoodNews dataset, collect a larger dataset, and include fine grained context
+such as the images location in the article.
+
+We observed that many of the articles that constitute the GoodNews dataset had
+only been partially extracted since the generic article extractor employed
+failed to recognise certain HTML tags used
+specifically by the New York Times. To collect the full articles we
+implemented a custom parser using The New York Times public
+API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}.
+After this recollection, we observe that the average article is 963 words while
+the the average length of an article in
+GoodNews is 451 words. Importantly the missing text may include the first few
+paragraphs
+which often contain important information for captioning images.
+
+In addition, we also found that GoodNews contained a
+small number of non-English articles, and captioned images from the
+recommendation sidebar which are not related to the main article. These were
+filtered out in the construction of NYTimes880k.
+
+
+A comparison between GoodNews and NYTimes800k is
 summarized in Table \ref{tab:datasets}. NYTimes800k exhibits several
 advantages:
 
