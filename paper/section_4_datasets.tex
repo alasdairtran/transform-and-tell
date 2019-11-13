@@ -54,19 +54,22 @@
 
 \subsection{GoodNews}
 
-As a starting point, we use the GoodNews dataset, previously the largest
-dataset on news image captioning~\cite{Biten2019GoodNews}. Each example in the
+To compare to existing approaches we use the GoodNews dataset, which until now
+was largest
+dataset for news image captioning~\cite{Biten2019GoodNews}. Each example in the
 dataset is a triplet containing an article, an image, and a caption. Since only
-the article text, captions, and image URLs were publicly released
-the images had to be downloaded from the original source. Out of the 466K image
+the article text, captions, and image URLs are publicly released
+the images need to be downloaded from the original source. Out of the 466K
+image
 URLs provided by
 \cite{Biten2019GoodNews}, we were able to download 463K images, or 99.2\% of the
 original dataset -- the remaining are broken links.
 
 We use this 99.2\% sample of the GoodNews dataset and the
-train-validation-test split provided by~\cite{Biten2019GoodNews}. This split
-consists of 421K training, 18K validation, and 23K test captions. Note that
-this split was done on captions, so it is possible for a training and test
+train-validation-test split provided by~\cite{Biten2019GoodNews}. There are
+421K training, 18K validation, and 23K test captions. Note that
+this split was performed at the level of captions, so it is possible for a
+training and test
 caption to share the same article text (since articles have multiple images).
 
 
@@ -97,33 +100,34 @@ caption to share the same article text (since articles have multiple images).
 
 \subsection{NYTimes800k}
 
-We also constructed the NYTimes800k which is a larger and more complete dataset
+We constructed the NYTimes800k which is an 80\% larger and more complete
+dataset
 of New York Times articles, images, and captions. The construction of this
 dataset was motivated by the desire to clean up data quality issues in the
-GoodNews dataset, collect a larger dataset, and include fine grained context
+GoodNews dataset (as described below), collect a larger dataset, and include
+fine grained context
 such as the images location in the article.
 
-We observed that many of the articles that constitute the GoodNews dataset had
-only been partially extracted since the generic article extractor employed
-failed to recognise certain HTML tags used
-specifically by the New York Times. To collect the full articles we
+We observed that many of the articles in the GoodNews dataset had
+been partially extracted when the generic article extractor used
+failed to recognise some of the HTML tags used
+specifically by the New York Times. Importantly, the missing text often
+included the first few
+paragraphs
+which frequently contain important information for captioning images. To
+collect the full articles for the NYTimes800k dataset we
 implemented a custom parser using The New York Times public
 API\footnote{\href{https://developer.nytimes.com/apis}{https://developer.nytimes.com/apis}}.
-After this recollection, we observe that the average article is 963 words while
-the the average length of an article in
-GoodNews is 451 words. Importantly the missing text may include the first few
-paragraphs
-which often contain important information for captioning images.
-
-In addition, we also found that GoodNews contained a
+After this recollection, we observe that the average article is 963 words in
+comparison to GoodNews where the average length is 451 words. In addition, we
+found that GoodNews contains a
 small number of non-English articles, and captioned images from the
 recommendation sidebar which are not related to the main article. These were
 filtered out in the construction of NYTimes880k.
 
 
-A comparison between GoodNews and NYTimes800k is
-summarized in Table \ref{tab:datasets}. NYTimes800k exhibits several
-advantages:
+Table \ref{tab:datasets} presents a comparison between GoodNews and
+NYTimes800k. NYTimes800k exhibits several advantages:
 
 \begin{itemize}
    \item By increasing the collection period to the last 14 years (March 2005
@@ -138,15 +142,15 @@ advantages:
    located in the corresponding article. Most news articles have one image at
    the top that relates to the key topic. However 39\% of the articles have at
    least one more image somewhere in the middle of text. The image placement
-   and hence the text surrounding the image could be important information for
-   captioning.
+   and hence the text surrounding the image is important information for
+   captioning as we show in our evaluations.
 \end{itemize}
 
 Entities play an important role in the dataset, with 97\% of captions
 containing at least one named entity. As shown in Figure \ref{fig:entities},
-the most popular entity type are personal names, comprising a third of all
+the most popular entity type are names of people, comprising a third of all
 named entities. Furthermore, 71\% of training images contain at least one face
-and 68\% of training captions mention at least one personal name. Figure
+and 68\% of training captions mention at least one persons name. Figure
 \ref{fig:faces} provides a further breakdown of the co-occurrence of faces and
 personal names. One important observation is that the majority of captions
 contain at most four names.
@@ -173,9 +177,11 @@ Table \ref{tab:splits}. For example, the test set consists of all captions and
 articles in the final three months of the collection period, from June to
 August 2019. This has two advantages over the random split used in GoodNews.
 Firstly, it prevents captions in the training and test sets from sharing the
-same context article, thus making it better to see how well the model can
-generalize. Secondly, due of the shift in the coverage of news over time, there
-will be events and people in the test data that have never covered by the news
+same context article, which allows us to evaluate how well the model can
+generalize to new articles. Secondly, due of the shift in the coverage of news
+over time, there
+will be events and people in the test data that have never been covered by the
+news
 before. In particular, out of the 100K proper nouns in the test captions, 4\%
 never appear in any training captions. Half of these also never appear in any
 training article. Thus splitting by time allows us study how well the model can
