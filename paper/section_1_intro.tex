@@ -49,6 +49,18 @@ shown
 that pre-trained object detectors tuned for frequent nouns
 lead to more accurate captions~\cite{}.
 
+\begin{figure}[t]
+	\begin{center}
+		\includegraphics[width=0.99\linewidth, frame]{figures/figure_1.pdf}
+	\end{center}
+	\caption{Our transformer model attends to embeddings from three different
+		domains (image patches, faces, and article text). Using byte-pair
+		encoding, the model can then directly produce a caption containing
+		specific named entities without the use of templates.}
+	\label{fig:long}
+	\label{fig:teaser}
+\end{figure}
+
 One tool that has had seen recent successes in many natural language processing
 tasks is the transformer neural network.
 %\sout{processing, which consist of layers of
@@ -87,17 +99,7 @@ sequence of subword units, thus giving models the ability to handle an open
 vocabulary.}
 
 
-\begin{figure}[t]
-	\begin{center}
-		\includegraphics[width=0.99\linewidth, frame]{figures/figure_1.pdf}
-	\end{center}
-	\caption{Our transformer model attends to embeddings from three different
-		domains (image patches, faces, and article text). Using byte-pair
-		encoding, the model can then directly produce a caption containing
-		specific named entities without the use of templates.}
-	\label{fig:long}
-	\label{fig:teaser}
-\end{figure}
+
 
 This motivates our novel fully end-to-end
 model for news image captioning that 1) combines specialised modules for
