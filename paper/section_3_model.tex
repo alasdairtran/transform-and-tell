@@ -11,6 +11,7 @@
    \label{fig:short}
 \end{figure*}
 
+Our model takes an article text and an image to produce a caption.
 
 \subsection{Model Inputs}
 
@@ -94,6 +95,16 @@ between the key and value:
    \text{softmax}\left( \dfrac{\bm{q} \bm{k}^T}{\sqrt{d_K}} \right) \bm{v}
 \end{IEEEeqnarray*}
 
+\subsubsection{Encoder Attention}
+
+For each generation step, we use the Scalar-Dot-Product attention
+\cite{Vaswani2017AttentionIA} to attend to the image, article, and faces. All
+of the three attended representations are then concatenated and fed as input to
+the self-attention layer.
+
+
+\subsection{Bag of Tricks}
+
 \subsubsection{Adaptive Softmax}
 
 The BPE vocabulary size is 50265. To make training more efficient, we use adaptive softmax
@@ -101,10 +112,3 @@ The BPE vocabulary size is 50265. To make training more efficient, we use adapti
 15K, and 25K. We tie the adaptive weights and we share the decoder input and
 output embeddings. We use sinusoidal positional encoding
 \cite{Vaswani2017AttentionIA} to represent the position of each token.
-
-\subsubsection{Encoder Attention}
-
-For each generation step, we use the Scalar-Dot-Product attention
-\cite{Vaswani2017AttentionIA} to attend to the image, article, and faces. All
-of the three attended representations are then concatenated and fed as input to
-the self-attention layer.

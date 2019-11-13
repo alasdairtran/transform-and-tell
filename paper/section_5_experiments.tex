@@ -12,7 +12,7 @@
 		\toprule
 		 & & BLEU-1  & BLEU-2 & BLEU-3 & BLEU-4 & ROUGE & METEOR & CIDEr\\
       \midrule
-      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}
       & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 9.04 & 3.66 & 1.71 & 0.89 & 12.2 & 4.37 & 13.1 \\
       % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 8.10 & 3.33 & 1.60 & 0.85 & 11.9 & 4.23 & 12.8 \\
       % Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 8.44 & 3.42 & 1.62 & 0.87 & 12.2 & 4.30 & 13.1 \\
@@ -22,21 +22,25 @@
       \cmidrule{2-9}
       % & GloVe + Transformer & 17.2 & 8.68 & 4.81 & 2.91 & 16.4 & 7.13 & 22.2 \\
       % & RoBERTa + LSTM & 18.7  & 10.3 & 6.09 & 3.89  & 18.0  & 8.19 & 34.8  \\
-      & GloVe + LSTM & 14.0 & 6.52 & 3.41 & 2.03 & 13.7 & 5.57 & 14.3 \\
-      & GloVe + Transformer & 18.3 & 9.49 & 5.45 & 3.43 & 17.0 & 7.52 & 25.7 \\
-      & RoBERTa + LSTM &  &  &  &  &  &  &   \\
-      & RoBERTa + Transformer & 22.2 & 13.4 & 8.68 & 5.99 & 21.2 & 10.1 & 52.9 \\ % Final
-      & \quad + faces & 22.4 & 13.6 & 8.84 & 6.10 & 21.3 & 10.3 & 53.9 \\ % Final
-      & \quad\quad + copying \\
+      & LSTM + GloVe & 14.0 & 6.52 & 3.41 & 2.03 & 13.7 & 5.57 & 14.3 \\
+      & Transformer + GloVe & 18.3 & 9.49 & 5.45 & 3.43 & 17.0 & 7.52 & 25.7 \\
+      & LSTM + weighted RoBERTa &  &  &  &  &  &  &   \\
+      \cmidrule{2-9}
+      & Transformer + RoBERTa \\
+      & \quad + weighted RoBERTa & 22.2 & 13.4 & 8.68 & 5.99 & 21.2 & 10.1 & 52.9 \\ % Final
+      & \quad\quad + face attention & 22.4 & 13.6 & 8.84 & 6.10 & 21.3 & 10.3 & 53.9 \\ % Final
+      & \quad\quad\quad + copy mechanism \\
       \midrule
-      \multirow{6}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
-      & GloVe + LSTM & 13.4 & 6.00 & 3.05 & 1.76 & 13.2 & 5.36 & 12.2 \\ % Final
-      & GloVe + Transformer & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\ % Final
-      & RoBERTa + LSTM & 18.0 & 9.88 & 5.97 & 3.91 & 17.1 & 7.96 & 30.8 \\ % Final
-      & RoBERTa + Transformer & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
-      & \quad + location-aware & 21.7 & 13.3 & 8.84 & 6.25 & 21.3 & 10.3 & 52.4 \\ % Final
-      & \quad\quad + faces & 22.1 & 13.6 & 9.05 & 6.41 & 21.7 & 10.4 & 54.7 \\ % Final
-      & \quad\quad\quad + copying \\
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      & LSTM + GloVe & 13.4 & 6.00 & 3.05 & 1.76 & 13.2 & 5.36 & 12.2 \\ % Final
+      & Transformer + GloVe & 17.0 & 8.42 & 4.63 & 2.79 & 16.1 & 6.99 & 20.6 \\ % Final
+      & LSTM + weighted RoBERTa & 18.0 & 9.88 & 5.97 & 3.91 & 17.1 & 7.96 & 30.8 \\ % Final
+      \cmidrule{2-9}
+      & Transformer + RoBERTa \\
+      & \quad + weighted RoBERTa & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
+      & \quad\quad + location-aware & 21.7 & 13.3 & 8.84 & 6.25 & 21.3 & 10.3 & 52.4 \\ % Final
+      & \quad\quad\quad + face attention & 22.1 & 13.6 & 9.05 & 6.41 & 21.7 & 10.4 & 54.7 \\ % Final
+      & \quad\quad\quad\quad + copy mechanism \\
       \bottomrule
 	\end{tabularx}
 \end{table*}
@@ -53,25 +57,29 @@
       &  & \multicolumn{2}{c}{Named entities} & \multicolumn{2}{c}{Personal names} & \multicolumn{2}{c}{Rare proper nouns} \\
       &  & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
       \midrule
-      \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}
       & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 6.06\% & 8.23\% & 6.55\% & 9.38\% & -- & -- \\
       & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 5.64\% & 8.87\% & 6.98\% & 11.9\% & -- & -- \\
       \cmidrule{2-8}
-      & GloVe + LSTM & 7.26\% & 11.1\% & 5.76\% & 9.48\%  & -- & --  \\
-      & GloVe + Transformer & 10.9\% & 14.4\% & 10.7\% & 14.7\% & -- & -- \\
-      & RoBERTa + LSTM &  &  &  &  & -- & -- \\
-      & RoBERTa + Transformer & 18.4\% & 21.6\% & 22.4\% & 28.1\% & -- & -- \\
-      & \quad + faces & 18.7\% & 22.1\% & 23.2\% & 29.2\% & -- & -- \\
-      & \quad\quad + copying \\
+      & LSTM + GloVe & 7.26\% & 11.1\% & 5.76\% & 9.48\%  & -- & --  \\
+      & Transformer + GloVe & 10.9\% & 14.4\% & 10.7\% & 14.7\% & -- & -- \\
+      & LSTM + weighted RoBERTa &  &  &  &  & -- & -- \\
+      \cmidrule{2-8}
+      & Transformer + RoBERTa \\
+      & \quad + weighted RoBERTa & 18.4\% & 21.6\% & 22.4\% & 28.1\% & -- & -- \\
+      & \quad\quad + face attention & 18.7\% & 22.1\% & 23.2\% & 29.2\% & -- & -- \\
+      & \quad\quad\quad + copy mechanism \\
       \midrule
-      \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
       & GloVe + LSTM & 7.26\% & 10.2\% & 5.69\% & 8.61\% & 0\% & 0\%  \\
       & GloVe + Transformer & 10.9\% & 13.4\% & 9.50\% & 13.5\% & 0\% & 0\%  \\
-      & RoBERTa + LSTM & 15.0\% & 17.1\% & 18.1\% & 22.6\% & 15.1\% & 15.2\% \\
-      & RoBERTa + Transformer & 19.5\% & 21.0\% & 25.5\% & 30.3\% & 22.6\% & 29.1\% \\
-      & \quad + location-aware & 21.9\% & 24.1\% & 30.2\% & 35.5\% & 26.2\% & 32.5\% \\
-      & \quad\quad + faces & 22.3\% & 24.5\% & 31.3\% & 37.1\% & 26.6\% & 33.6\% \\
-      & \quad\quad\quad + copying \\
+      & LSTM + weighted RoBERTa & 15.0\% & 17.1\% & 18.1\% & 22.6\% & 15.1\% & 15.2\% \\
+      \cmidrule{2-8}
+      & Transformer + RoBERTa \\
+      & \quad + weighted RoBERTa & 19.5\% & 21.0\% & 25.5\% & 30.3\% & 22.6\% & 29.1\% \\
+      & \quad\quad + location-aware & 21.9\% & 24.1\% & 30.2\% & 35.5\% & 26.2\% & 32.5\% \\
+      & \quad\quad\quad + face attention & 22.3\% & 24.5\% & 31.3\% & 37.1\% & 26.6\% & 33.6\% \\
+      & \quad\quad\quad\quad + copy mechanism \\
 		\bottomrule
 	\end{tabularx}
 \end{table*}
@@ -107,12 +115,14 @@ dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
 		\toprule
         & No. of Parameters \\
       \midrule
-      GloVe + LSTM & 157M \\
-      GloVe + Transformer & 148M \\
-      RoBERTa + LSTM & 159M \\
-      RoBERTa + Transformer & 154M \\
-      \quad + faces & 171M \\
-      \quad\quad + copying & 207M \\
+      LSTM + GloVe & 157M \\
+      Transformer + GloVe & 148M \\
+      LSTM + weighted RoBERTa & 159M \\
+      \midrule
+      Transformer + RoBERTa & 154M \\
+      \quad + weighted RoBERTa & 154M \\
+      \quad\quad + face attention & 171M \\
+      \quad\quad\quad + copy mechanism & 207M \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
@@ -175,7 +185,7 @@ We can make the following observations:
 		\toprule
        &  &  CL  & TTR & FRE \\
       \midrule
-      \multirow{9}{*}{\rotatebox[origin=c]{90}{GoodNews}}
+      \multirow{10}{*}{\rotatebox[origin=c]{90}{GoodNews}}
       & Ground Truths & 18.1 & 94.9 & 65.4 \\
       \cmidrule{2-5}
       & Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 92.2 & 78.3 \\
@@ -185,22 +195,26 @@ We can make the following observations:
       % Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 &  \\
       & Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.1 & 90.7 & 77.6 \\
       \cmidrule{2-5}
-      & GloVe + LSTM & 13.8 & 89.6 & 77.5 \\
-      & GloVe + Transformer & 15.5 & 88.5 & 73.9 \\
-      & RoBERTa + LSTM &  &   \\
-      & RoBERTa + Transformer & 15.5 & 91.0 & 72.0 \\
-      & \quad + faces & 15.5 & 90.7 & 71.9 \\
-      & \quad\quad + copying \\
+      & Transformer + RoBERTa \\
+      & LSTM + GloVe & 13.8 & 89.6 & 77.5 \\
+      & Transformer + GloVe & 15.5 & 88.5 & 73.9 \\
+      & LSTM + weighted RoBERTa &  &   \\
+      \cmidrule{2-5}
+      & \quad + weighted RoBERTa & 15.5 & 91.0 & 72.0 \\
+      & \quad\quad + face attention & 15.5 & 90.7 & 71.9 \\
+      & \quad\quad\quad + copy mechanism \\
       \midrule
-      \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
+      \multirow{9}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
       & Ground Truths & 18.4 & 94.6 & 63.9 \\
-      & GloVe + LSTM  & 13.8 & 89.0 & 77.8 \\
-      & GloVe + Transformer  & 15.1 & 88.6 & 73.8 \\
-      & RoBERTa + LSTM  & 14.9 & 90.2 & 72.6 \\
-      & RoBERTa + Transformer  & 15.3 & 91.5 & 70.4 \\
-      & \quad + location-aware & 15.1 & 91.7 & 70.4  \\
-      & \quad\quad + faces & 15.2 & 91.6 & 70.5 \\
-      & \quad\quad\quad + copying \\
+      & LSTM + GloVe  & 13.8 & 89.0 & 77.8 \\
+      & Transformer + GloVe  & 15.1 & 88.6 & 73.8 \\
+      & LSTM + weighted RoBERTa  & 14.9 & 90.2 & 72.6 \\
+      \cmidrule{2-5}
+      & Transformer + RoBERTa \\
+      & \quad + weighted RoBERTa  & 15.3 & 91.5 & 70.4 \\
+      & \quad\quad + location-aware & 15.1 & 91.7 & 70.4  \\
+      & \quad\quad\quad + face attention & 15.2 & 91.6 & 70.5 \\
+      & \quad\quad\quad\quad + copy mechanism \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
