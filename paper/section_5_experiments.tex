@@ -46,49 +46,6 @@ dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
 
 \subsection{Results}
 
-\begin{table}[t]
-   \caption {Linguistic measures on the generated captions: caption length (CL),
-             type-token ratio (TTR), and Flesch readability ease (FRE).}
-	\label{tab:caption}
-	\centering
-	\begin{tabularx}{\linewidth}{llXXX}
-		\toprule
-       &  &  CL  & TTR & FRE \\
-      \midrule
-      \multirow{10}{*}{\rotatebox[origin=c]{90}{GoodNews}}
-      & Ground Truths & 18.1 & 94.9 & 65.4 \\
-      \cmidrule{2-5}
-      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews}  & 9.9 & 92.2 & 78.3 \\
-      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
-      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews}  & 9.2 &  \\
-      % Biten (Avg + AttIns) \cite{Biten2019GoodNews}  & 9.7 &  \\
-      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews}  & 9.0 &  \\
-      & Biten (TBB + AttIns) \cite{Biten2019GoodNews}  & 9.1 & 90.7 & 77.6 \\
-      \cmidrule{2-5}
-      & Transformer + RoBERTa \\
-      & LSTM + GloVe & 13.8 & 89.6 & 77.5 \\
-      & Transformer + GloVe & 15.5 & 88.5 & 73.9 \\
-      & LSTM + weighted RoBERTa &  &   \\
-      \cmidrule{2-5}
-      & \quad + weighted RoBERTa & 15.5 & 91.0 & 72.0 \\
-      & \quad\quad + face attention & 15.5 & 90.7 & 71.9 \\
-      & \quad\quad\quad + copy mechanism \\
-      \midrule
-      \multirow{9}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
-      & Ground Truths & 18.4 & 94.6 & 63.9 \\
-      & LSTM + GloVe  & 13.8 & 89.0 & 77.8 \\
-      & Transformer + GloVe  & 15.1 & 88.6 & 73.8 \\
-      & LSTM + weighted RoBERTa  & 14.9 & 90.2 & 72.6 \\
-      \cmidrule{2-5}
-      & Transformer + RoBERTa \\
-      & \quad + weighted RoBERTa  & 15.3 & 91.5 & 70.4 \\
-      & \quad\quad + location-aware & 15.1 & 91.7 & 70.4  \\
-      & \quad\quad\quad + face attention & 15.2 & 91.6 & 70.5 \\
-      & \quad\quad\quad\quad + copy mechanism \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
-
 \begin{figure*}[t]
    \begin{center}
    \fbox{\rule{0pt}{3in} \rule{.9\linewidth}{0pt}}
@@ -137,12 +94,12 @@ We can make the following observations:
 \end{itemize}
 
 
-Table \ref{tab:caption} look at the quality of the generated captions. We look
-at three metrics: caption length, type-token ratio (TTR), and Flesch reading
-ease. TTR is the ratio of the number of unique words to the total number of
-words in a caption. The Flesch reading ease takes into account the number of
-words and syllables and produces a score between 0 and 100, where higher means
-being easier to read.
+Table \ref{tab:names} also looks at the quality of the generated captions. We
+look at three metrics: caption length, type-token ratio (TTR), and Flesch
+reading ease. TTR is the ratio of the number of unique words to the total
+number of words in a caption. The Flesch reading ease takes into account the
+number of words and syllables and produces a score between 0 and 100, where
+higher means being easier to read.
 
 From these metrics, we see that our generated captions are in general still
 shorter than real-life captions, have lower lexical diversity (lower TTR)
