@@ -12,17 +12,15 @@ representation.
 
 For the image, we feed it through a pretrained ResNet-152 model
 \cite{He2016ResNet} and use the output of the final block, just before the
-pooling layer, as the image embedding $\bx_I \in \mathbb{R}^{2048 \times 49}$.
+pooling layer, as the image embedding $\bX_I \in \mathbb{R}^{2048 \times 49}$.
 The embedding forms a 7 by 7 block, allowing the transformer to attend to 49
 different patches in the image.
 
 \subsubsection{Article Embedding}
 
 For the article, we use RoBERTa \cite{Liu2019RoBERTaAR} to encode the text.
-RoBERTa is a language representation model that provides pretrained contextual
-embeddings for text. It consists of 24 layers of bidirectional transformer
-blocks. It is a more carefully trained BERT \cite{Devlin2019BERT} model.
-
+RoBERTa, a more carefully trained BERT \cite{Devlin2019BERT}, is a language
+representation model that provides pretrained contextual embeddings for text.
 Unlike GloVe \cite{Pennington2014Glove} and word2vec
 \cite{Mikolov2013DistributedRO} embeddings, where each word has exactly one
 representation, the bidirectionality and the attention mechanism in the
@@ -34,19 +32,6 @@ large, many rare names will still get mapped to the unknown token. In contrast,
 RoBERTa uses BPE \cite{Sennrich2015NeuralMT,Radford2019LanguageMA} which can
 encode any word that can be written in Unicode characters.
 
-Given an input of length $S$, the pretrained RoBERTa encoder will return 25
-sequences of embeddings, $\bg_i \in \mathbb{R}^{2048 \times S}$ for $i \in
-\{0,1, 2,...,24\}$. This includes the initial uncontextualized embeddings and
-the output of each of the 24 layers. Inspired by Tenney \etal
-\cite{Tenney2019BertRT}, who showed that different layers in BERT represent
-different steps in the traditional NLP pipeline, we take a weighted sum
-across all layers to obtain the article embedding:
-\begin{IEEEeqnarray*}{lCl}
-   \bx_T &=& \sum_{i=0}^{24} \alpha_i \bg_i
-\end{IEEEeqnarray*}
-where $\bx_T \in \mathbb{R}^{1024 \times S}$ is the article embedding
-and $\alpha_i$ are learnable weights.
-
 One limitation of RoBERTa is that the maximum length of the input sequence is
 512. For GoodNews, we simply encode the first 512 tokens of the article. For
 NYTimes800k, since we have the image position, we concatenate the title, the
@@ -55,13 +40,16 @@ fit, until we reach the 512 token limit. Note that since we are using BPE, a
 word might consist of many tokens. On average, we can only encode ...... words
 of the article.
 
+The RoBERTa encoder provides gives us the article embedding $\bX_T \in
+\mathbb{R}^{1024 \times S}$ where $S$ is the number of tokens.
+
 
 \subsubsection{Face Embedding}
 
 To embed the faces, we first use MTCNN \cite{Zhang2016JointFD} to detect the
 face bounding boxes. We then select the top $M$ faces and feed them through a
 FaceNet model \cite{Schroff2015FaceNetAU}, pretrained on the VGGFace2 dataset
-\cite{Cao2017VGGFace2AD}, to obtain a face embedding $\bx_F \in
+\cite{Cao2017VGGFace2AD}, to obtain a face embedding $\bX_F \in
 \mathbb{R}^{512 \times M}$ where $M$ is the number of faces.
 
 \subsection{Decoder}
@@ -122,6 +110,21 @@ $\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$.
 
 
 \subsection{Bag of Tricks}
+
+\subsubsection{Mixing RoBERTa layers}
+RoBERTa consists of 24 layers of bidirectional transformer blocks. Given an
+input of length $S$, the pretrained RoBERTa encoder will return 25 sequences of
+embeddings, $\bG_i \in \mathbb{R}^{2048 \times S}$ for $i \in \{0,1,
+2,...,24\}$. This includes the initial uncontextualized embeddings and the
+output of each of the 24 layers. Inspired by Tenney \etal
+\cite{Tenney2019BertRT}, who showed that different layers in BERT represent
+different steps in the traditional NLP pipeline, we take a weighted sum across
+all layers to obtain the article embedding:
+\begin{IEEEeqnarray*}{lCl}
+   \bX_T &=& \sum_{i=0}^{24} \alpha_i \bG_i
+\end{IEEEeqnarray*}
+where $\bx_T \in \mathbb{R}^{1024 \times S}$ is the article embedding
+and $\alpha_i$ are learnable weights.
 
 \subsubsection{Copying with Multi-headed Attention}
 
