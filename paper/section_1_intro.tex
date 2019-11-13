@@ -34,7 +34,7 @@ where news articles provide context to images.
 Captions for news images, such as the example in Figure~\ref{fig:teaser},
 typically contain details which cannot be derived from the image alone. They
 also frequently contain proper nouns such as names of people, places, and
-organisations -- in many cases these proper nouns are rare (most people and
+organizations -- in many cases these proper nouns are rare (most people and
 places do not have many news articles written about them). A system capable of
 generating high quality news captions should therefor make extensive use of the
 provided context and be tuned for generating rare proper nouns. Existing
@@ -42,8 +42,8 @@ approaches to news image captioning~\cite{Tariq2017ACE,
 Ramisa2016BreakingNewsAA,
 	Biten2019GoodNews}  rely on text extraction or
 template filling to deal with rare contextual terms such as names of people and
-organisations. This makes them relatively inflexibility and means they cannot
-be trained end-to-end. Moreover, existing approaches do not include specialised
+organizations. This makes them relatively inflexibility and means they cannot
+be trained end-to-end. Moreover, existing approaches do not include specialized
 visual models for frequent nouns -- experiments on the MSCOCO dataset have
 shown
 that pre-trained object detectors tuned for frequent nouns
@@ -141,7 +141,7 @@ vision systems.
 
 
 In this paper we carefully consider the news image captioning problem and
-select a set of modelling tools which we combine into a novel architecture that
+select a set of modeling tools which we combine into a novel architecture that
 sets a new state-of-the-art result. Our main contributions are threefold:
 
 \eat{The goal of this paper is to make use of these recent developments, along
@@ -157,10 +157,11 @@ for news images.}
    such as the location of an image within the page.
 
    \item We build a captioning model that combines the power of transformers,
-   byte-pair encoding, and attention over three different modalities (text,
-   images, and faces). We show that our model achieves state-of-the-art results
-   with a significant margin over previous methods, and in particular, it can
-   generate names not seen during training without the use of templates.
+   byte-pair encoding, copying via multi-headed attention, and attention over
+   three different modalities (text, images, and faces). We show that our model
+   achieves state-of-the-art results with a significant margin over previous
+   methods, and in particular, it can generate names not seen during training
+   without the use of templates.
 
    \item We provide a detailed model analysis, deconstructing the most
    important modeling components and quantifying the incremental contribution

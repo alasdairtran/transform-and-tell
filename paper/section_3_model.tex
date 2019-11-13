@@ -123,6 +123,11 @@ $\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$.
 
 \subsection{Bag of Tricks}
 
+\subsubsection{Copying with Multi-headed Attention}
+
+Inspired by pointer-generator networks \cite{See2017GetTT}, we introduce
+a copying mechanism using multi-headed attention.
+
 \subsubsection{Adaptive Softmax}
 
 The BPE vocabulary size is 50265. To make training more efficient, we use adaptive softmax
