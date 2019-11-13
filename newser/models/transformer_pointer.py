@@ -503,6 +503,8 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
 
         Xs = []
 
+        copied_indices_full = caption_ids.new_full((B, 1), -1)
+
         for i in range(gen_len):
             if i == 0:
                 prev_target = {self.index: seed_input}
@@ -651,6 +653,23 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
 
             selected_copy_index = selected_copy_index.unsqueeze(1)
             # selected_copy_index.shape == [batch_size, 1]
+
+            selection = selected_copy_index.expand_as(
+                copied_indices_full[full_active_idx])
+            # selected_copy_index.shape == [batch_size_i, 1]
+
+            has_copied = (
+                selection == copied_indices_full[full_active_idx]).any(dim=1)
+            # has_copied.shape == [batch_size_i]
+
+            should_copy = should_copy & (~has_copied)
+            # should_copy.shape == [batch_size_i]
+
+            copied_indices = selected_copy_index.new_full((B, 1), -1)
+            copied_indices[full_active_idx.nonzero().squeeze(1)[should_copy]] = \
+                selected_copy_index[should_copy]
+            copied_indices_full = torch.cat(
+                [copied_indices_full, copied_indices], dim=1)
 
             copy_prob = selected_copy_prob.new_zeros(B, 1)
             copy_prob[full_active_idx] = selected_copy_prob
