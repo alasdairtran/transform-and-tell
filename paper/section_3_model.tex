@@ -44,17 +44,17 @@ RoBERTa uses BPE \cite{Sennrich2015NeuralMT,Radford2019LanguageMA} which can
 encode any word that can be written in Unicode characters.
 
 Given an input of length $S$, the pretrained RoBERTa encoder will return 25
-sequences of embeddings, $\bm{h}_i \in \mathbb{R}^{2048 \times S}$ for $i \in
+sequences of embeddings, $\bg_i \in \mathbb{R}^{2048 \times S}$ for $i \in
 \{0,1, 2,...,24\}$. This includes the initial uncontextualized embeddings and
 the output of each of the 24 layers. Inspired by Tenney \etal
 \cite{Tenney2019BertRT}, who showed that different layers in BERT represent
 different steps in the traditional NLP pipeline, we take a weighted sum
 across all layers to obtain the article embedding:
 \begin{IEEEeqnarray*}{lCl}
-   \bx_T &=& \sum_{i=0}^{24} w_i \bm{h}_i
+   \bx_T &=& \sum_{i=0}^{24} \alpha_i \bg_i
 \end{IEEEeqnarray*}
 where $\bx_T \in \mathbb{R}^{1024 \times S}$ is the article embedding
-and $w_i$ are learnable weights.
+and $\alpha_i$ are learnable weights.
 
 One limitation of RoBERTa is that the maximum length of the input sequence is
 512. For GoodNews, we simply encode the first 512 tokens of the article. For
@@ -79,8 +79,42 @@ The decoder is a function that estimates $p(y_t)$, the probability of the next
 token, conditional on the past and the context embeddings $\bx_I$, $\bx_T$, and
 $\bx_F$:
 \begin{IEEEeqnarray*}{lCl}
-   p(y_t) &=& \mathbb{P}(Y_t = y_t | y_{<t}, \bx_I, \bx_T, \bx_F)
+   p(y_t) &=& \mathbb{P}(Y_t = y_t \mid \by_{<t}, \bx_I, \bx_T, \bx_F)
 \end{IEEEeqnarray*}
+In our architecture, the decoder consists of four layers of transformer blocks.
+In each block, the conditioning on past tokens is computed using dynamic
+convolutions \cite{Wu2018PayLA}, and the conditioning on the contexts is
+computed using Scalar-Dot-Product attention \cite{Vaswani2017AttentionIA}.
+
+
+\subsubsection{Scalar-Dot-Product Attention}
+
+Let $\bh_t$ be the current hidden state. We first do a linear projection of
+$\bh_t$ and the image embedding $\bx_I$ into a query, key, and value, so that
+all three have the same dimension:
+\begin{IEEEeqnarray*}{lCl}
+   \bq_T &=& W_{Iq} \, \bh_t \\
+   \bk_T &=& W_{Ik} \, \bx_I \\
+   \bv_T &=& W_{Iv} \, \bx_I
+\end{IEEEeqnarray*}
+Then the attended image $\bx_I'$ is the weighted sum of the values, where the weights are
+obtained from the dot product between the key and value:
+\begin{IEEEeqnarray*}{lCl}
+   \bx_I' &=& \text{softmax}\left( \bq \bk^T \right) \bv
+\end{IEEEeqnarray*}
+We use the same attention mechanism to obtain the attended article $\bx_T'$
+and the attended face $\bx_F'$. These three are then concatenated and fed
+through a feedforward layer:
+\begin{IEEEeqnarray*}{lCl}
+   \bx_C' &=& [\bx_I', \bx_T', \bx_F'] \\
+   \bx_O &=& \text{LayerNorm}(X_C + W_O \, \text{ReLU}(W_C \, \bx_C' + \bb_C) + \bb_O)
+\end{IEEEeqnarray*}
+
+For each generation step, we use the Scalar-Dot-Product attention
+\cite{Vaswani2017AttentionIA} to attend to the image, article, and faces. All
+of the three attended representations are then concatenated and fed as input to
+the self-attention layer.
+
 
 
 \subsubsection{Dynamic Convolutions}
@@ -93,20 +127,7 @@ than using the current state-of-the-art GPT-2 architecture
 
 In the standard self-attention module, the input embedding $\bx \in
 \mathbb{R}^{1024}$ is first projected linearly into a query, key, and value
-$\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$. Then the attention is the
-weighted sum of the values, where the weights are obtained from the dot product
-between the key and value:
-\begin{IEEEeqnarray*}{lCl}
-   \text{Attention}(\bx) &=&
-   \text{softmax}\left( \dfrac{\bm{q} \bm{k}^T}{\sqrt{d_K}} \right) \bm{v}
-\end{IEEEeqnarray*}
-
-\subsubsection{Encoder Attention}
-
-For each generation step, we use the Scalar-Dot-Product attention
-\cite{Vaswani2017AttentionIA} to attend to the image, article, and faces. All
-of the three attended representations are then concatenated and fed as input to
-the self-attention layer.
+$\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$.
 
 
 \subsection{Bag of Tricks}
