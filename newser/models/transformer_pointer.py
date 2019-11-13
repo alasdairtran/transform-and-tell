@@ -167,6 +167,9 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
 
         loss = entity_loss + copy_loss
 
+        if not loss.requires_grad:
+            loss = None
+
         if not torch.isnan(gen_loss):
             self.batch_history['gen_loss'] += gen_loss.item()
         if not torch.isnan(entity_loss):

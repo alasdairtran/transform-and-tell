@@ -128,7 +128,7 @@ trainer:
     type: bert_adam
     lr: 0.0001
     warmup: 0.05
-    t_total: 87520 # Takees 43m to go through 4376 batches per epoch
+    t_total: 65640 # Takees 43m to go through 4376 batches per epoch
     schedule: warmup_linear
     b1: 0.9
     b2: 0.98
@@ -155,7 +155,7 @@ trainer:
     - ^decoder.layers.(0|1|2|3)
     - ^decoder.adaptive_softmax
     - ^bert_weight$
-  num_epochs: 20
+  num_epochs: 15
   shuffle: true
   cuda_device: 0
   callbacks:
