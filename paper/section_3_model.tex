@@ -11,9 +11,7 @@
    \label{fig:short}
 \end{figure*}
 
-Our model takes an article text and an image to produce a caption.
-
-\subsection{Model Inputs}
+\subsection{Encoders}
 
 Our proposed model takes three inputs: the image, the faces, and article text.
 Each of these inputs first goes through an encoder to give us a vector
@@ -23,7 +21,7 @@ representation.
 
 For the image, we feed it through a pretrained ResNet-152 model
 \cite{He2016ResNet} and use the output of the final block, just before the
-pooling layer, as the image embedding $\bm{x}_I \in \mathbb{R}^{2048 \times 7
+pooling layer, as the image embedding $\bx_I \in \mathbb{R}^{2048 \times 7
 \times 7}$. The embedding forms a 7 by 7 block, allowing the transformer to
 attend to 49 different patches in the image.
 
@@ -53,9 +51,9 @@ the output of each of the 24 layers. Inspired by Tenney \etal
 different steps in the traditional NLP pipeline, we take a weighted sum
 across all layers to obtain the article embedding:
 \begin{IEEEeqnarray*}{lCl}
-   \bm{x}_T &=& \sum_{i=0}^{24} w_i \bm{h}_i
+   \bx_T &=& \sum_{i=0}^{24} w_i \bm{h}_i
 \end{IEEEeqnarray*}
-where $\bm{x}_T \in \mathbb{R}^{1024 \times S}$ is the article embedding
+where $\bx_T \in \mathbb{R}^{1024 \times S}$ is the article embedding
 and $w_i$ are learnable weights.
 
 One limitation of RoBERTa is that the maximum length of the input sequence is
@@ -63,8 +61,8 @@ One limitation of RoBERTa is that the maximum length of the input sequence is
 NYTimes800k, since we have the image position, we concatenate the title, the
 first paragraph, and as many paragraphs above and below the image as we can
 fit, until we reach the 512 token limit. Note that since we are using BPE, a
-token can be part of a word. On average, we can only encode ...... words of
-the article.
+word might consist of many tokens. On average, we can only encode ...... words
+of the article.
 
 
 \subsubsection{Face Embedding}
@@ -72,10 +70,18 @@ the article.
 To embed the faces, we first use MTCNN \cite{Zhang2016JointFD} to detect the
 face bounding boxes. We then select the top $M$ faces and feed them through a
 FaceNet model \cite{Schroff2015FaceNetAU}, pretrained on the VGGFace2 dataset
-\cite{Cao2017VGGFace2AD}, to obtain a face embedding $\bm{x}_F \in
+\cite{Cao2017VGGFace2AD}, to obtain a face embedding $\bx_F \in
 \mathbb{R}^{512 \times M}$ where $M$ is the number of faces.
 
 \subsection{Decoder}
+
+The decoder is a function that estimates $p(y_t)$, the probability of the next
+token, conditional on the past and the context embeddings $\bx_I$, $\bx_T$, and
+$\bx_F$:
+\begin{IEEEeqnarray*}{lCl}
+   p(y_t) &=& \mathbb{P}(Y_t = y_t | y_{<t}, \bx_I, \bx_T, \bx_F)
+\end{IEEEeqnarray*}
+
 
 \subsubsection{Dynamic Convolutions}
 
@@ -85,13 +91,13 @@ found that using dynamic convolutions allows the training to converge faster
 than using the current state-of-the-art GPT-2 architecture
 \cite{Radford2019LanguageMA}.
 
-In the standard self-attention module, the input embedding $\bm{x} \in
+In the standard self-attention module, the input embedding $\bx \in
 \mathbb{R}^{1024}$ is first projected linearly into a query, key, and value
 $\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$. Then the attention is the
 weighted sum of the values, where the weights are obtained from the dot product
 between the key and value:
 \begin{IEEEeqnarray*}{lCl}
-   \text{Attention}(\bm{x}) &=&
+   \text{Attention}(\bx) &=&
    \text{softmax}\left( \dfrac{\bm{q} \bm{k}^T}{\sqrt{d_K}} \right) \bm{v}
 \end{IEEEeqnarray*}
 
