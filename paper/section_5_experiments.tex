@@ -11,9 +11,9 @@ parameters: $\beta_1 = 0.9, \beta_2 = 0.98, \epsilon = 10^{-6}$, and a weight
 decay of $10^{-5}$. We clip the gradient norm at 0.1. All models see the same
 number of training examples, which is 6.6 million. This is equivalent to 16
 epochs through GoodNews and 9 epochs through NYTimes800k. We warm up the
-learning rate in the first 5\% of the training steps to $10^{-4}$, and
-afterward decays it linearly. Training the full model takes 5 days on one Titan
-V GPU.
+learning rate in the first 5\% of the training steps to $10^{-4}$, and decays
+it linearly afterwards. Training is done with mixed precision to reduce the
+memory footprint. The full model takes 5 days to train on one Titan V GPU.
 
 As shown in Table \ref{tab:models}, all of our baselines are designed to have
 roughly the same number of trainable parameters. This allows us to attribute
@@ -39,7 +39,7 @@ dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
       Transformer + RoBERTa & 154M \\
       \quad + weighted RoBERTa & 154M \\
       \quad\quad + face attention & 171M \\
-      \quad\quad\quad + copy mechanism & 207M \\
+      \quad\quad\quad + copying & 207M \\
 		\bottomrule
 	\end{tabularx}
 \end{table}

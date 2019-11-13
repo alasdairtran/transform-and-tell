@@ -12,9 +12,9 @@ representation.
 
 For the image, we feed it through a pretrained ResNet-152 model
 \cite{He2016ResNet} and use the output of the final block, just before the
-pooling layer, as the image embedding $\bx_I \in \mathbb{R}^{2048 \times 7
-\times 7}$. The embedding forms a 7 by 7 block, allowing the transformer to
-attend to 49 different patches in the image.
+pooling layer, as the image embedding $\bx_I \in \mathbb{R}^{2048 \times 49}$.
+The embedding forms a 7 by 7 block, allowing the transformer to attend to 49
+different patches in the image.
 
 \subsubsection{Article Embedding}
 
@@ -84,9 +84,9 @@ Let $\bh_t$ be the current hidden state. We first do a linear projection of
 $\bh_t$ and the image embedding $\bx_I$ into a query, key, and value, so that
 all three have the same dimension:
 \begin{IEEEeqnarray*}{lCl}
-   \bq_T &=& W_{Iq} \, \bh_t \\
-   \bk_T &=& W_{Ik} \, \bx_I \\
-   \bv_T &=& W_{Iv} \, \bx_I
+   \bq_T &=& \bW_{Iq} \, \bh_t \\
+   \bk_T &=& \bW_{Ik} \, \bx_I \\
+   \bv_T &=& \bW_{Iv} \, \bx_I
 \end{IEEEeqnarray*}
 Then the attended image $\bx_I'$ is the weighted sum of the values, where the weights are
 obtained from the dot product between the key and value:
@@ -98,7 +98,7 @@ and the attended face $\bx_F'$. These three are then concatenated and fed
 through a feedforward layer:
 \begin{IEEEeqnarray*}{lCl}
    \bx_C' &=& [\bx_I', \bx_T', \bx_F'] \\
-   \bx_O &=& \text{LayerNorm}(X_C + W_O \, \text{ReLU}(W_C \, \bx_C' + \bb_C) + \bb_O)
+   \bx_O &=& \text{LayerNorm}(X_C + \bW_O \, \text{ReLU}(\bW_C \, \bx_C' + \bb_C) + \bb_O)
 \end{IEEEeqnarray*}
 
 For each generation step, we use the Scalar-Dot-Product attention
