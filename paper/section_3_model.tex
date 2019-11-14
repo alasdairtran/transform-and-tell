@@ -27,9 +27,9 @@ encoders pre-trained on data from the matching domain.
 A high level image representation is obtained with a
 ResNet-152~\cite{He2016ResNet} model pre-trained on ImageNet. We use the output
 of the final block before the pooling layer as the image representation. This
-is a set of 49 different vectors $\bx_{I,i} \in \mathbb{R}^{2048}$ where each
+is a set of 49 different vectors $\bx_{Ii} \in \mathbb{R}^{2048}$ where each
 vector corresponds to a separate image patch after the image is divided into
-equal size 7 by 7 patches. Using this representation $\bX_I = \{\bx_{I,i} \in
+equal size 7 by 7 patches. Using this representation $\bX_I = \{\bx_{Ii} \in
 \mathbb{R}^{2048}\}_{i=1}^{49}$ allows the decoder to attend different regions
 in the image---a modeling choice that has proven useful in other image
 captioning tasks~\cite{Xu2015ShowAA}.
@@ -37,11 +37,12 @@ captioning tasks~\cite{Xu2015ShowAA}.
 \subsubsection{Face Encoder}
 
 We use MTCNN~\cite{Zhang2016JointFD} to detect face bounding boxes in the
-image. We then select the largest four faces (see \ref{ssec:nytimes800k}). A
-vector representation of each face is obtained by passing the bounding boxes to
+image. We then select the largest four faces since the majority of captions
+have at most four personal names (see \ref{ssec:nytimes800k}). A vector
+representation of each face is obtained by passing the bounding boxes to
 FaceNet~\cite{Schroff2015FaceNetAU}, which was pre-trained on the VGGFace2
 dataset~\cite{Cao2017VGGFace2AD}. The resulting set of face vectors for each
-image is $\bx_{F} = \{\bx_{F,i} \in \mathbb{R}^{512}\}_{i=1}^4$.
+image is $\bx_{F} = \{\bx_{Fi} \in \mathbb{R}^{512}\}_{i=1}^4$.
 
 Even though the faces are extracted from the image it is useful to consider
 them as an input domain that is separate to the image. This is because
@@ -85,8 +86,7 @@ word might consist of many tokens. On average, \verify{we can only encode
 ...... words of the article.}
 
 The RoBERTa encoder provides gives us the set of token embeddings $\bX_{T} =
-\{\bx_{T,i} \in \mathbb{R}^{1024}\}_{i=1}^S$, where $S$ is the number of
-tokens.
+\{\bx_{Ti} \in \mathbb{R}^{1024}\}_{i=1}^S$, where $S$ is the number of tokens.
 
 
 \subsection{Decoder}
@@ -97,10 +97,10 @@ embeddings $\bX_I$, $\bX_T$, and $\bX_F$:
 \begin{IEEEeqnarray*}{lCl}
    p(y_t) &=& \mathbb{P}(Y_t = y_t \mid \by_{<t}, \bX_I, \bX_T, \bX_F)
 \end{IEEEeqnarray*}
-In our architecture, the decoder consists of four layers of transformer blocks.
-In each block, the conditioning on past tokens is computed using dynamic
-convolutions \cite{Wu2018PayLA}, and the conditioning on the contexts is
-computed using multi-head attention \cite{Vaswani2017AttentionIA}.
+In our architecture, the decoder consists of four transformer blocks. In each
+block, the conditioning on past tokens is computed using dynamic convolutions
+\cite{Wu2018PayLA}, and the conditioning on the contexts is computed using
+multi-head attention \cite{Vaswani2017AttentionIA}.
 
 
 \subsubsection{Dynamic Convolutions}
@@ -119,12 +119,12 @@ using a feedforward layer:
 \end{IEEEeqnarray*}
 where $j \in \{0,1,...,K-1\}$, GLU is the gated linear unit activation
 function~\cite{Dauphin2017GLU}, and $\bz_{\ell,h,t-j}' \in \mathbb{R}^{64}$.
-The output of the dynamic convolution of each head is simply the weighted sum
-of these projected values:
+The output of each head's dynamic convolution is the weighted sum of these
+projected values:
 \begin{IEEEeqnarray*}{lCl}
    \tz_{\ell h t} &=& \sum_{j=0}^{K-1} \gamma_{\ell hj} \, \bz_{\ell, h, t-j}'
 \end{IEEEeqnarray*}
-where the weights $\gamma_{\ell hj}$ is a linear projection of the input,
+where the weight $\gamma_{\ell hj}$ is a linear projection of the input,
 followed by a softmax over the kernel window:
 \begin{IEEEeqnarray*}{lCl}
    \gamma_{\ell hj} &=& \text{Softmax} \left( \bw^T_{\gamma \ell h} \,
@@ -139,19 +139,20 @@ a feedforward with a residual connection and layer normalization:
 \end{IEEEeqnarray*}
 Note that given kernel size $K$, we can attend to the current time step and the
 last $K-1$ steps. Following closely to \cite{Wu2018PayLA}, our decoder has 4
-layers with kernel sizes 3, 7, 15, and 31, respectively. Thus the final layer
-output will have collected information from the last 51 tokens.
+transformer blocks with kernel sizes 3, 7, 15, and 31, respectively. Thus the
+final block output will have collected information from the last 51 tokens.
 
 \subsubsection{Multi-Head Attention}
+\label{ssection:attn}
 
-Let $\bd_{\ell t} \in \mathbb{R}^{1024}$ be the output of the dynamic
-convolution. We now attend over the image context using multi-head attention,
-also with 16 heads. For each head $h \in \{1, 2, ..., 16\}$, we first do a
-linear projection of $\bd_{\ell t}$ and the image embeddings $\bX_I$ into a
-query $\bq_{I \ell h t} \in \mathbb{R}^{64}$, a set of keys $\bK_{I \ell h t} =
-\{\bk_{I \ell h t i} \in \mathbb{R}^{64} \}_{i=1}^{49}$, and the corresponding
-values $\bV_{I \ell h t} = \{ \bv_{I \ell h t i} \in \mathbb{R}^{64}
-\}_{i=1}^{49}$:
+Given $\bd_{\ell t} \in \mathbb{R}^{1024}$, the output of the dynamic
+convolution at layer $\ell$, we can now attend over the image context using
+multi-head attention, also with 16 heads. For each head $h \in \{1, 2, ...,
+16\}$, we first do a linear projection of $\bd_{\ell t}$ and the image
+embeddings $\bX_I$ into a query $\bq_{I \ell h t} \in \mathbb{R}^{64}$, a set
+of keys $\bK_{I \ell h t} = \{\bk_{I \ell h t i} \in \mathbb{R}^{64}
+\}_{i=1}^{49}$, and the corresponding values $\bV_{I \ell h t} = \{ \bv_{I \ell
+h t i} \in \mathbb{R}^{64} \}_{i=1}^{49}$:
 \begin{IEEEeqnarray*}{lCl}
    \bq_{I\ell ht} &=& \bW_{I \ell h q} \, \bd_{\ell t} \\
    \bk_{I\ell h i} &=& \bW_{I \ell h k} \, \bx_{I i}
@@ -162,9 +163,9 @@ values $\bV_{I \ell h t} = \{ \bv_{I \ell h t i} \in \mathbb{R}^{64}
 Then the attended image for each head is the weighted sum of the values, where
 the weights are obtained from the dot product between the query and key:
 \begin{IEEEeqnarray*}{lCl}
+   \lambda_{I \ell h i} &=&\text{softmax}\left(\bk_{I\ell h i}^T \bq_{I \ell ht} \right)\\
    \bx'_{I \ell h t} &=& \sum_{i = 1}^{49}
-      \text{softmax}\left(\bk_{I\ell h i}^T \, \bq_{I \ell ht} \right)
-      \bv_{I \ell h i}
+      \lambda_{I \ell h i} \, \bv_{I \ell h i}
 \end{IEEEeqnarray*}
 The attention from each head is then concatenated into $\bx'_{I\ell t} \in
 \mathbb{R}^{1024}$:
@@ -176,9 +177,10 @@ after adding a residual connection and layer normalization:
 \begin{IEEEeqnarray*}{lCl}
    \tx_{I \ell t} &=& \text{LayerNorm}(\bd_{\ell t} + \bx'_{I\ell t})
 \end{IEEEeqnarray*}
-We use the same attention mechanism (with different weight matrices) to obtain
-the attended article $\tx_{T \ell}$ and the attended face $\tx_{F \ell}$. These
-three are finally concatenated and fed through a feedforward layer:
+We use the same multi-head attention mechanism (with different weight matrices)
+to obtain the attended article $\tx_{T \ell}$ and the attended face $\tx_{F
+\ell}$. These three are finally concatenated and fed through a feedforward
+layer:
 \begin{IEEEeqnarray*}{lCl}
    \tx_{C \ell t} &=& [\tx_{I \ell}, \tx_{T \ell t}, \tx_{F \ell}] \\
    \tx_{R \ell t} &=& \bW_{C \ell} \, \tx_{C \ell t} + \bb_{C \ell} \\
@@ -210,13 +212,18 @@ and $\alpha_i$ are learnable weights.
 
 \subsubsection{Copying with Multi-headed Attention}
 
-Inspired by pointer-generator networks \cite{See2017GetTT}, we introduce
-a copying mechanism using multi-headed attention.
+Inspired by pointer-generator networks \cite{See2017GetTT}, we introduce a
+copying mechanism using multi-head attention. We use the final layer output
+$\bz_{5t}$ and the article embeddings $\bX_T$ as inputs to the multi-head
+attention module. Unlike \ref{ssection:attn}, we only need to compute the
+softmax weights $\lambda_i$ (and not the weighted sum of the values). We
+interpret each $\lambda_i$ as the probability of copying $i$th token in the
+article.
 
 \subsubsection{Adaptive Softmax}
 
-The BPE vocabulary size is 50265. To make training more efficient, we use adaptive softmax
-\cite{Grave2016EfficientSA} and divide the vocabulary into three clusters: 5K,
-15K, and 25K. We tie the adaptive weights and we share the decoder input and
-output embeddings. We use sinusoidal positional encoding
+The decoder BPE vocabulary size is 50265. To make training more efficient, we
+use adaptive softmax \cite{Grave2016EfficientSA} and divide the vocabulary into
+three clusters: 5K, 15K, and 25K. We tie the adaptive weights and we share the
+decoder input and output embeddings. We use sinusoidal positional encoding
 \cite{Vaswani2017AttentionIA} to represent the position of each token.
