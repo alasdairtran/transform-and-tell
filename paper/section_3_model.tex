@@ -198,17 +198,16 @@ to compute the logits over the token vocabulary.
 \subsubsection{Mixing RoBERTa layers}
 RoBERTa consists of 24 layers of bidirectional transformer blocks. Given an
 input of length $S$, the pretrained RoBERTa encoder will return 25 sequences of
-embeddings, $\bG_i \in \mathbb{R}^{2048 \times S}$ for $i \in \{0,1,
-2,...,24\}$. This includes the initial uncontextualized embeddings and the
-output of each of the 24 layers. Inspired by Tenney \etal
-\cite{Tenney2019BertRT}, who showed that different layers in BERT represent
-different steps in the traditional NLP pipeline, we take a weighted sum across
-all layers to obtain the article embedding:
+embeddings, $\bG = \{\bg_{\ell i} \in \mathbb{R}^{2048} : i \in \{1, 2,...,
+49\}, \ell \in \{ 0, 1,..., 24 \}\}$. This includes the initial
+uncontextualized embeddings and the output of each of the 24 layers. Inspired
+by Tenney \etal \cite{Tenney2019BertRT}, who showed that different layers in
+BERT represent different steps in the traditional NLP pipeline, we take a
+weighted sum across all layers to obtain the article embedding $\bx_{Ti}$:
 \begin{IEEEeqnarray*}{lCl}
-   \bX_T &=& \sum_{i=0}^{24} \alpha_i \bG_i
+   \bx_{Ti} &=& \sum_{\ell=0}^{24} \alpha_\ell \, \bg_{\ell i}
 \end{IEEEeqnarray*}
-where $\bx_T \in \mathbb{R}^{1024 \times S}$ is the article embedding
-and $\alpha_i$ are learnable weights.
+where  $\alpha_\ell$ are learnable weights.
 
 \subsubsection{Copying with Multi-headed Attention}
 
