@@ -55,58 +55,72 @@ FaceNet model \cite{Schroff2015FaceNetAU}, pretrained on the VGGFace2 dataset
 \subsection{Decoder}
 
 The decoder is a function that estimates $p(y_t)$, the probability of the next
-token, conditional on the past and the context embeddings $\bx_I$, $\bx_T$, and
-$\bx_F$:
+token, conditional on the past $\by_{<t}$ and the context embeddings $\bX_I$,
+$\bX_T$, and $\bX_F$:
 \begin{IEEEeqnarray*}{lCl}
-   p(y_t) &=& \mathbb{P}(Y_t = y_t \mid \by_{<t}, \bx_I, \bx_T, \bx_F)
+   p(y_t) &=& \mathbb{P}(Y_t = y_t \mid \by_{<t}, \bX_I, \bX_T, \bX_F)
 \end{IEEEeqnarray*}
 In our architecture, the decoder consists of four layers of transformer blocks.
 In each block, the conditioning on past tokens is computed using dynamic
 convolutions \cite{Wu2018PayLA}, and the conditioning on the contexts is
-computed using Scalar-Dot-Product attention \cite{Vaswani2017AttentionIA}.
+computed using multi-head attention \cite{Vaswani2017AttentionIA}.
 
 
-\subsubsection{Scalar-Dot-Product Attention}
+\subsubsection{Multi-Head Attention}
 
-Let $\bh_t$ be the current hidden state. We first do a linear projection of
-$\bh_t$ and the image embedding $\bx_I$ into a query, key, and value, so that
-all three have the same dimension:
+Let $\bh_t \in \mathbb{R}^{1024}$ be the current hidden state when decoding the
+$t$th token. We divide the embedding dimension into 16 attention heads, each
+with size 64. For each head $i \in \{1, 2, ..., 16\}$, we first do a linear
+projection of $\bh_t$ and the image embedding $\bX_I$ into a query $\bq_{It}
+\in \mathbb{R}^{64}$, key $\bK_I \in \mathbb{R}^{64 \times 49}$, and value
+$\bV_I \in \mathbb{R}^{64 \times 49}$:
 \begin{IEEEeqnarray*}{lCl}
-   \bq_T &=& \bW_{Iq} \, \bh_t \\
-   \bk_T &=& \bW_{Ik} \, \bx_I \\
-   \bv_T &=& \bW_{Iv} \, \bx_I
+   \bq_{Iit} &=& \bW_{Iiq} \, \bh_t \\
+   \bK_{Ii} &=& \bW_{Iik} \, \bX_I \\
+   \bV_{Ii} &=& \bW_{Iiv} \, \bX_I
 \end{IEEEeqnarray*}
-Then the attended image $\bx_I'$ is the weighted sum of the values, where the weights are
-obtained from the dot product between the key and value:
+Then the attended image for each head $\bx'_{Ii} \in \mathbb{R}^{64}$ is the
+weighted sum of the values, where the weights are obtained from the dot product
+between the query and key:
 \begin{IEEEeqnarray*}{lCl}
-   \bx_I' &=& \text{softmax}\left( \bq \bk^T \right) \bv
+   \bx'_{Ii} &=& \text{softmax}\left(\bK_{Ii}^T \bq_{Iit} \right) \bV_{Ii}
 \end{IEEEeqnarray*}
-We use the same attention mechanism to obtain the attended article $\bx_T'$
-and the attended face $\bx_F'$. These three are then concatenated and fed
-through a feedforward layer:
+The attention from each head is then concatenated into $\bx'_{I} \in
+\mathbb{R}^{1024}$:
 \begin{IEEEeqnarray*}{lCl}
-   \bx_C' &=& [\bx_I', \bx_T', \bx_F'] \\
-   \bx_O &=& \text{LayerNorm}(X_C + \bW_O \, \text{ReLU}(\bW_C \, \bx_C' + \bb_C) + \bb_O)
+   \bx'_{I} &=& [\tx_{I1}, \tx_{I2}, ..., \tx_{I16}]
 \end{IEEEeqnarray*}
-
-For each generation step, we use the Scalar-Dot-Product attention
-\cite{Vaswani2017AttentionIA} to attend to the image, article, and faces. All
-of the three attended representations are then concatenated and fed as input to
-the self-attention layer.
-
-
+and the overall image attention $\tx_{I} \in \mathbb{R}^{1024}$ is obtained
+after adding a residual connection and layer normalization:
+\begin{IEEEeqnarray*}{lCl}
+   \tx_{I} &=& \text{LayerNorm}(\bh_t + \bx'_{I})
+\end{IEEEeqnarray*}
+We use the same attention mechanism (with different weight matrices) to obtain
+the attended article $\tx_T$ and the attended face $\tx_F$. These three are
+then concatenated and fed through a feedforward layer:
+\begin{IEEEeqnarray*}{lCl}
+   \tx_C &=& [\tx_I, \tx_T, \tx_F] \\
+   \tx_R &=& \bW_C \, \tx_C + \bb_C \\
+   \tx_D &=& \text{ReLU}(\bW_R \, \tx_R + \bb_R )\\
+   \tx_E &=& \text{LayerNorm}(\tx_R + \bW_D \, \tx_D + \bb_D)
+\end{IEEEeqnarray*}
+The final output $\tx_E \in \mathbb{R}^{1024}$ is used as the input to the
+next transformer block.
 
 \subsubsection{Dynamic Convolutions}
 
-Our decoder is a transformer architecture with dynamic convolutions
-\cite{Wu2018PayLA} containing four layers with kernel sizes 3, 7, 15 and 31. We
-found that using dynamic convolutions allows the training to converge faster
-than using the current state-of-the-art GPT-2 architecture
-\cite{Radford2019LanguageMA}.
+Instead of using the standard self-attention module as in current
+state-of-the-art GPT-2 architecture \cite{Radford2019LanguageMA}, we find that
+dynamic convolutions \cite{Wu2018PayLA} are more efficient to train, especially
+when there is limited GPU compute power.
 
-In the standard self-attention module, the input embedding $\bx \in
-\mathbb{R}^{1024}$ is first projected linearly into a query, key, and value
-$\bm{q}, \bm{k}, \bm{v} \in \mathbb{R}^{1024}$.
+Given an input $\bz_t \in \mathbb{R}^{1024}$, which can either be the input
+embedding of the previous token, or the output from the previous transformer
+block, we first use a feedforward layer with a gated linear unit (GLU)
+\cite{Dauphin2017GLU} as the activation function:
+\begin{IEEEeqnarray*}{lCl}
+   \bz_t' &=& \text{GLU}(\bW_Z \, \bz_t + \bb_Z)
+\end{IEEEeqnarray*}
 
 
 \subsection{Bag of Tricks}
