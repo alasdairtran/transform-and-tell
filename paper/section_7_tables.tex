@@ -29,7 +29,7 @@
       & Transformer + RoBERTa \\
       & \quad + weighted RoBERTa & 22.2 & 13.4 & 8.68 & 5.99 & 21.2 & 10.1 & 52.9 \\ % Final
       & \quad\quad + face attention & 22.4 & 13.6 & 8.84 & 6.10 & 21.3 & 10.3 & 53.9 \\ % Final
-      & \quad\quad\quad + copying \\
+      & \quad\quad\quad + copying & \textbf{24.2} & \textbf{14.5} & \textbf{9.24} & \textbf{6.22} & \textbf{22.6} & \textbf{11.5} & \textbf{60.6} \\ % Final
       \midrule
       \midrule
       \multirow{8}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
@@ -41,7 +41,7 @@
       & \quad + weighted RoBERTa & 20.7 & 12.4 & 8.14 & 5.73 & 19.8 & 9.54 & 44.1 \\ % Final
       & \quad\quad + location-aware & 21.7 & 13.3 & 8.84 & 6.25 & 21.3 & 10.3 & 52.4 \\ % Final
       & \quad\quad\quad + face attention & 22.1 & 13.6 & 9.05 & 6.41 & 21.7 & 10.4 & 54.7 \\ % Final
-      & \quad\quad\quad\quad + copying \\
+      & \quad\quad\quad\quad + copying & \textbf{24.3} & \textbf{15.2} & \textbf{10.0} & \textbf{7.03} & \textbf{23.7} & \textbf{12.0} & \textbf{65.3} \\
       \bottomrule
 	\end{tabularx}
 \end{table*}
@@ -81,7 +81,7 @@
       & Transformer + RoBERTa & & & & & -- & -- \\
       & \quad + weighted RoBERTa & 18.4 & 21.6 & 22.4 & 28.1 & -- & -- & 15.5 & 91.0 & 72.0 \\
       & \quad\quad + face attention & 18.7 & 22.1 & 23.2 & 29.2 & -- & -- & 15.5 & 90.7 & 71.9 \\
-      & \quad\quad\quad + copying & & & & & -- & --\\
+      & \quad\quad\quad + copying & \textbf{22.5} & \textbf{26.7} & \textbf{27.1} & \textbf{35.7} & -- & -- & 15.3 & 90.2 & 69.9 \\
       \midrule
       \midrule
       \multirow{9}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
@@ -95,7 +95,7 @@
       & \quad + weighted RoBERTa & 19.5 & 21.0 & 25.5 & 30.3 & 22.6 & 29.1 & 15.3 & 91.5 & 70.4 \\
       & \quad\quad + location-aware & 21.9 & 24.1 & 30.2 & 35.5 & 26.2 & 32.5 & 15.1 & 91.7 & 70.4  \\
       & \quad\quad\quad + face attention & 22.3 & 24.5 & 31.3 & 37.1 & 26.6 & 33.6 & 15.2 & 91.6 & 70.5 \\
-      & \quad\quad\quad\quad + copying \\
+      & \quad\quad\quad\quad + copying & \textbf{28.5} & \textbf{31.7} & \textbf{38.3} & \textbf{47.7} & \textbf{38.3} & \textbf{39.9} & 15.0 & 91.0 & 68.7 \\
 		\bottomrule
 	\end{tabularx}
 \end{table*}

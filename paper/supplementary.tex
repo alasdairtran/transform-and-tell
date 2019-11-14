@@ -62,32 +62,33 @@ Australian National University\\
       &  & Recall  & Precision & Recall  & Precision \\
       \midrule
       \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
-      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 12.2\% & 16.5\% & -- & -- \\
-      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 12.0\% & 17.1\% \\
-      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 11.7\% & 17.1\% \\
-      % Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 17.9\% \\
-      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 11.2\% & 19.0\% \\
-      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 11.0\% & 19.2\% & -- & -- \\
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 12.2 & 16.5 & -- & -- \\
+      % Biten (Wavg + CtxIns) \cite{Biten2019GoodNews} & 12.0 & 17.1 \\
+      % Biten (TBB + CtxIns) \cite{Biten2019GoodNews} & 11.7 & 17.1 \\
+      % Biten (Avg + AttIns) \cite{Biten2019GoodNews} & 11.2 & 17.9 \\
+      % Biten (Wavg + AttIns) \cite{Biten2019GoodNews} & 11.2 & 19.0 \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 11.0 & 19.2 & -- & -- \\
       \cmidrule{2-6}
-      & LSTM + GloVe & 11.7\% & 16.4\% & -- & --  \\
-      & Transformer + GloVe & 18.1\% & 23.0\% & -- & -- \\
-      & LSTM + weighted RoBERTa & \% & \%  & -- & -- \\
+      & LSTM + GloVe & 11.7 & 16.4 & -- & --  \\
+      & Transformer + GloVe & 18.1 & 23.0 & -- & -- \\
+      & LSTM + weighted RoBERTa &  &   & -- & -- \\
       \cmidrule{2-6}
       & Transformer + RoBERTa \\
-      & \quad + weighted RoBERTa & 29.5\% & 33.9\%  & -- & -- \\
-      & \quad\quad + face attention & 29.9\% & 34.4\% & -- & -- \\
-      & \quad\quad\quad + copying \\
+      & \quad + weighted RoBERTa & 29.5 & 33.9  & -- & -- \\
+      & \quad\quad + face attention & 29.9 & 34.4 & -- & -- \\
+      & \quad\quad\quad + copying & 39.4 & 48.2 & -- & --  \\
+      \midrule
       \midrule
       \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
-      & LSTM + GloVe & 12.4\% & 15.6\% & 0\%  & 0\%  \\
-      & Transformer + GloVe & 18.3\% & 21.7\%  & 0\% & 0\%  \\
-      & LSTM + weighted RoBERTa & 24.8\% & 27.0\% & 13.1\%  & 8.93\%  \\
+      & LSTM + GloVe & 12.4 & 15.6 & 0  & 0  \\
+      & Transformer + GloVe & 18.3 & 21.7  & 0 & 0  \\
+      & LSTM + weighted RoBERTa & 24.8 & 27.0 & 13.1  & 8.93  \\
       \cmidrule{2-6}
       & Transformer + RoBERTa \\
-      & \quad + weighted RoBERTa & 30.3\% & 32.2\% & 20.1\% & 21.3\%  \\
-      & \quad\quad + location-aware & 33.8\% & 36.5\% & 24.0\% & 25.6\%   \\
-      & \quad\quad\quad + face attention & 34.5\% & 37.1\% & 25.0\% & 26.2\% \\
-      & \quad\quad\quad\quad + copying \\
+      & \quad + weighted RoBERTa & 30.3 & 32.2 & 20.1 & 21.3  \\
+      & \quad\quad + location-aware & 33.8 & 36.5 & 24.0 & 25.6   \\
+      & \quad\quad\quad + face attention & 34.5 & 37.1 & 25.0 & 26.2 \\
+      & \quad\quad\quad\quad + copying & \textbf{46.5} & \textbf{52.8} & \textbf{35.9} & \textbf{27.2} \\
 		\bottomrule
 	\end{tabularx}
 \end{table*}
@@ -102,28 +103,29 @@ Australian National University\\
       &  & Recall  & Precision & Recall  & Precision & Recall  & Precision \\
       \midrule
       \multirow{8}{*}{\rotatebox[origin=c]{90}{GoodNews}}
-      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 11.5\% & 12.0\% & 7.45\% & 5.67\% & 4.03\% & 6.12\% \\
-      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 8.41\% & 12.8\% & 7.36\% & 5.81\% & 4.06\% & 5.86\% \\
+      & Biten (Avg + CtxIns) \cite{Biten2019GoodNews} & 11.5 & 12.0 & 7.45 & 5.67 & 4.03 & 6.12 \\
+      & Biten (TBB + AttIns) \cite{Biten2019GoodNews} & 8.41 & 12.8 & 7.36 & 5.81 & 4.06 & 5.86 \\
       \cmidrule{2-8}
-      & LSTM + GloVe & 12.9\% & 15.8\% & 8.48\% & 14.3\% & 8.51\% & 11.9\%  \\
-      & Transformer + GloVe & 18.4\% & 20.6\% & 11.4\% & 16.9\% & 9.86\% & 12.3\% \\
+      & LSTM + GloVe & 12.9 & 15.8 & 8.48 & 14.3 & 8.51 & 11.9  \\
+      & Transformer + GloVe & 18.4 & 20.6 & 11.4 & 16.9 & 9.86 & 12.3 \\
       & LSTM + weighted RoBERTa & &  &  &  &  &  \\
-      \cmidrule{2-6}
+      \cmidrule{2-8}
       & Transformer + RoBERTa \\
-      & \quad + weighted RoBERTa & 24.7\% & 25.1\% & 18.3\% & 21.4\% & 13.3\% & 14.6\% \\
-      & \quad\quad + face attention & 24.6\% & 25.2\% & 18.8\% & 22.2\% & 13.4\% & 14.8 \% \\
-      & \quad\quad\quad + copying \\
+      & \quad + weighted RoBERTa & 24.7 & 25.1 & 18.3 & 21.4 & 13.3 & 14.6 \\
+      & \quad\quad + face attention & 24.6 & 25.2 & 18.8 & 22.2 & 13.4 & 14.8  \\
+      & \quad\quad\quad + copying & 32.1 & 33.7 & 23.4 & 25.8 & 15.7 & 17.7 \\
+      \midrule
       \midrule
       \multirow{7}{*}{\rotatebox[origin=c]{90}{NYTimes800k}}
-      & LSTM + GloVe & 15.1\% & 16.2\% & 4.75\% & 8.67\% & 8.19\% & 10.5\%  \\
-      & Transformer + GloVe & 21.8\% & 19.7\% & 8.04\% & 12.5\% & 10.5\% & 11.7\%  \\
-      & LSTM + weighted RoBERTa & 23.8\% & 20.9\% & 11.1\% & 14.8\% & 12.2\% & 12.7\% \\
-      \cmidrule{2-6}
+      & LSTM + GloVe & 15.1 & 16.2 & 4.75 & 8.67 & 8.19 & 10.5  \\
+      & Transformer + GloVe & 21.8 & 19.7 & 8.04 & 12.5 & 10.5 & 11.7  \\
+      & LSTM + weighted RoBERTa & 23.8 & 20.9 & 11.1 & 14.8 & 12.2 & 12.7 \\
+      \cmidrule{2-8}
       & Transformer + RoBERTa \\
-      & \quad + weighted RoBERTa & 28.1\% & 24.4\% & 15.1\% & 18.6\% & 13.7\% & 13.4\%   \\
-      & \quad\quad + location-aware & 30.3\% & 27.0\% & 16.9\% & 21.2\% & 13.8\% & 14.1\%   \\
-      & \quad\quad\quad + face attention & 30.5\% & 27.0\% & 17.5\% & 21.4\% & 13.7\% & 13.9\% \\
-      & \quad\quad\quad\quad + copying \\
+      & \quad + weighted RoBERTa & 28.1 & 24.4 & 15.1 & 18.6 & 13.7 & 13.4   \\
+      & \quad\quad + location-aware & 30.3 & 27.0 & 16.9 & 21.2 & 13.8 & 14.1   \\
+      & \quad\quad\quad + face attention & 30.5 & 27.0 & 17.5 & 21.4 & 13.7 & 13.9 \\
+      & \quad\quad\quad\quad + copying & \textbf{41.5} & \textbf{37.7} & \textbf{24.4} & \textbf{27.8} & \textbf{17.3} & \textbf{17.5} \\
 		\bottomrule
 	\end{tabularx}
 \end{table*}
