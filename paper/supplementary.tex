@@ -51,6 +51,32 @@ Australian National University\\
 %%%%%%%%% BODY TEXT
 \section{More Results}
 
+\begin{table}[t]
+	\caption {Model complexity}
+	\label{tab:models}
+	\centering
+	\begin{tabularx}{\linewidth}{Xc}
+		\toprule
+        & No. of Parameters \\
+      \midrule
+      LSTM + GloVe & 157M \\
+      Transformer + GloVe & 148M \\
+      LSTM + weighted RoBERTa & 159M \\
+      \midrule
+      Transformer + RoBERTa & 154M \\
+      \quad + weighted RoBERTa & 154M \\
+      \quad\quad + face attention & 171M \\
+      \quad\quad\quad + copying & 207M \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+As shown in Table~\ref{tab:models}, all of our baselines are designed to have
+roughly the same number of trainable parameters. This allows us to attribute
+improvement to the individual model components rather than to simply having a
+bigger model.
+
+
 
 \begin{table*}[t]
 	\caption {All proper noun and rare proper noun in articles recall precision.}

@@ -14,34 +14,12 @@ learning rate in the first 5\% of the training steps to $10^{-4}$, and decays
 it linearly afterwards. Training is done with mixed precision to reduce the
 memory footprint. The full model takes 5 days to train on one Titan V GPU.
 
-As shown in Table~\ref{tab:models}, all of our baselines are designed to have
-roughly the same number of trainable parameters. This allows us to attribute
-improvement to the individual model components rather than to simply having a
-bigger model.
 
 The training pipeline is written in PyTorch~\cite{Paszke2017Automatic} using
 the AllenNLP framework~\cite{Gardner2017AllenNLP}. The RoBERTa model and
 dynamic convolution code are adapted from fairseq~\cite{Ott2019Fairseq}.
 
-\begin{table}[t]
-	\caption {Model complexity}
-	\label{tab:models}
-	\centering
-	\begin{tabularx}{\linewidth}{Xc}
-		\toprule
-        & No. of Parameters \\
-      \midrule
-      LSTM + GloVe & 157M \\
-      Transformer + GloVe & 148M \\
-      LSTM + weighted RoBERTa & 159M \\
-      \midrule
-      Transformer + RoBERTa & 154M \\
-      \quad + weighted RoBERTa & 154M \\
-      \quad\quad + face attention & 171M \\
-      \quad\quad\quad + copying & 207M \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
+
 
 \subsection{Results}
 
