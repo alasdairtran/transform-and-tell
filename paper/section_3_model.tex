@@ -128,7 +128,7 @@ where the weight $\gamma_{\ell hj}$ is a linear projection of the input,
 followed by a softmax over the kernel window:
 \begin{IEEEeqnarray*}{lCl}
    \gamma_{\ell hj} &=& \text{Softmax} \left( \bw^T_{\gamma \ell h} \,
-      \bz_{\ell,h,t-j} \right)
+      \bz'_{\ell,h,t-j} \right)
 \end{IEEEeqnarray*}
 The overall output is the concatenation of all the head outputs, followed by
 a feedforward with a residual connection and layer normalization:
@@ -178,11 +178,11 @@ after adding a residual connection and layer normalization:
    \tx_{I \ell t} &=& \text{LayerNorm}(\bd_{\ell t} + \bx'_{I\ell t})
 \end{IEEEeqnarray*}
 We use the same multi-head attention mechanism (with different weight matrices)
-to obtain the attended article $\tx_{T \ell}$ and the attended face $\tx_{F
-\ell}$. These three are finally concatenated and fed through a feedforward
+to obtain the attended article $\tx_{T \ell t}$ and the attended face $\tx_{F
+\ell t}$. These three are finally concatenated and fed through a feedforward
 layer:
 \begin{IEEEeqnarray*}{lCl}
-   \tx_{C \ell t} &=& [\tx_{I \ell}, \tx_{T \ell t}, \tx_{F \ell}] \\
+   \tx_{C \ell t} &=& [\tx_{I \ell t}, \tx_{T \ell t}, \tx_{F \ell t}] \\
    \tx_{R \ell t} &=& \bW_{C \ell} \, \tx_{C \ell t} + \bb_{C \ell} \\
    \tx_{D \ell t} &=& \text{ReLU}(\bW_{R \ell} \, \tx_{R \ell t} + \bb_{R \ell} )\\
    \bz_{\ell + 1,t} &=& \text{LayerNorm}(\tx_{R \ell t} + \bW_{D \ell} \,
