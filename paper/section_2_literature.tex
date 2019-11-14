@@ -2,20 +2,29 @@
 
 \section{Related Works}
 
-Early image captioning systems mainly used an RNN architecture with a closed
-vocabulary \cite{Karpathy2015DeepVA, Donahue2015LongTR, Vinyals2015ShowAT}.
-Attention over image patches was later introduced in ``Show, Attend and Tell"
+A large number of methods exist for generating generic image captions that
+describe objects and relationships using only image information. Many of these
+captioning systems use some combination of a Convolutional Neural Network
+encoder and a RNN with a closed
+vocabulary as a decoder~\cite{Karpathy2015DeepVA, Donahue2015LongTR,
+Vinyals2015ShowAT}.
+Attention over image patches was introduced in ``Show, Attend and Tell"
 \cite{Xu2015ShowAA}, in which the attention weights are obtained by feeding the
 image embeddings and the previous hidden state of the RNN through a multilayer
-perception. Later improvements include giving the model the option to not
-attend to any image region \cite{Lu2017KnowingWT}, using reinforcement learning
-to directly optimize for the CIDEr metric \cite{Rennie2017SelfCriticalST,
+perception. Many extensions to these models have been proposed such as giving
+the model the option to not
+attend to any image region~\cite{Lu2017KnowingWT}, using reinforcement learning
+to directly optimise for the CIDEr metric~\cite{Rennie2017SelfCriticalST,
 Gao2019DeliberateAN}, and using a bottom-up approach to propose a region to
-attend to \cite{Anderson2017BottomUpAT}. All of these systems can only generate
-generic captions with a limited vocabulary.
+attend to \cite{Anderson2017BottomUpAT}. All of these systems generate
+restricted vocabulary generic captions without considering context external to
+the image.
 
-A more challenging task is to produce captions for news images, in which we
-need to be able to generate entity names. Early non-neural approaches include
+A related task which does consider image context is news image captioning,
+where the image caption is generated using the article text as context.
+One key challenge of news image captioning is generating rare entity names, for
+example the names of people who do not make many media appearances. Early
+non-neural approaches include
 extractive methods that use n-gram models to combine existing phrases
 \cite{Feng2013AutomaticCG} or simply retrieving the most representative
 sentence \cite{Tariq2017ACE} in the article. Ramisa \etal
