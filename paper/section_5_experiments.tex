@@ -4,29 +4,56 @@
 
 \subsection{Training Details}
 
-In all experiments, we use Adam~\cite{Kingma2015Adam} with the weight decay fix
-\cite{Loshchilov2018DecoupledWD} to optimize the models. We use the following
-parameters: $\beta_1 = 0.9, \beta_2 = 0.98, \epsilon = 10^{-6}$, and a weight
-decay of $10^{-5}$. We clip the gradient norm at 0.1. All models see the same
-number of training examples, which is 6.6 million. This is equivalent to 16
-epochs through GoodNews and 9 epochs through NYTimes800k. We warm up the
-learning rate in the first 5\% of the training steps to $10^{-4}$, and decays
-it linearly afterwards. Training is done with mixed precision to reduce the
-memory footprint. The full model takes 5 days to train on one Titan V GPU.
+For parameter optimisation we use the adaptive gradient algorithm
+Adam~\cite{Kingma2015Adam} with the following
+parameter settings: $\beta_1 = 0.9, \beta_2 = 0.98, \epsilon = 10^{-6}$. We
+warm up the
+learning rate in the first 5\% of the training steps to $10^{-4}$, and decay
+it linearly afterwards.
 
+We apply $L_2$ regularisation to all network weights with a value of $10^{-5}$
+and use the weight decay fix~\cite{Loshchilov2018DecoupledWD} to decouple the
+learning rate from the regularisation parameter. We clip the gradient norm at
+0.1. We \verify{ use a batch size of ****** and train all models for 6.6 million
+steps}. This is equivalent to 16
+epochs on GoodNews and 9 epochs on NYTimes800k. Training is done with mixed
+precision to reduce the
+memory footprint and allow our full model to be trained on a single GPU. This
+full model
+takes 5 days to train on one Titan V GPU and
+has 207 million trainable parameters -- see the supplement for the number of
+trainable parameters in each model variant.
 
 The training pipeline is written in PyTorch~\cite{Paszke2017Automatic} using
 the AllenNLP framework~\cite{Gardner2017AllenNLP}. The RoBERTa model and
 dynamic convolution code are adapted from fairseq~\cite{Ott2019Fairseq}.
 
+\subsection{Evaluation Metrics}
 
+We use BLEU~\cite{Papineni2002Bleu}, ROUGE
+\cite{Lin2004ROUGE}, METEOR~\cite{Denkowski2014Meteor}, and CIDEr
+\cite{Vedantam2015CIDEr} scores as they are standard for evaluating image
+captions. These are obtained using the COCO
+caption evaluation toolkit
+\footnote{\href{https://github.com/tylin/coco-caption}
+{https://github.com/tylin/coco-caption}}. In addition, we evaluate the
+precision and recall on: named entities, personal names, and rare proper names.
+\verify{Named entities are identified in both the ground truth captions and
+the generated
+captions using the SpaCy~\cite{} natural language processing toolkit. We then
+count exact string matches between the ground truth entities and generated
+entities.
+For personal names we restrict the set of named entities to those marked as
+PERSON by the SpaCy parser. Rare proper nouns are nouns (as identified by the
+SpaCy Parts-of-Speech tagger) that occur less than ******** times in the
+training
+dataset.}
 
 \subsection{Results}
 
 
-Table~\ref{tab:results} shows the BLEU~\cite{Papineni2002Bleu}, ROUGE
-\cite{Lin2004ROUGE}, METEOR~\cite{Denkowski2014Meteor}, and CIDEr
-\cite{Vedantam2015CIDEr} metrics on GoodNews and NYTimes800k. We show two best
+Table~\ref{tab:results} shows the BLEU, ROUGE
+,METEOR, and CIDEr metrics on GoodNews and NYTimes800k. We show two best
 results from the previous state-of-the-art~\cite{Biten2019GoodNews}. Note that
 the numbers reported here are slightly different from the original paper since
 we had to remove a few samples from the test set where the image is no longer
