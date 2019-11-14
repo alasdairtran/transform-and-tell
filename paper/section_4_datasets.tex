@@ -166,7 +166,7 @@ contain at most four names.
 		  & Training  &   Validation & Test \\
 		\midrule
       Number of articles & 434 272 & 3 052 & 8 495 \\
-      Number of images  & 764 049 & 7 852 & 22 143 \\
+      Number of images  & 764 049 & 7 852 & 21 977 \\
       Start month & Mar 15 & May 19 & Jun 19 \\
       End month & Apr 19 & May 19 & Aug 19 \\
 		\bottomrule
@@ -175,9 +175,13 @@ contain at most four names.
 
 \begin{figure*}[t]
    \begin{center}
-   \fbox{\rule{0pt}{3in} \rule{.9\linewidth}{0pt}}
-   \end{center}
-      \caption{Example captions with success and failure cases.}
+		\includegraphics[width=0.99\linewidth, frame]{figures/figure_5.pdf}
+	\end{center}
+   \caption{An example from the NYTimes800k test set. The name ``Chromati'' has
+   never appeared in the training data. Words in blue do not appear in the
+   article and are hallucinated by the decoder. Words highlighted in red are
+   spelling mistakes. Underlined words are those that have been copied by the
+   copying mechanism.}
    \label{fig:short}
 \end{figure*}
 
