@@ -38,7 +38,7 @@ captioning tasks~\cite{Xu2015ShowAA}.
 
 We use MTCNN~\cite{Zhang2016JointFD} to detect face bounding boxes in the
 image. We then select the largest four faces since the majority of captions
-have at most four personal names (see \ref{ssec:nytimes800k}). A vector
+have at most four personal names (see~\ref{ssec:nytimes800k}). A vector
 representation of each face is obtained by passing the bounding boxes to
 FaceNet~\cite{Schroff2015FaceNetAU}, which was pre-trained on the VGGFace2
 dataset~\cite{Cao2017VGGFace2AD}. The resulting set of face vectors for each
@@ -53,7 +53,7 @@ specialised models are needed to make full use of them.
 %and we use a specialised model to encode features from each bounding box.
 
 \eat{We then select the top $M$ faces and feed them through a
-FaceNet model \cite{Schroff2015FaceNetAU}, pretrained on the VGGFace2 dataset
+FaceNet model~\cite{Schroff2015FaceNetAU}, pretrained on the VGGFace2 dataset
 \cite{Cao2017VGGFace2AD}, to obtain a face embedding $\bx_{F} =
 \{\bx_{F,i} \in \mathbb{R}^{512}\}_{i=0}^M$.}
 
@@ -64,9 +64,9 @@ recent improvement over the popular BERT~\cite{Devlin2019BERT} model.
 RoBERTa is a language representation model that provides pretrained contextual
 embeddings for text. It consists of 24 layers of bidirectional transformer
 blocks.
-% It is a more carefully trained BERT \cite{Devlin2019BERT} model.
+% It is a more carefully trained BERT~\cite{Devlin2019BERT} model.
 
-Unlike GloVe \cite{Pennington2014Glove} and word2vec
+Unlike GloVe~\cite{Pennington2014Glove} and word2vec
 \cite{Mikolov2013DistributedRO} embeddings, where each word has exactly one
 representation, the bidirectionality and the attention mechanism in the
 transformer allow a word to have different vector representations depending on
@@ -74,7 +74,7 @@ the surrounding context.
 
 The largest GloVe model has a vocabulary size of 1.2 million. Although this is
 large, many rare names will still get mapped to the unknown token. In contrast,
-RoBERTa uses BPE \cite{Sennrich2015NeuralMT,Radford2019LanguageMA} which can
+RoBERTa uses BPE~\cite{Sennrich2015NeuralMT,Radford2019LanguageMA} which can
 encode any word that can be written in Unicode characters.
 
 One limitation of RoBERTa is that the maximum length of the input sequence is
@@ -100,14 +100,14 @@ embeddings $\bX_I$, $\bX_T$, and $\bX_F$:
 In our architecture, the decoder consists of four transformer blocks. In each
 block, the conditioning on past tokens is computed using dynamic convolutions
 \cite{Wu2018PayLA}, and the conditioning on the contexts is computed using
-multi-head attention \cite{Vaswani2017AttentionIA}.
+multi-head attention~\cite{Vaswani2017AttentionIA}.
 
 
 \subsubsection{Dynamic Convolutions}
 
 Instead of using the standard self-attention module as in current
-state-of-the-art GPT-2 decoder \cite{Radford2019LanguageMA}, we find that
-dynamic convolutions \cite{Wu2018PayLA} are more efficient to train. Suppose
+state-of-the-art GPT-2 decoder~\cite{Radford2019LanguageMA}, we find that
+dynamic convolutions~\cite{Wu2018PayLA} are more efficient to train. Suppose
 when decoding the $t$th token, we have at the $\ell$th block the input
 $\bz_{\ell t} \in \mathbb{R}^{1024}$. If $\ell = 0$, then $\bz_{0t}$ is the
 embedding of the previous token. Otherwise it is the output from the previous
@@ -138,7 +138,7 @@ a feedforward with a residual connection and layer normalization:
              \bW_{\tz \ell} \, \tz_{\ell t} + \bb_{\tz \ell} \right)
 \end{IEEEeqnarray*}
 Note that given kernel size $K$, we can attend to the current time step and the
-last $K-1$ steps. Following closely to \cite{Wu2018PayLA}, our decoder has 4
+last $K-1$ steps. Following closely to~\cite{Wu2018PayLA}, our decoder has 4
 transformer blocks with kernel sizes 3, 7, 15, and 31, respectively. Thus the
 final block output will have collected information from the last 51 tokens.
 
@@ -201,7 +201,7 @@ input of length $S$, the pretrained RoBERTa encoder will return 25 sequences of
 embeddings, $\bG = \{\bg_{\ell i} \in \mathbb{R}^{2048} : i \in \{1, 2,...,
 49\}, \ell \in \{ 0, 1,..., 24 \}\}$. This includes the initial
 uncontextualized embeddings and the output of each of the 24 layers. Inspired
-by Tenney \etal \cite{Tenney2019BertRT}, who showed that different layers in
+by Tenney \etal~\cite{Tenney2019BertRT}, who showed that different layers in
 BERT represent different steps in the traditional NLP pipeline, we take a
 weighted sum across all layers to obtain the article embedding $\bx_{Ti}$:
 \begin{IEEEeqnarray*}{lCl}
@@ -211,10 +211,10 @@ where  $\alpha_\ell$ are learnable weights.
 
 \subsubsection{Copying with Multi-headed Attention}
 
-Inspired by pointer-generator networks \cite{See2017GetTT}, we introduce a
+Inspired by pointer-generator networks~\cite{See2017GetTT}, we introduce a
 copying mechanism using multi-head attention. We use the final layer output
 $\bz_{5t}$ and the article embeddings $\bX_T$ as inputs to the multi-head
-attention module. Unlike \ref{ssection:attn}, we only need to compute the
+attention module. Unlike~\ref{ssection:attn}, we only need to compute the
 softmax weights $\lambda_i$ (and not the weighted sum of the values). We
 interpret each $\lambda_i$ as the probability of copying $i$th token in the
 article.
@@ -222,7 +222,7 @@ article.
 \subsubsection{Adaptive Softmax}
 
 The decoder BPE vocabulary size is 50265. To make training more efficient, we
-use adaptive softmax \cite{Grave2016EfficientSA} and divide the vocabulary into
+use adaptive softmax~\cite{Grave2016EfficientSA} and divide the vocabulary into
 three clusters: 5K, 15K, and 25K. We tie the adaptive weights and we share the
 decoder input and output embeddings. We use sinusoidal positional encoding
 \cite{Vaswani2017AttentionIA} to represent the position of each token.

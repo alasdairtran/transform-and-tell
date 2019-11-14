@@ -16,7 +16,7 @@ the model the option to not
 attend to any image region~\cite{Lu2017KnowingWT}, using reinforcement learning
 to directly optimise for the CIDEr metric~\cite{Rennie2017SelfCriticalST,
 Gao2019DeliberateAN}, and using a bottom-up approach to propose a region to
-attend to \cite{Anderson2017BottomUpAT}. All of these systems generate
+attend to~\cite{Anderson2017BottomUpAT}. All of these systems generate
 restricted vocabulary generic captions without considering context external to
 the image.
 
@@ -27,7 +27,7 @@ example the names of people who do not make many media appearances. Early
 non-neural approaches include
 extractive methods that use n-gram models to combine existing phrases
 \cite{Feng2013AutomaticCG} or simply retrieving the most representative
-sentence \cite{Tariq2017ACE} in the article. The neural network approach taken
+sentence~\cite{Tariq2017ACE} in the article. The neural network approach taken
 by Ramisa \etal
 \cite{Ramisa2016BreakingNewsAA} was able to generate entirely new text with an
 LSTM decoder that took as input a word2vec representation of the
@@ -41,7 +41,7 @@ BUILDING in
 DATE.''. This template can be generated using an LSTM or other sequence
 generation model~\cite{Biten2019GoodNews}. Afterwards, a selection algorithm
 picks the best candidate
-for each placeholder. For example, Lu \etal \cite{Lu2018EntityAI} built a
+for each placeholder. For example, Lu \etal~\cite{Lu2018EntityAI} built a
 knowledge graph
 for each combination of entities and select the most likely combination.
 Meanwhile, Biten \etal~\cite{Biten2019GoodNews} filled the template by
@@ -71,17 +71,17 @@ tasks is the transformer neural network.
 Transformers have been show to consistently
 outperforming Recurrent Neural Network architectures in language modeling
 \cite{Radford2019LanguageMA},
-story generation \cite{Fan2018HierarchicalNS}, summarization
-\cite{Subramanian2019OnEA}, and machine translation \cite{Bojar2018Findings}.
+story generation~\cite{Fan2018HierarchicalNS}, summarization
+\cite{Subramanian2019OnEA}, and machine translation~\cite{Bojar2018Findings}.
 %\sout{There are theoretical justifications that transformers could be universal
 %	approximations of sequence-to-sequence functions
 %\cite{Anonymous2020AreTU}.}
-Furthermore, transformer based models such as BERT \cite{Devlin2019BERT}, XLM
-\cite{Lample2019CrosslingualLM}, XLNet \cite{Yang2019XLNetGA}, RoBERTa
-\cite{Liu2019RoBERTaAR}, and ALBERT \cite{Lan2019ALBERT} have been shown to
+Furthermore, transformer based models such as BERT~\cite{Devlin2019BERT}, XLM
+\cite{Lample2019CrosslingualLM}, XLNet~\cite{Yang2019XLNetGA}, RoBERTa
+\cite{Liu2019RoBERTaAR}, and ALBERT~\cite{Lan2019ALBERT} have been shown to
 produce high level text representations suitable for transfer learning.
 Furthermore, using byte-pair
-encoding (BPE) \cite{Sennrich2015NeuralMT} to represent uncommon words as a
+encoding (BPE)~\cite{Sennrich2015NeuralMT} to represent uncommon words as a
 sequence of subword units can enable the transformer function in an open
 vocabulary setting.
 
@@ -99,7 +99,7 @@ entities to appear in the caption, instead our model automatically identifies
 relevant entities from the provided news article.
 
 BPE offers an elegant solution to handling an open vocabulary. To date the only
-image captioning work that uses BPE is \cite{Sharma2018ConceptualCA}, but they
+image captioning work that uses BPE is~\cite{Sharma2018ConceptualCA}, but they
 did not use it for rare named entities as these were removed from
 the captions during pre-processing. In contrast we explicitly examine the use
 of BPE for generating rare names and evaluate it in comparison to
@@ -109,7 +109,7 @@ template-based methods.
 %better BPE can generate rare names compared to template-based methods.
 
 In addition to attending to image patches, some captioning models also attend
-to object regions \cite{Wang2019Hierarchical} and visual concepts
+to object regions~\cite{Wang2019Hierarchical} and visual concepts
 \cite{You2016ImageCW,Li2019Boosted,Wang2019Hierarchical}, both of which are
 derived from the image itself. When attending to more than one modality, there
 are various strategies on how to combine embeddings such as addition,

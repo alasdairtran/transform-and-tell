@@ -5,7 +5,7 @@
 
 \subsection{Training Details}
 
-In all experiments, we use Adam \cite{Kingma2015Adam} with the weight decay fix
+In all experiments, we use Adam~\cite{Kingma2015Adam} with the weight decay fix
 \cite{Loshchilov2018DecoupledWD} to optimize the models. We use the following
 parameters: $\beta_1 = 0.9, \beta_2 = 0.98, \epsilon = 10^{-6}$, and a weight
 decay of $10^{-5}$. We clip the gradient norm at 0.1. All models see the same
@@ -15,14 +15,14 @@ learning rate in the first 5\% of the training steps to $10^{-4}$, and decays
 it linearly afterwards. Training is done with mixed precision to reduce the
 memory footprint. The full model takes 5 days to train on one Titan V GPU.
 
-As shown in Table \ref{tab:models}, all of our baselines are designed to have
+As shown in Table~\ref{tab:models}, all of our baselines are designed to have
 roughly the same number of trainable parameters. This allows us to attribute
 improvement to the individual model components rather than to simply having a
 bigger model.
 
-The training pipeline is written in PyTorch \cite{Paszke2017Automatic} using
-the AllenNLP framework \cite{Gardner2017AllenNLP}. The RoBERTa model and
-dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
+The training pipeline is written in PyTorch~\cite{Paszke2017Automatic} using
+the AllenNLP framework~\cite{Gardner2017AllenNLP}. The RoBERTa model and
+dynamic convolution code are adapted from fairseq~\cite{Ott2019Fairseq}.
 
 \begin{table}[t]
 	\caption {Model complexity}
@@ -55,13 +55,13 @@ dynamic convolution code are adapted from fairseq \cite{Ott2019Fairseq}.
 \end{figure*}
 
 
-Table \ref{tab:results} shows the BLEU \cite{Papineni2002Bleu}, ROUGE
-\cite{Lin2004ROUGE}, METEOR \cite{Denkowski2014Meteor}, and CIDEr
+Table~\ref{tab:results} shows the BLEU~\cite{Papineni2002Bleu}, ROUGE
+\cite{Lin2004ROUGE}, METEOR~\cite{Denkowski2014Meteor}, and CIDEr
 \cite{Vedantam2015CIDEr} metrics on GoodNews and NYTimes800k. We show two best
-results from the previous state-of-the-art \cite{Biten2019GoodNews}. Note that
+results from the previous state-of-the-art~\cite{Biten2019GoodNews}. Note that
 the numbers reported here are slightly different from the original paper since
 we had to remove a few samples from the test set where the image is no longer
-available. \cite{Biten2019GoodNews} also did some post-processing on the
+available.~\cite{Biten2019GoodNews} also did some post-processing on the
 ground-truth captions such as removing contractions and non-ASCII characters,
 both of which we did not do. Despite these differences, the final metrics
 are the same if rounded to the nearest whole number.
@@ -69,14 +69,14 @@ are the same if rounded to the nearest whole number.
 There is a strong correlation between of all these metrics, and in general, we
 mainly look at CIDEr since it uses Term Frequency Inverse Document Frequency
 (TF-IDF) to put more importance on less common words such as entity names.
-Table \ref{tab:names} shows the recall and precision of the named entities,
+Table~\ref{tab:names} shows the recall and precision of the named entities,
 personal names, and rare proper nouns.
 
 We can make the following observations:
 
 \begin{itemize}
    \item Our baseline LSTM model with GloVe embeddings yields competitive
-   results to previous the state-of-the-art \cite{Biten2019GoodNews}. This
+   results to previous the state-of-the-art~\cite{Biten2019GoodNews}. This
    means that BPE offers a viable alternative to template-based methods.
 
    \item Models with GloVe embeddings are unable to generate rare proper nouns.
@@ -94,7 +94,7 @@ We can make the following observations:
 \end{itemize}
 
 
-Table \ref{tab:names} also looks at the quality of the generated captions. We
+Table~\ref{tab:names} also looks at the quality of the generated captions. We
 look at three metrics: caption length, type-token ratio (TTR), and Flesch
 reading ease. TTR is the ratio of the number of unique words to the total
 number of words in a caption. The Flesch reading ease takes into account the
