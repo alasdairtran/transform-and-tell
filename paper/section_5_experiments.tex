@@ -36,7 +36,9 @@ We use BLEU~\cite{Papineni2002Bleu}, ROUGE
 captions. These are obtained using the COCO
 caption evaluation toolkit
 \footnote{\href{https://github.com/tylin/coco-caption}
-{https://github.com/tylin/coco-caption}}. In addition, we evaluate the
+{https://github.com/tylin/coco-caption}}. Note that CIDEr is particularly
+suited to evaluating news captioning models as it puts more weight that other
+metrics on uncommon words. In addition, we evaluate the
 precision and recall on: named entities, personal names, and rare proper names.
 \verify{Named entities are identified in both the ground truth captions and
 the generated
@@ -48,6 +50,13 @@ PERSON by the SpaCy parser. Rare proper nouns are nouns (as identified by the
 SpaCy Parts-of-Speech tagger) that occur less than ******** times in the
 training
 dataset.}
+
+To evaluate the quality of the generated captions we also report: caption
+length (in words), type-token ratio (TTR), and Flesch
+reading ease. TTR is the ratio of the number of unique words to the total
+number of words in a caption. The Flesch reading ease takes into account the
+number of words and syllables and produces a score between 0 and 100, where
+higher means being easier to read.
 
 \subsection{Baselines and Model Variants}
 
@@ -66,7 +75,8 @@ We evaluate a few key modelling choices: the decoder type (\textit{LSTM} or
 \textit{Transformer}), the text encoder type (\textit{GloVe} or
 \textit{weighted RoBERTa}), the additional context domains
 (\textit{location-aware} and \textit{face attention}), and word copying
-(\textit{copying}). \verify{We keep the total number of trainable parameter for
+(\textit{copying}). \verify{Note that all our models use BPE encoding with
+adaptive softmax. We keep the total number of trainable parameter for
 each
 model to within 7\% of one another other (148 million to 159 million), with the
 unavoidable exceptions of
@@ -74,39 +84,54 @@ models employing \textit{location-aware} (*****), \textit{face attention} (171
 million), and
 \textit{copying} (207 million).}
 
+\eat{The due primarily to broken image links the numbers in the table are
+	slightly different to what was previously
+	reported~\cite{Biten2019GoodNews}.
+	Note that
+	the numbers reported here are slightly different from the original paper
+	since
+	we had to remove a few samples from the test set where the image is no
+	longer
+	available.~\cite{Biten2019GoodNews} also did some post-processing on the
+	ground-truth captions such as removing contractions and non-ASCII
+	characters,
+	both of which we did not do. Despite these differences, the final metrics
+	are the same if rounded to the nearest whole number.}
 
 \subsection{Results}
 
 
-Table~\ref{tab:results} shows the BLEU, ROUGE, METEOR, and CIDEr metrics on
-GoodNews and NYTimes800k.
 
-\eat{The due primarily to broken image links the numbers in the table are
-slightly different to what was previously reported~\cite{Biten2019GoodNews}.
-Note that
-the numbers reported here are slightly different from the original paper since
-we had to remove a few samples from the test set where the image is no longer
-available.~\cite{Biten2019GoodNews} also did some post-processing on the
-ground-truth captions such as removing contractions and non-ASCII characters,
-both of which we did not do. Despite these differences, the final metrics
-are the same if rounded to the nearest whole number.}
 
-There is a strong correlation between of all these metrics, and in general, we
+\eat{There is a strong correlation between of all these metrics, and in
+general, we
 mainly look at CIDEr since it uses Term Frequency Inverse Document Frequency
 (TF-IDF) to put more importance on less common words such as entity names.
 Table~\ref{tab:names} shows the recall and precision of the named entities,
-personal names, and rare proper nouns.
+personal names, and rare proper nouns.}
+
+Table~\ref{tab:results} shows the BLEU, ROUGE, METEOR, and CIDEr metrics on
+GoodNews and NYTimes800k.
 
 We can make the following observations:
 
 \begin{itemize}
-   \item Our baseline LSTM model with GloVe embeddings yields competitive
-   results to previous the state-of-the-art~\cite{Biten2019GoodNews}. This
-   means that BPE offers a viable alternative to template-based methods.
+   \item Our baseline LSTM model with GloVe embeddings outperforms the previous
+   state-of-the-art~\cite{Biten2019GoodNews}, indicating that BPE encoding
+   offers a viable alternative to template-based methods.
 
-   \item Models with GloVe embeddings are unable to generate rare proper nouns.
-   This is expected since GloVe has a fixed vocabulary and if there is a
-   unknown word in the article, the encoder will simply skip it.
+   \item The word copy mechanism leads to a substantial performance improvement
+   across all metrics. This suggests that BPE encoding is complemented by
+   direct copying, with both contributing to our full models success at
+   generating rare terms.
+
+   \item Models which encode articles using GloVe embeddings are unable to
+   generate rare proper nouns (precision and recall of 0).
+   This is because the encoder skips words that are not part of the fixed GloVe
+   vocabulary. Models that use the BPE based article encoder RoBERTa, and thus
+   have an unbounded input vocabulary, show
+   a clear advantage in rare proper noun generation, with precision as high as
+   38.3\% at a recall of 39.9\%.
 
    \item Switching from an LSTM to a transformer architecture improves the
    CIDEr score on NYTimes800k by 8 points, from 12 to 20. If we then use the
@@ -116,16 +141,18 @@ We can make the following observations:
    \item Adding attention over the faces improves both the recall and precision
    of personal names. It has no significant effect on other entity types (see
    the supplementary materials for a detailed breakdown).
+
+
 \end{itemize}
 
-
-Table~\ref{tab:names} also looks at the quality of the generated captions. We
-look at three metrics: caption length, type-token ratio (TTR), and Flesch
-reading ease. TTR is the ratio of the number of unique words to the total
-number of words in a caption. The Flesch reading ease takes into account the
-number of words and syllables and produces a score between 0 and 100, where
-higher means being easier to read.
-
-From these metrics, we see that our generated captions are in general still
-shorter than real-life captions, have lower lexical diversity (lower TTR)
-and still use simpler language (higher Flesch reading ease).
+The caption quality metrics in Table~\ref{tab:names} show that our
+models produce captions that are closer in length to the ground truth than
+\textit{Biten}. Moreover, our captions exhibit a level of language complexity
+(as measured
+by Flesch score) that is closer to the ground truth. LSTM based
+models tend to produce the shorter captions than Transformer based models but
+otherwise the quality metrics presented here are not particularly sensitive to
+our modelling choices. Overall our generated captions
+are still
+shorter than the ground-truth captions, have lower lexical diversity (lower TTR)
+and use simpler language (higher Flesch reading ease).
