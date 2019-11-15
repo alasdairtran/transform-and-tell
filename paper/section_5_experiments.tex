@@ -129,7 +129,7 @@ We can make the following observations:
    generate rare proper nouns (precision and recall of 0).
    This is because the encoder skips words that are not part of the fixed GloVe
    vocabulary. Models that use the BPE based article encoder RoBERTa, and thus
-   have an unbounded input vocabulary, show
+   have an unbounded vocabulary show
    a clear advantage in rare proper noun generation, with precision as high as
    38.3\% at a recall of 39.9\%.
 
@@ -140,7 +140,12 @@ We can make the following observations:
 
    \item Adding attention over the faces improves both the recall and precision
    of personal names. It has no significant effect on other entity types (see
-   the supplementary materials for a detailed breakdown).
+   the supplementary materials for a detailed breakdown). Importantly, personal
+   names is the most common entity type in news captions and so we also see an
+   improvement in BLEU, ROUGE, METEOR, and CIDEr scores. More broadly, this
+   result suggests that introducing specialised vision models tuned to the most
+   common types of objects such as organisations (via logos or landmarks) is a
+   promising way of improving performance on news image captioning.
 
 
 \end{itemize}
