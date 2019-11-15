@@ -51,7 +51,7 @@ def main():
     context_counter = Counter()
 
     sample_cursor = goodnews.splits.find(
-        {}, no_cursor_timeout=True).batch_size(128)
+        {'split': 'train'}, no_cursor_timeout=True).batch_size(128)
 
     done_article_ids = set()
     for sample in tqdm(sample_cursor):
