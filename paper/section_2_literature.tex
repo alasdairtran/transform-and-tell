@@ -56,11 +56,20 @@ intermediate template.
 %benchmark against,
 
 \begin{figure*}[t]
-    \begin{center}
-    \fbox{\rule{0pt}{2in} \rule{.9\linewidth}{0pt}}
-    \end{center}
-       \caption{Overall architecture of the model.}
-    \label{fig:short}
+   \begin{center}
+		\includegraphics[width=0.99\linewidth, frame]{figures/figure_2.pdf}
+	\end{center}
+       \caption{Overall architecture of the model. On the left is the decoder,
+       which takes as input a byte-pair token (e.g. 14980 represents the middle
+       token ``arsh'' in ``Varshini''). The grey arrows inside the decoder
+       indicate the convolutions in each layer (we only show the convolutions
+       in the final time step). In each convolution layer, we attend to the
+       three domains: article (green lines), image patches (yellow lines) and
+       faces (orange lines). The grey triangles are switches to determine if we
+       should copy or not. If we copy, we attend to the article embeddings to
+       copy the most attended token (dashed black line). The decoder outputs
+       are byte-pair tokens, which are then combined to form whole words.}
+    \label{fig:model}
  \end{figure*}
 
 One tool that has had seen recent successes in many natural language processing
