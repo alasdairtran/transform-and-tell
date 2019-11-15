@@ -59,12 +59,14 @@ def compute_nytimes_stats(nytimes):
         pars = [s['text'] for s in sections if s['type'] == 'paragraph']
         captions = []
 
+        has_image = False
         for s in sections:
             if s['type'] == 'caption':
                 image_path = os.path.join('data/nytimes/images_processed',
                                           f"{s['hash']}.jpg")
                 if not os.path.exists(image_path):
                     continue
+                has_image = True
                 captions.append(s['text'])
 
                 if 'parts_of_speech' in s:
@@ -91,17 +93,18 @@ def compute_nytimes_stats(nytimes):
         if not captions:
             continue
 
-        n_article_words += len(' '.join(pars).split())
-        n_articles += 1
-        n_caption_words += len(' '.join(captions).split())
-        n_captions += len(captions)
-        caption_splits[article['split']] += len(captions)
-        article_splits[article['split']] += 1
+        if has_image:
+            n_article_words += len(' '.join(pars).split())
+            n_articles += 1
+            n_caption_words += len(' '.join(captions).split())
+            n_captions += len(captions)
+            caption_splits[article['split']] += len(captions)
+            article_splits[article['split']] += 1
 
-        if article['pub_date'] < min_date:
-            min_date = article['pub_date']
-        if article['pub_date'] > max_date:
-            max_date = article['pub_date']
+            if article['pub_date'] < min_date:
+                min_date = article['pub_date']
+            if article['pub_date'] > max_date:
+                max_date = article['pub_date']
 
     print('Full NYTimes Dataset:')
     print('No of articles:', n_articles)
@@ -426,10 +429,10 @@ def main():
     goodnews = client.goodnews
 
     # compute_goodnews_stats(goodnews)
-    # compute_nytimes_stats(nytimes)
+    compute_nytimes_stats(nytimes)
     # compute_nytimes_exact_subset_statistics(nytimes, goodnews)
     # compute_face_stats(nytimes)
-    compute_rare_stats(nytimes)
+    # compute_rare_stats(nytimes)
 
 
 if __name__ == '__main__':
