@@ -54,10 +54,7 @@ def main():
     context_counter = Counter()
 
     article_cursor = nytimes.articles.find({
-        'parsed': True,  # article body is parsed into paragraphs
-        'n_images': {'$gt': 0},  # at least one image is present
-        'pub_date': {'$gte': start, '$lt': end},
-        'language': 'en',
+        'split': 'train',
     }, no_cursor_timeout=True).batch_size(128)
 
     for article in tqdm(article_cursor):
