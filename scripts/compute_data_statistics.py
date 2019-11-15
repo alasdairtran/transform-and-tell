@@ -14,7 +14,6 @@ from datetime import datetime
 
 import ptvsd
 from docopt import docopt
-from PIL import Image
 from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
@@ -65,10 +64,12 @@ def compute_nytimes_stats(nytimes):
             if s['type'] == 'caption':
                 image_path = os.path.join('data/nytimes/images_processed',
                                           f"{s['hash']}.jpg")
-                try:
-                    image = Image.open(image_path)
-                except (FileNotFoundError, OSError):
+                if not os.path.exists(image_path):
                     continue
+
+                if not s['text'].strip():
+                    continue
+
                 has_image = True
                 captions.append(s['text'])
 
@@ -248,9 +249,7 @@ def compute_goodnews_stats(goodnews):
 
         image_path = os.path.join(
             'data/goodnews/images_processed', f"{sample['_id']}.jpg")
-        try:
-            image = Image.open(image_path)
-        except (FileNotFoundError, OSError):
+        if not os.path.exists(image_path):
             continue
 
         if sample['article_id'] not in article_ids:
@@ -388,9 +387,7 @@ def compute_rare_stats(nytimes):
             if s['type'] == 'caption':
                 image_path = os.path.join('data/nytimes/images_processed',
                                           f"{s['hash']}.jpg")
-                try:
-                    image = Image.open(image_path)
-                except (FileNotFoundError, OSError):
+                if not os.path.exists(image_path):
                     continue
 
                 if 'parts_of_speech' in s:
