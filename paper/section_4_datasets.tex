@@ -73,19 +73,6 @@ training and test
 caption to share the same article text (since articles have multiple images).
 
 
-
-
-
-\begin{figure}[t]
-   \begin{center}
-   \includegraphics[width=0.99\linewidth]{figures/figure_2_entities.pdf}
-   \end{center}
-      \caption{Entity distribution in NYTimes800k training captions. The four
-               most common entity types are personal names, geopolitical
-               entities, organizations, and dates.}
-   \label{fig:entities}
-\end{figure}
-
 \begin{figure}[t]
    \begin{center}
    \includegraphics[width=0.99\linewidth]{figures/figure_3_faces.pdf}
@@ -148,9 +135,9 @@ NYTimes800k. NYTimes800k exhibits several advantages:
 \end{itemize}
 
 Entities play an important role in the dataset, with 97\% of captions
-containing at least one named entity. As shown in Figure~\ref{fig:entities},
-the most popular entity type are names of people, comprising a third of all
-named entities. Furthermore, 71\% of training images contain at least one face
+containing at least one named entity.
+The most popular entity type are names of people, comprising a third of all
+named entities (see the supplementary material for a detailed breakdown of entity types). Furthermore, 71\% of training images contain at least one face
 and 68\% of training captions mention at least one persons name. Figure
 \ref{fig:faces} provides a further breakdown of the co-occurrence of faces and
 personal names. One important observation is that the majority of captions
