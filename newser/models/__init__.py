@@ -24,3 +24,4 @@ from .transformer_names_set import TransformerNamesSetModel
 from .transformer_pointer import TransformerPointerModel
 from .transformer_pointer_faster import TransformerPointerModelFaster
 from .transformer_summary import TransformerSummaryModel
+from .word_counter import WordCounter
