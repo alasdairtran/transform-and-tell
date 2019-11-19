@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from newser.modules.beam import BeamableMM
-from newser.modules.linear import GehringLinear
+from tell.modules.beam import BeamableMM
+from tell.modules.linear import GehringLinear
 
 
 class AttentionLayer(nn.Module):

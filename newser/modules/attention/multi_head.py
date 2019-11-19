@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn import Parameter
 
-from newser.utils import get_incremental_state, set_incremental_state, softmax
+from tell.utils import get_incremental_state, set_incremental_state, softmax
 
 
 def multi_head_attention_score_forward(query,

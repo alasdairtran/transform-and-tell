@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-from newser.dsfd.data import widerface_640
+from tell.dsfd.data import widerface_640
 
 from ..box_utils import (log_sum_exp, match, pa_sfd_match, refine_match,
                          sfd_match)

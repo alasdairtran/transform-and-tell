@@ -1,5 +1,5 @@
-import newser.modules.span_extractors
-import newser.modules.token_embedders
+import tell.modules.span_extractors
+import tell.modules.token_embedders
 
 from .attention import (AttentionLayer, DownsampledMultiHeadAttention,
                         MultiHeadAttention, SelfAttention,

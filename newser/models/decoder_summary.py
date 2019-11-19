@@ -11,10 +11,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from allennlp.modules.text_field_embedders import TextFieldEmbedder
 
-from newser.modules import (AdaptiveSoftmax, DynamicConv1dTBC, GehringLinear,
+from tell.modules import (AdaptiveSoftmax, DynamicConv1dTBC, GehringLinear,
                             LightweightConv1dTBC, MultiHeadAttention)
-from newser.modules.token_embedders import AdaptiveEmbedding
-from newser.utils import eval_str_list, fill_with_neg_inf, softmax
+from tell.modules.token_embedders import AdaptiveEmbedding
+from tell.utils import eval_str_list, fill_with_neg_inf, softmax
 
 from .decoder_base import Decoder, DecoderLayer
 

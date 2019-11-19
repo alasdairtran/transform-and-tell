@@ -17,7 +17,7 @@ from PIL import Image
 from pymongo import MongoClient
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from newser.data.fields import ImageField
+from tell.data.fields import ImageField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

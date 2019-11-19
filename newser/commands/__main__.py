@@ -1,9 +1,9 @@
 """Train and run semantic diff models.
 
 Usage:
-    newser (train|generate|evaluate) [options] PARAM_PATH
-    newser (-h | --help)
-    newser (-v | --version)
+    tell (train|generate|evaluate) [options] PARAM_PATH
+    tell (-h | --help)
+    tell (-v | --version)
 
 Options:
     -e --expt-dir EXPT_PATH
@@ -29,7 +29,7 @@ Options:
     -m --model-path PATH Path the the best model.
 
 Examples:
-    newser train -r -g expt/writing-prompts/lstm/config.yaml
+    tell train -r -g expt/writing-prompts/lstm/config.yaml
 """
 
 import logging
@@ -40,7 +40,7 @@ import pudb
 from docopt import docopt
 from schema import And, Or, Schema, Use
 
-from newser.utils import setup_logger
+from tell.utils import setup_logger
 
 from .evaluate import evaluate_from_file
 from .generate import generate

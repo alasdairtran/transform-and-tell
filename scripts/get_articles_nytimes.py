@@ -30,7 +30,7 @@ from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
 from langdetect import detect
-from newser.utils import setup_logger
+from tell.utils import setup_logger
 
 logger = setup_logger()
 

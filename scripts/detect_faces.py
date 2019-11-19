@@ -25,10 +25,10 @@ from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
-from newser.dsfd.data import (TestBaseTransform, WIDERFace_CLASSES,
+from tell.dsfd.data import (TestBaseTransform, WIDERFace_CLASSES,
                               widerface_640)
-from newser.dsfd.face_ssd import build_ssd
-from newser.utils import setup_logger
+from tell.dsfd.face_ssd import build_ssd
+from tell.utils import setup_logger
 
 logger = setup_logger()
 

@@ -16,7 +16,7 @@ from pymongo import MongoClient
 from torchvision.transforms import Compose, Normalize, Resize, ToTensor
 from tqdm import tqdm
 
-from newser.data.fields import ImageField
+from tell.data.fields import ImageField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

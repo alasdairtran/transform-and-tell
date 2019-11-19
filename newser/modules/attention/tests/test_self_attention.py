@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from newser.modules.attention.self_attention import SelfAttention
+from tell.modules.attention.self_attention import SelfAttention
 
 
 class TestSelfAttention(unittest.TestCase):

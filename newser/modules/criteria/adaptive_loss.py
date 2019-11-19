@@ -2,7 +2,7 @@ import math
 
 import torch.nn.functional as F
 
-from newser.utils import strip_pad
+from tell.utils import strip_pad
 
 from .base import Criterion
 

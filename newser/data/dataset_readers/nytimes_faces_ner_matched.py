@@ -19,7 +19,7 @@ from pymongo import MongoClient
 from torchvision.transforms import Compose, Normalize, ToTensor
 from tqdm import tqdm
 
-from newser.data.fields import ImageField, ListTextField
+from tell.data.fields import ImageField, ListTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

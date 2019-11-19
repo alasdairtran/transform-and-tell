@@ -24,9 +24,9 @@ from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
 from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 
-from newser.modules import (GehringLinear, LoadStateDictWithPrefix,
+from tell.modules import (GehringLinear, LoadStateDictWithPrefix,
                             SelfAttention, multi_head_attention_score_forward)
-from newser.modules.criteria import Criterion
+from tell.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
 from .resnet import resnet152

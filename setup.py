@@ -1,13 +1,13 @@
 from setuptools import setup
 
-setup(name='newser',
+setup(name='tell',
       version='0.1',
       description='News captioning experiments',
-      url='https://github.com/alasdairtran/newser',
+      url='https://github.com/alasdairtran/tell',
       author='Alasdair Tran',
       author_email='alasdair.tran@anu.edu.au',
       license='MIT',
-      packages=['newser'],
+      packages=['tell'],
       install_requires=['allennlp'],
-      scripts=['bin/newser'],
+      scripts=['bin/tell'],
       zip_safe=False)

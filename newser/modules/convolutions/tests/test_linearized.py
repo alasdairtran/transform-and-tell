@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from newser.modules.convolutions.linearized import LinearizedConvolution
+from tell.modules.convolutions.linearized import LinearizedConvolution
 
 
 class TestLinearizedConvolution(unittest.TestCase):

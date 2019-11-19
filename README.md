@@ -1,4 +1,4 @@
-# newser
+# tell
 
 News captioning system
 
@@ -52,11 +52,11 @@ python scripts/compute_data_statistics.py
 ## Training and Evaluation
 
 ```sh
-CUDA_VISIBLE_DEVICES=0 newser train expt/1_baseline/config.yaml -f
+CUDA_VISIBLE_DEVICES=0 tell train expt/1_baseline/config.yaml -f
 
-CUDA_VISIBLE_DEVICES=0 newser generate expt/1_baseline/config.yaml -m expt/1_baseline/serialization/best.th
+CUDA_VISIBLE_DEVICES=0 tell generate expt/1_baseline/config.yaml -m expt/1_baseline/serialization/best.th
 
-CUDA_VISIBLE_DEVICES=1 newser evaluate expt/1_baseline/config.yaml -m expt/1_baseline/serialization/best.th --overrides '{"validation_iterator": {"batch_size": 8}}'
+CUDA_VISIBLE_DEVICES=1 tell evaluate expt/1_baseline/config.yaml -m expt/1_baseline/serialization/best.th --overrides '{"validation_iterator": {"batch_size": 8}}'
 ```
 
 ## Original Results

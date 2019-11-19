@@ -11,9 +11,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from allennlp.modules.text_field_embedders import TextFieldEmbedder
 
-from newser.modules import AdaptiveSoftmax, GehringLinear
-from newser.modules.token_embedders import AdaptiveEmbedding
-from newser.utils import eval_str_list
+from tell.modules import AdaptiveSoftmax, GehringLinear
+from tell.modules.token_embedders import AdaptiveEmbedding
+from tell.utils import eval_str_list
 
 from .decoder_base import Decoder
 

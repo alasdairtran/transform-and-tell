@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from newser.utils import get_incremental_state, set_incremental_state
+from tell.utils import get_incremental_state, set_incremental_state
 
 from .unfold import unfold1d
 

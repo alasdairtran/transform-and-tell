@@ -6,7 +6,7 @@ import torch.onnx.operators
 from allennlp.modules.token_embedders import TokenEmbedder
 from overrides import overrides
 
-from newser.utils import get_incremental_state, set_incremental_state
+from tell.utils import get_incremental_state, set_incremental_state
 
 
 @TokenEmbedder.register('learned_positional')

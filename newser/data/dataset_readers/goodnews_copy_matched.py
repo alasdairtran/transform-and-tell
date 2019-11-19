@@ -21,7 +21,7 @@ from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 from tqdm import tqdm
 
-from newser.data.fields import CopyTextField, ImageField, ListTextField
+from tell.data.fields import CopyTextField, ImageField, ListTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

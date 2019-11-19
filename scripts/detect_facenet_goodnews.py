@@ -21,8 +21,8 @@ from pymongo.errors import DocumentTooLarge
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
-from newser.facenet import MTCNN, InceptionResnetV1
-from newser.utils import setup_logger
+from tell.facenet import MTCNN, InceptionResnetV1
+from tell.utils import setup_logger
 
 logger = setup_logger()
 

@@ -1,3 +1,3 @@
-import newser.data
-import newser.models
-import newser.training
+import tell.data
+import tell.models
+import tell.training

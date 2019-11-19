@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from newser.modules.linear import GehringLinear
-from newser.utils import get_incremental_state, set_incremental_state
+from tell.modules.linear import GehringLinear
+from tell.utils import get_incremental_state, set_incremental_state
 
 from .downsampled_multi_head import DownsampledMultiHeadAttention
 

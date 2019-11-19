@@ -23,8 +23,8 @@ from pycocoevalcap.rouge.rouge import Rouge
 from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
 
-from newser.modules import GehringLinear
-from newser.modules.criteria import Criterion
+from tell.modules import GehringLinear
+from tell.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
 from .resnet import resnet152, resnext101_32x16d_wsl

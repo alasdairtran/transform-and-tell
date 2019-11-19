@@ -22,9 +22,9 @@ from pycocoevalcap.rouge.rouge import Rouge
 from pytorch_transformers.modeling_roberta import RobertaModel
 from pytorch_transformers.modeling_utils import SequenceSummary
 
-from newser.modules import GehringLinear
-from newser.modules.criteria import Criterion
-from newser.modules.span_extractors import (EndpointSpanExtractorFixed,
+from tell.modules import GehringLinear
+from tell.modules.criteria import Criterion
+from tell.modules.span_extractors import (EndpointSpanExtractorFixed,
                                             SelfAttentiveSpanExtractorFixed)
 
 from .decoder_flattened import Decoder

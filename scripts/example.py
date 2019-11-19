@@ -93,7 +93,7 @@ if __name__ == '__main__':
         start = datetime(2019, 6, 1)
         end = datetime(2019, 9, 1)
 
-    image_dir = '/localdata/u4921817/projects/newser/data/nytimes/images_processed'
-    face_dir = '/localdata/u4921817/projects/newser/data/nytimes/facenet'
+    image_dir = '/localdata/u4921817/projects/tell/data/nytimes/images_processed'
+    face_dir = '/localdata/u4921817/projects/tell/data/nytimes/facenet'
 
     main(start, end, image_dir, face_dir)

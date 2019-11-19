@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from newser.modules.token_embedders.positional import make_positions
+from tell.modules.token_embedders.positional import make_positions
 
 
 class TestEmbeddings(unittest.TestCase):

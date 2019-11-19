@@ -18,7 +18,7 @@ from pymongo import MongoClient
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 
-from newser.data.fields import CorefTextField, ImageField, ListTextField
+from tell.data.fields import CorefTextField, ImageField, ListTextField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

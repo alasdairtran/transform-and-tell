@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from newser.modules.convolutions.base import ConvBCT, ConvTBC
+from tell.modules.convolutions.base import ConvBCT, ConvTBC
 
 
 class TestConvTBC(unittest.TestCase):

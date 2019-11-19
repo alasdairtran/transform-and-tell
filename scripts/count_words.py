@@ -19,8 +19,8 @@ from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
-from newser.data.token_indexers.roberta_indexer import to_token_ids
-from newser.utils import setup_logger
+from tell.data.token_indexers.roberta_indexer import to_token_ids
+from tell.utils import setup_logger
 
 logger = setup_logger()
 
