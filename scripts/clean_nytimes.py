@@ -36,59 +36,59 @@ def clean_with_host(host):
     client = MongoClient(host=host, port=27017)
     nytimes = client.nytimes
 
-    article_cursor = nytimes.articles.find({})
-    for article in tqdm(article_cursor):
-        changed = False
-        if 'raw_html' in article:
-            source = {
-                '_id': article['_id'],
-                'raw_html': article['raw_html']
-            }
-            nytimes.source.find_one_and_update(
-                {'_id': article['_id']}, {'$set': source}, upsert=True)
+    # article_cursor = nytimes.articles.find({})
+    # for article in tqdm(article_cursor):
+    #     changed = False
+    #     if 'raw_html' in article:
+    #         source = {
+    #             '_id': article['_id'],
+    #             'raw_html': article['raw_html']
+    #         }
+    #         nytimes.source.find_one_and_update(
+    #             {'_id': article['_id']}, {'$set': source}, upsert=True)
 
-            del article['raw_html']
-            changed = True
+    #         del article['raw_html']
+    #         changed = True
 
-        if 'facenet_positions' in article:
-            del article['facenet_positions']
-            changed = True
+    #     if 'facenet_positions' in article:
+    #         del article['facenet_positions']
+    #         changed = True
 
-        if 'n_images_with_dfsd_faces' in article:
-            del article['n_images_with_dfsd_faces']
-            changed = True
+    #     if 'n_images_with_dfsd_faces' in article:
+    #         del article['n_images_with_dfsd_faces']
+    #         changed = True
 
-        if 'face_positions' in article:
-            del article['face_positions']
-            changed = True
+    #     if 'face_positions' in article:
+    #         del article['face_positions']
+    #         changed = True
 
-        if 'coref_clusters' in article:
-            del article['coref_clusters']
-            changed = True
+    #     if 'coref_clusters' in article:
+    #         del article['coref_clusters']
+    #         changed = True
 
-        for s in article['parsed_section']:
-            if 'corefs' in s:
-                del s['corefs']
-                changed = True
-            if 'faces' in s:
-                del s['faces']
-                changed = True
-            if 'facenet' in s:
-                del s['facenet']
-                changed = True
-            if 'n_faces' in s:
-                del s['n_faces']
-                changed = True
-            if 'facenet_details' in s and 'face_probs' in s['facenet_details']:
-                del s['facenet_details']['face_probs']
-                changed = True
+    #     for s in article['parsed_section']:
+    #         if 'corefs' in s:
+    #             del s['corefs']
+    #             changed = True
+    #         if 'faces' in s:
+    #             del s['faces']
+    #             changed = True
+    #         if 'facenet' in s:
+    #             del s['facenet']
+    #             changed = True
+    #         if 'n_faces' in s:
+    #             del s['n_faces']
+    #             changed = True
+    #         if 'facenet_details' in s and 'face_probs' in s['facenet_details']:
+    #             del s['facenet_details']['face_probs']
+    #             changed = True
 
-        if 'main' in article['headline'] and 'corefs' in article['headline']:
-            del article['headline']['corefs']
-            changed = True
+    #     if 'main' in article['headline'] and 'corefs' in article['headline']:
+    #         del article['headline']['corefs']
+    #         changed = True
 
-        if changed:
-            nytimes.articles.replace_one({'_id': article['_id']}, article)
+    #     if changed:
+    #         nytimes.articles.replace_one({'_id': article['_id']}, article)
 
     article_cursor = nytimes.text_articles.find({})
     for article in tqdm(article_cursor):
@@ -102,7 +102,7 @@ def clean_with_host(host):
             {'_id': article['_id']}, {'$set': source}, upsert=True)
         del article['raw_html']
         nytimes.text_articles.replace_one(
-            {'_id': article['_id']}, {'$set': article})
+            {'_id': article['_id']}, article)
 
     goodnews = client.goodnews
     sample_cursor = goodnews.splits.find({})
