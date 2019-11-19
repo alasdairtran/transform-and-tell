@@ -24,8 +24,6 @@ from pytorch_transformers.modeling_utils import SequenceSummary
 
 from tell.modules import GehringLinear
 from tell.modules.criteria import Criterion
-from tell.modules.span_extractors import (EndpointSpanExtractorFixed,
-                                            SelfAttentiveSpanExtractorFixed)
 
 from .decoder_flattened import Decoder
 from .resnet import resnet152
