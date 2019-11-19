@@ -79,23 +79,12 @@ def detect_faces(article, nytimes, image_dir, face_dir, mtcnn, resnet):
                 faces = None
             if faces is None:
                 continue
-            embeddings, face_probs = resnet(faces)
-
-        # face_probs = face_probs.cpu().numpy()
-        # face_prob_list = []
-        # for face_prob in face_probs:
-        #     top10_idx = np.argpartition(face_prob, -10)[-10:]
-        #     top10 = face_prob[top10_idx]
-        #     top10_idx_sorted = top10_idx[np.argsort(top10)[::-1]].tolist()
-        #     top10_sorted = face_prob[top10_idx_sorted].tolist()
-        #     fpl = [(i, p) for i, p in zip(top10_idx_sorted, top10_sorted)]
-        #     face_prob_list.append(fpl)
+            embeddings, _ = resnet(faces)
 
         section['facenet_details'] = {
             'n_faces': len(faces[:10]),
             'embeddings': embeddings.cpu().tolist()[:10],
             'detect_probs': probs.tolist()[:10],
-            # 'face_probs': face_prob_list,
         }
 
         article['detected_face_positions'].append(pos)

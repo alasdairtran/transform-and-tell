@@ -33,102 +33,6 @@ def validate(args):
     return args
 
 
-def get_clusters(doc, article):
-    # We only care about coref clusters whose main span is inside the caption.
-    if not doc._.has_coref:
-        article['coref_clusters'] = []
-        return
-
-    kept_clusters = []
-
-    for i, cluster in enumerate(doc._.coref_clusters):
-        main_span = cluster.main
-        start = main_span.start_char
-        end = main_span.end_char
-
-        pos = []
-        for tok in main_span:
-            pos.append({
-                'start': tok.idx,
-                'end': tok.idx + len(tok.text),
-                'text': tok.text,
-                'pos': tok.pos_,
-            })
-        kept_cluster = {
-            'main': {
-                'start': start,
-                'end': end,
-                'text': main_span.text,
-                'pos': pos,
-            },
-            'mentions': [],
-        }
-
-        assign_coref(article, kept_cluster['main'], i, 'main', 0)
-
-        for j, coref in enumerate(cluster.mentions):
-            s = coref.start_char
-            e = coref.end_char
-            if s == start and e == end:
-                continue
-
-            pos = []
-            for tok in main_span:
-                pos.append({
-                    'start': tok.idx,
-                    'end': tok.idx + len(tok.text),
-                    'text': tok.text,
-                    'pos': tok.pos_,
-                })
-            mention = {
-                'start': s,
-                'end': e,
-                'text': coref.text,
-                'pos': pos,
-            }
-
-            kept_cluster['mentions'].append(mention)
-
-            assign_coref(article, mention, i, 'mention', j)
-
-        kept_clusters.append(kept_cluster)
-
-    article['coref_clusters'] = kept_clusters
-
-
-def assign_coref(article, coref, i, kind, mention_idx):
-    if 'main' in article['headline']:
-        section = article['headline']
-        assign_coref_to_section(section, coref, i, kind, mention_idx)
-
-    for section in article['parsed_section']:
-        assign_coref_to_section(section, coref, i, kind, mention_idx)
-
-
-def assign_coref_to_section(section, coref, i, kind, mention_idx):
-    s = section['spacy_start']
-    e = section['spacy_end']
-    if coref['start'] >= s and coref['end'] <= e:
-        pos = []
-        for o_pos in coref['pos']:
-            pos.append({
-                'start': o_pos['start'] - s,
-                'end': o_pos['end'] - s,
-                'text': o_pos['text'],
-                'pos': o_pos['pos'],
-            })
-
-        section['corefs'].append({
-            'cluster_idx': i,
-            'kind': kind,
-            'mention_index': mention_idx,
-            'start': coref['start'] - s,
-            'end': coref['end'] - s,
-            'text': coref['text'],
-            'pos':  pos,
-        })
-
-
 def get_parts_of_speech(doc, article):
     parts_of_speech = []
     for tok in doc:
@@ -170,7 +74,6 @@ def calculate_spacy_positions(article):
         article['headline']['spacy_start'] = cursor
         cursor += len(title) + 1  # newline
         article['headline']['spacy_end'] = cursor
-        article['headline']['corefs'] = []
         article['headline']['parts_of_speech'] = []
 
     for section in article['parsed_section']:
@@ -178,7 +81,6 @@ def calculate_spacy_positions(article):
         section['spacy_start'] = cursor
         cursor += len(text) + 1  # newline
         section['spacy_end'] = cursor
-        section['corefs'] = []
         section['parts_of_speech'] = []
 
 
@@ -200,7 +102,6 @@ def parse_article(article, nlp, db):
     combined = '\n'.join(paragraphs)
 
     doc = nlp(combined)
-    get_clusters(doc, article)
     get_parts_of_speech(doc, article)
 
     db.articles.find_one_and_update(

@@ -8,23 +8,13 @@ Options:
     -h --host HOST      Mongo host name [default: localhost]
 
 """
-import functools
-import os
-from datetime import datetime
-from multiprocessing import Pool
 
-import numpy as np
 import ptvsd
-import pymongo
-import torch
 from docopt import docopt
-from PIL import Image
 from pymongo import MongoClient
-from pymongo.errors import DocumentTooLarge
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
-from tell.facenet import MTCNN, InceptionResnetV1
 from tell.utils import setup_logger
 
 logger = setup_logger()
@@ -44,42 +34,82 @@ def validate(args):
 
 def clean_with_host(host):
     client = MongoClient(host=host, port=27017)
-    db = client.nytimes
+    nytimes = client.nytimes
 
-    start = datetime(2019, 6, 1)
-    end = datetime(2019, 9, 1)
-    article_cursor = db.articles.find({
-        'pub_date': {'$gte': start, '$lt': end},
-    }, no_cursor_timeout=True).batch_size(128)
+    article_cursor = nytimes.articles.find({})
     for article in tqdm(article_cursor):
-        article['split'] = 'test'
-        db.articles.find_one_and_update(
+        changed = False
+        if 'raw_html' in article:
+            source = {
+                '_id': article['_id'],
+                'raw_html': article['raw_html']
+            }
+            nytimes.source.find_one_and_update(
+                {'_id': article['_id']}, {'$set': source}, upsert=True)
+
+            del article['raw_html']
+            changed = True
+
+        if 'facenet_positions' in article:
+            del article['facenet_positions']
+            changed = True
+
+        if 'n_images_with_dfsd_faces' in article:
+            del article['n_images_with_dfsd_faces']
+            changed = True
+
+        if 'face_positions' in article:
+            del article['face_positions']
+            changed = True
+
+        if 'coref_clusters' in article:
+            del article['coref_clusters']
+            changed = True
+
+        for s in article['parsed_section']:
+            if 'corefs' in s:
+                del s['corefs']
+                changed = True
+            if 'faces' in s:
+                del s['faces']
+                changed = True
+            if 'facenet' in s:
+                del s['facenet']
+                changed = True
+            if 'n_faces' in s:
+                del s['n_faces']
+                changed = True
+            if 'facenet_details' in s and 'face_probs' in s['facenet_details']:
+                del s['facenet_details']['face_probs']
+                changed = True
+
+        if 'main' in article['headline'] and 'corefs' in article['headline']:
+            del article['headline']['corefs']
+            changed = True
+
+        if changed:
+            nytimes.articles.replace_one({'_id': article['_id']}, article)
+
+    article_cursor = nytimes.text_articles.find({})
+    for article in tqdm(article_cursor):
+        if 'raw_html' not in article:
+            continue
+        source = {
+            '_id': article['_id'],
+            'raw_html': article['raw_html']
+        }
+        nytimes.source.find_one_and_update(
+            {'_id': article['_id']}, {'$set': source}, upsert=True)
+        del article['raw_html']
+        nytimes.text_articles.replace_one(
             {'_id': article['_id']}, {'$set': article})
 
-    db.articles.create_index([
-        ('split', pymongo.ASCENDING),
-        ('_id', pymongo.ASCENDING),
-    ])
-
-    start = datetime(2000, 1, 1)
-    end = datetime(2019, 5, 1)
-    article_cursor = db.articles.find({
-        'pub_date': {'$gte': start, '$lt': end},
-    }, no_cursor_timeout=True).batch_size(128)
-    for article in tqdm(article_cursor):
-        article['split'] = 'train'
-        db.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': article})
-
-    start = datetime(2019, 5, 1)
-    end = datetime(2019, 6, 1)
-    article_cursor = db.articles.find({
-        'pub_date': {'$gte': start, '$lt': end},
-    }, no_cursor_timeout=True).batch_size(128)
-    for article in tqdm(article_cursor):
-        article['split'] = 'valid'
-        db.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': article})
+    goodnews = client.goodnews
+    sample_cursor = goodnews.splits.find({})
+    for sample in tqdm(sample_cursor):
+        if 'facenet' in sample:
+            del sample['facenet']
+            goodnews.splits.replace_one({'_id': sample['_id']}, sample)
 
 
 def main():
