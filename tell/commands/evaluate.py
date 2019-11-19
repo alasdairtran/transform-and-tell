@@ -19,7 +19,6 @@ from allennlp.data.vocabulary import Vocabulary
 from allennlp.models import Model
 from allennlp.models.archival import load_archive
 from allennlp.nn import util as nn_util
-from allennlp.nn.util import move_to_device
 from allennlp.training.util import HasBeenWarned, datasets_from_params
 from nltk.tokenize import word_tokenize
 from spacy.tokens import Doc

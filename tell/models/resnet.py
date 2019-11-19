@@ -3,7 +3,6 @@
 The key change is that we remove the average pooling and fully connected layer.
 """
 
-import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1

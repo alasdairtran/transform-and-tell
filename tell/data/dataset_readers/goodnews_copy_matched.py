@@ -1,13 +1,11 @@
 import logging
 import os
-import pickle
 import random
 from collections import OrderedDict
 from typing import Dict
 
 import numpy as np
 import pymongo
-import spacy
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import ArrayField, MetadataField, TextField
 from allennlp.data.instance import Instance
@@ -16,7 +14,6 @@ from allennlp.data.tokenizers import Tokenizer
 from overrides import overrides
 from PIL import Image
 from pymongo import MongoClient
-from spacy.tokens import Doc
 from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 from tqdm import tqdm

@@ -14,7 +14,6 @@ Options:
 import os
 from datetime import datetime
 
-import numpy as np
 import ptvsd
 import torch
 from docopt import docopt

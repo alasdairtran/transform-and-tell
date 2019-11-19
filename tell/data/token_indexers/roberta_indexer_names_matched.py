@@ -7,8 +7,6 @@ from allennlp.data.token_indexers.token_indexer import TokenIndexer
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.vocabulary import Vocabulary
 from overrides import overrides
-from pytorch_transformers.tokenization_roberta import RobertaTokenizer
-from spacy.tokens import Doc
 
 SPACE_NORMALIZER = re.compile(r"\s+")
 

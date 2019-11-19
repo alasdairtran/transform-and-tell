@@ -6,14 +6,14 @@ from typing import Dict
 import numpy as np
 import pymongo
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
-from allennlp.data.fields import ArrayField, MetadataField, TextField
+from allennlp.data.fields import MetadataField, TextField
 from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer
 from allennlp.data.tokenizers import Tokenizer
 from overrides import overrides
 from PIL import Image
 from pymongo import MongoClient
-from torchvision.transforms import Compose, Normalize, Resize, ToTensor
+from torchvision.transforms import Compose, Normalize, ToTensor
 from tqdm import tqdm
 
 from tell.data.fields import ImageField

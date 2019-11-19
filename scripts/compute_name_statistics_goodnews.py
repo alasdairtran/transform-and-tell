@@ -10,7 +10,6 @@ Options:
 """
 import pickle
 from collections import Counter
-from datetime import datetime
 
 import ptvsd
 from docopt import docopt

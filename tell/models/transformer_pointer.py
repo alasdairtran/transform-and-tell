@@ -1,27 +1,18 @@
 import logging
 import math
 import re
-import warnings
 from collections import defaultdict
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules import TokenEmbedder
 from allennlp.modules.seq2seq_encoders import _Seq2SeqWrapper
 from allennlp.nn.initializers import InitializerApplicator
-from allennlp.nn.util import get_text_field_mask, sort_batch_by_length
-from allennlp.training.metrics import CategoricalAccuracy
 from overrides import overrides
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
-from pycocoevalcap.rouge.rouge import Rouge
-from pytorch_transformers.modeling_roberta import RobertaModel
-from pytorch_transformers.modeling_utils import SequenceSummary
 from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 
 from tell.modules import (GehringLinear, LoadStateDictWithPrefix,

@@ -92,6 +92,7 @@ def get_caption_ner(doc, article, idx):
 
     article['caption_ner'][idx] = ner
 
+
 def get_context_ner(doc, article):
     ner = []
     for ent in doc.ents:

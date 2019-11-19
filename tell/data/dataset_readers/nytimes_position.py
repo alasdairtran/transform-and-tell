@@ -2,7 +2,6 @@ import logging
 import os
 import random
 import re
-from datetime import datetime
 from typing import Dict
 
 import numpy as np
@@ -20,7 +19,7 @@ from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 from tqdm import tqdm
 
-from tell.data.fields import ImageField, ListTextField
+from tell.data.fields import ImageField
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

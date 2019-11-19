@@ -4,7 +4,6 @@ from collections.abc import Iterable
 import numpy as np
 import torch
 import torchvision.transforms.functional as F
-from torchvision.utils import make_grid
 
 
 def detect_face(img, minsize, pnet, rnet, onet, threshold, factor, device):

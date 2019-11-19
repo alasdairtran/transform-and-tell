@@ -9,7 +9,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from allennlp.common.registrable import Registrable
 from allennlp.modules.text_field_embedders import TextFieldEmbedder
 
 from tell.modules import (AdaptiveSoftmax, DynamicConv1dTBC, GehringLinear,
