@@ -9,22 +9,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules.seq2seq_encoders import _Seq2SeqWrapper
 from allennlp.nn.initializers import InitializerApplicator
 from overrides import overrides
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
 from torch.nn.init import constant_, xavier_normal_, xavier_uniform_
 
 from tell.modules import (GehringLinear, LoadStateDictWithPrefix,
-                            SelfAttention, multi_head_attention_score_forward)
+                          SelfAttention, multi_head_attention_score_forward)
 from tell.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
 from .resnet import resnet152
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
-
-LSTM = _Seq2SeqWrapper(nn.LSTM)
 
 
 @Model.register("transformer_pointer")

@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules.seq2seq_encoders import _Seq2SeqWrapper
 from allennlp.nn.initializers import InitializerApplicator
 from overrides import overrides
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
@@ -19,18 +18,6 @@ from tell.modules.criteria import Criterion
 from .decoder_flattened import Decoder
 from .decoder_flattened_lstm import LSTMDecoder
 from .resnet import resnet152
-
-LSTM = _Seq2SeqWrapper(nn.LSTM)
-
-
-def gelu(x):
-    """Implementation of the gelu activation function.
-        For information: OpenAI GPT's gelu is slightly different (and gives slightly different results):
-        0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi)
-                   * (x + 0.044715 * torch.pow(x, 3))))
-        Also see https://arxiv.org/abs/1606.08415
-    """
-    return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
 
 
 class Transformer(nn.Module):

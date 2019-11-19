@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 from allennlp.data.vocabulary import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules.seq2seq_encoders import _Seq2SeqWrapper
 from allennlp.nn.initializers import InitializerApplicator
 from overrides import overrides
 from pycocoevalcap.bleu.bleu_scorer import BleuScorer
@@ -18,8 +17,6 @@ from tell.modules.criteria import Criterion
 
 from .decoder_flattened import Decoder
 from .resnet import resnet152
-
-LSTM = _Seq2SeqWrapper(nn.LSTM)
 
 
 @Model.register("baseline_glove")
