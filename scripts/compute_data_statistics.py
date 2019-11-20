@@ -434,8 +434,8 @@ def main():
 
     compute_nytimes_stats(nytimes)
     compute_goodnews_stats(goodnews)
-    # compute_nytimes_exact_subset_statistics(nytimes, goodnews)
-    # compute_face_stats(nytimes)
+    compute_nytimes_exact_subset_statistics(nytimes, goodnews)
+    compute_face_stats(nytimes)
     compute_rare_stats(nytimes)
 
 
