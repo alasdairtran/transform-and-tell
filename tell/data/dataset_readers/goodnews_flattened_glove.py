@@ -41,7 +41,6 @@ class FlattenedGloveGoodNewsReader(DatasetReader):
                  tokenizer: Tokenizer,
                  token_indexers: Dict[str, TokenIndexer],
                  image_dir: str,
-                 annotation_path: str = None,
                  mongo_host: str = 'localhost',
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
