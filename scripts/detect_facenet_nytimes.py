@@ -113,27 +113,6 @@ def main():
     client = MongoClient(host=args['host'], port=27017)
     nytimes = client.nytimes
 
-    # if args['batch'] == 1:  # 38K
-    #     start = datetime(2000, 1, 1)
-    #     end = datetime(2007, 8, 1)
-    # elif args['batch'] == 2:  # 42K
-    #     start = datetime(2007, 8, 1)
-    #     end = datetime(2009, 1, 1)
-    # elif args['batch'] == 3:  # 41K
-    #     start = datetime(2009, 1, 1)
-    #     end = datetime(2010, 5, 1)
-    # elif args['batch'] == 4:  # 79K
-    #     start = datetime(2010, 5, 1)
-    #     end = datetime(2012, 11, 1)
-    # elif args['batch'] == 5:  # 80K
-    #     start = datetime(2012, 11, 1)
-    #     end = datetime(2015, 5, 1)
-    # elif args['batch'] == 6:  # 80K
-    #     start = datetime(2015, 5, 1)
-    #     end = datetime(2017, 5, 1)
-    # elif args['batch'] == 7:  # 81K
-    #     start = datetime(2017, 5, 1)
-    #     end = datetime(2019, 9, 1)
     if args['batch'] == 1:
         start = datetime(2000, 1, 1)
         end = datetime(2013, 2, 1)

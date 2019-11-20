@@ -1,7 +1,7 @@
 """Annotate Good News with parts of speech.
 
 Usage:
-    annotate_goodnews_ner.py [options]
+    annotate_goodnews.py [options]
 
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.

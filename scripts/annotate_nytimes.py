@@ -1,7 +1,7 @@
 """Get articles from the New York Times API.
 
 Usage:
-    annotate_nytimes_ner.py [options]
+    annotate_nytimes.py [options]
 
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
@@ -149,8 +149,9 @@ def parse_article(article, nlp, db):
                 }
                 section['named_entities'].append(ent_info)
 
-    db.articles.find_one_and_update(
-        {'_id': article['_id']}, {'$set': article})
+    if changed:
+        db.articles.find_one_and_update(
+            {'_id': article['_id']}, {'$set': article})
 
 
 def annotate_with_host(host, period):
