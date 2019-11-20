@@ -19,8 +19,6 @@ from pycocoevalcap.cider.cider import Cider
 from pycocoevalcap.meteor.meteor import Meteor
 from pycocoevalcap.rouge.rouge import Rouge
 
-# from pycocoevalcap.spice.spice import Spice
-
 
 def open_json(path):
     with open(path, "r") as f:
@@ -33,7 +31,6 @@ def score(ref, hypo):
         (Meteor(), "METEOR"),
         (Rouge(), "ROUGE_L"),
         (Cider(), "CIDEr"),
-        # (Spice(), "Spice")
     ]
     final_scores = {}
     all_scores = {}
@@ -72,7 +69,6 @@ def evaluate(ref, cand, get_scores=True):
     print('METEOR:\t ;', final_scores[0]['METEOR'])
     print('ROUGE_L: ;', final_scores[0]['ROUGE_L'])
     print('CIDEr:\t ;', final_scores[0]['CIDEr'])
-    # print('Spice:\t', final_scores[0]['Spice'])
 
     if get_scores:
         return final_scores

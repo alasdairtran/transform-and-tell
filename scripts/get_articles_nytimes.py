@@ -24,12 +24,12 @@ import pymongo
 import requests
 from docopt import docopt
 from joblib import Parallel, delayed
+from langdetect import detect
 from posixpath import normpath
 from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm
 
-from langdetect import detect
 from tell.utils import setup_logger
 
 logger = setup_logger()
