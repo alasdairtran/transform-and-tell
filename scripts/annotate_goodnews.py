@@ -1,7 +1,7 @@
 """Annotate Good News with parts of speech.
 
 Usage:
-    annotate_goodnews_pos.py [options]
+    annotate_goodnews_ner.py [options]
 
 Options:
     -p --ptvsd PORT     Enable debug mode with ptvsd on PORT, e.g. 5678.
@@ -43,7 +43,7 @@ def main():
         ptvsd.wait_for_attach()
 
     logger.info('Loading spacy.')
-    nlp = spacy.load("en_core_web_lg", disable=['parser', 'ner'])
+    nlp = spacy.load("en_core_web_lg")
     client = MongoClient(host=args['host'], port=27017)
     db = client.goodnews
 
@@ -59,18 +59,55 @@ def main():
             '_id': {'$eq': sample['article_id']},
         })
 
-        context = article['context'].strip()
-        context_doc = nlp(context)
-        get_context_parts_of_speech(context_doc, article)
+        changed = False
+        if 'caption_ner' not in article or 'caption_parts_of_speech' not in article:
+            changed = True
+            article['caption_parts_of_speech'] = {}
+            article['caption_ner'] = {}
+            for idx, caption in article['images'].items():
+                caption = caption.strip()
+                caption_doc = nlp(caption)
+                get_caption_ner(caption_doc, article, idx)
+                get_caption_parts_of_speech(caption_doc, article, idx)
 
-        article['caption_parts_of_speech'] = {}
-        for idx, caption in article['images'].items():
-            caption = caption.strip()
-            caption_doc = nlp(caption)
-            get_caption_parts_of_speech(caption_doc, article, idx)
+        if 'context_ner' not in article or 'context_parts_of_speech' not in article:
+            changed = True
+            context = article['context'].strip()
+            context_doc = nlp(context)
+            get_context_ner(context_doc, article)
+            get_context_parts_of_speech(context_doc, article)
 
-        db.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': article})
+        if changed:
+            db.articles.find_one_and_update(
+                {'_id': article['_id']}, {'$set': article})
+
+
+def get_caption_ner(doc, article, idx):
+    ner = []
+    for ent in doc.ents:
+        ent_info = {
+            'start': ent.start_char,
+            'end': ent.end_char,
+            'text': ent.text,
+            'label': ent.label_,
+        }
+        ner.append(ent_info)
+
+    article['caption_ner'][idx] = ner
+
+
+def get_context_ner(doc, article):
+    ner = []
+    for ent in doc.ents:
+        ent_info = {
+            'start': ent.start_char,
+            'end': ent.end_char,
+            'text': ent.text,
+            'label': ent.label_,
+        }
+        ner.append(ent_info)
+
+    article['context_ner'] = ner
 
 
 def get_context_parts_of_speech(doc, article):

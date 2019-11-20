@@ -39,7 +39,84 @@ def validate(args):
     return args
 
 
+def get_parts_of_speech(doc, article):
+    parts_of_speech = []
+    for tok in doc:
+        pos = {
+            'start': tok.idx,
+            'end': tok.idx + len(tok.text),  # exclude right endpoint
+            'text': tok.text,
+            'pos': tok.pos_,
+        }
+        parts_of_speech.append(pos)
+
+        if 'main' in article['headline']:
+            section = article['headline']
+            assign_pos_to_section(section, pos)
+
+        for section in article['parsed_section']:
+            assign_pos_to_section(section, pos)
+
+    article['parts_of_speech'] = parts_of_speech
+
+
+def assign_pos_to_section(section, pos):
+    s = section['spacy_start']
+    e = section['spacy_end']
+    if pos['start'] >= s and pos['end'] <= e:
+        section['parts_of_speech'].append({
+            'start': pos['start'] - s,
+            'end': pos['end'] - s,
+            'text': pos['text'],
+            'pos':  pos['pos'],
+        })
+
+
+def calculate_spacy_positions(article):
+    title = ''
+    cursor = 0
+    if 'main' in article['headline']:
+        title = article['headline']['main'].strip()
+        article['headline']['spacy_start'] = cursor
+        cursor += len(title) + 1  # newline
+        article['headline']['spacy_end'] = cursor
+        article['headline']['parts_of_speech'] = []
+
+    for section in article['parsed_section']:
+        text = section['text'].strip()
+        section['spacy_start'] = cursor
+        cursor += len(text) + 1  # newline
+        section['spacy_end'] = cursor
+        section['parts_of_speech'] = []
+
+
+def annotate_pos(article, nlp, db):
+    if 'parts_of_speech' in article['parsed_section'][0]:
+        return
+
+    calculate_spacy_positions(article)
+
+    title = ''
+    if 'main' in article['headline']:
+        title = article['headline']['main'].strip()
+
+    sections = article['parsed_section']
+
+    paragraphs = [s['text'].strip() for s in sections]
+    paragraphs = [title] + paragraphs
+
+    combined = '\n'.join(paragraphs)
+
+    doc = nlp(combined)
+    get_parts_of_speech(doc, article)
+
+    db.articles.find_one_and_update(
+        {'_id': article['_id']}, {'$set': article})
+
+
 def parse_article(article, nlp, db):
+    annotate_pos(article, nlp, db)
+
     sections = article['parsed_section']
     changed = False
 
@@ -72,9 +149,8 @@ def parse_article(article, nlp, db):
                 }
                 section['named_entities'].append(ent_info)
 
-    if changed:
-        db.articles.find_one_and_update(
-            {'_id': article['_id']}, {'$set': article})
+    db.articles.find_one_and_update(
+        {'_id': article['_id']}, {'$set': article})
 
 
 def annotate_with_host(host, period):
