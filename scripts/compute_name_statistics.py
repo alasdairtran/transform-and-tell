@@ -35,18 +35,8 @@ def validate(args):
     return args
 
 
-def main():
-    args = docopt(__doc__, version='0.0.1')
-    args = validate(args)
-
-    if args['ptvsd']:
-        address = ('0.0.0.0', args['ptvsd'])
-        ptvsd.enable_attach(address)
-        ptvsd.wait_for_attach()
-
-    client = MongoClient(host=args['host'], port=27017)
+def compute_nytimes(client):
     nytimes = client.nytimes
-
     start = datetime(2000, 1, 1)
     end = datetime(2019, 5, 1)
 
@@ -77,9 +67,76 @@ def main():
         pickle.dump(counters, f)
 
 
+def compute_goodnews(client):
+    goodnews = client.goodnews
+
+    caption_counter = Counter()
+    context_counter = Counter()
+
+    sample_cursor = goodnews.splits.find(
+        {'split': 'train'}, no_cursor_timeout=True).batch_size(128)
+
+    done_article_ids = set()
+    for sample in tqdm(sample_cursor):
+        if sample['article_id'] in done_article_ids:
+            continue
+        done_article_ids.add(sample['article_id'])
+
+        article = goodnews.articles.find_one({
+            '_id': {'$eq': sample['article_id']},
+        })
+
+        get_proper_goodnews_names(
+            article, context_counter, 'context_parts_of_speech')
+
+        for idx in article['images'].keys():
+            get_caption_proper_names(article, idx, caption_counter)
+
+    counters = {
+        'caption': caption_counter,
+        'context': context_counter,
+    }
+
+    with open('./data/goodnews/name_counters.pkl', 'wb') as f:
+        pickle.dump(counters, f)
+
+
+def main():
+    args = docopt(__doc__, version='0.0.1')
+    args = validate(args)
+
+    if args['ptvsd']:
+        address = ('0.0.0.0', args['ptvsd'])
+        ptvsd.enable_attach(address)
+        ptvsd.wait_for_attach()
+
+    client = MongoClient(host=args['host'], port=27017)
+
+    compute_nytimes(client)
+    compute_goodnews(client)
+
+
 def get_proper_names(section, counter):
     if 'parts_of_speech' in section:
         parts_of_speech = section['parts_of_speech']
+        proper_names = [pos['text'] for pos in parts_of_speech
+                        if pos['pos'] == 'PROPN']
+
+        counter.update(proper_names)
+
+
+def get_proper_goodnews_names(section, counter, pos_field):
+    if pos_field in section:
+        parts_of_speech = section[pos_field]
+        proper_names = [pos['text'] for pos in parts_of_speech
+                        if pos['pos'] == 'PROPN']
+
+        counter.update(proper_names)
+
+
+def get_caption_proper_names(article, idx, counter):
+    if 'caption_parts_of_speech' in article:
+        parts_of_speech = article['caption_parts_of_speech'][idx]
         proper_names = [pos['text'] for pos in parts_of_speech
                         if pos['pos'] == 'PROPN']
 
