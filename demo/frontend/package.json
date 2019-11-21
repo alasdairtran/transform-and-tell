@@ -2,10 +2,15 @@
   "name": "tatdemo",
   "version": "0.1.0",
   "private": true,
+  "proxy": "https://api.transform-and-tell.ml",
   "dependencies": {
+    "axios": "^0.19.0",
+    "bootstrap": "^4.3.1",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "react-scripts": "3.2.0"
+    "react-helmet": "^5.2.1",
+    "react-scripts": "3.2.0",
+    "reactstrap": "^8.1.1"
   },
   "scripts": {
     "start": "react-scripts start",
