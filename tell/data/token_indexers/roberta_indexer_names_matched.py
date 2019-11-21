@@ -129,7 +129,7 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
         else:
             proper_masks = None
 
-        for raw_token, entity_mask in zip(raw_tokens, copy_masks):
+        for raw_token, copy_mask in zip(raw_tokens, copy_masks):
             # e.g. raw_token == " Tomas"
 
             # I guess this step is used so that we can distinguish between
@@ -144,14 +144,11 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
 
             bpe_tokens.extend(token_ids)
 
-            if entity_mask == 0:
-                bpe_copy_masks.extend([0] * len(token_ids))
-            else:
-                bpe_copy_masks.extend([1] * len(token_ids))
+            bpe_copy_masks.extend([copy_mask] * len(token_ids))
 
         if proper_masks is not None:
             bpe_proper_masks = []
-            for raw_token, entity_mask in zip(raw_tokens, proper_masks):
+            for raw_token, copy_mask in zip(raw_tokens, proper_masks):
                 # e.g. raw_token == " Tomas"
 
                 # I guess this step is used so that we can distinguish between
@@ -164,10 +161,7 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
                              for bpe_token in self.bpe.bpe(token).split(' ')]
                 # e.g. token_ids == [6669, 959]
 
-                if entity_mask == 0:
-                    bpe_proper_masks.extend([0] * len(token_ids))
-                else:
-                    bpe_proper_masks.extend([1] * len(token_ids))
+                bpe_proper_masks.extend([copy_mask] * len(token_ids))
         else:
             bpe_proper_masks = None
 

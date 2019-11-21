@@ -219,7 +219,7 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
         if not caption_copy_masks[caption_copy_masks >= 1].bool().any():
             return torch.tensor(0.0).to(X.device), torch.tensor(0.0).to(X.device)
 
-        context_copy_masks = context[f'{self.index}_copy_masks']
+        context_copy_masks = context[f'{self.index}_proper_masks']
         # context_copy_masks.shape == [batch_size, source_len]
 
         if self.weigh_bert:
@@ -314,10 +314,10 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
 
         new_caption_targets = inverse_unique_ids.index_select(
             0, caption_targets.reshape(-1))
-        # new_caption_targets.shape == [batch_size * source_len, 1]
+        # new_caption_targets.shape == [batch_size * target_len, 1]
 
         new_caption_targets = new_caption_targets.reshape(-1, 1)
-        # new_caption_targets.shape == [batch_size * n_entity_tokens, 1]
+        # new_caption_targets.shape == [batch_size * target_len, 1]
 
         copy_probs = copy_attn.new_zeros(B, L, V)
         # copy_probs.shape == [batch_size, target_len, reduced_vocab_size]
