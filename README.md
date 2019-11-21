@@ -69,8 +69,8 @@ python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes
 
 ```sh
 # Back up database
-mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-10-26
+mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-11-19
 
 # Restore database
-mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2019-10-26
+mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2019-11-19
 ```
