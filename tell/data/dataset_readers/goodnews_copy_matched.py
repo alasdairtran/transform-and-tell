@@ -124,10 +124,11 @@ class GoodNewsCopyMatchedReader(DatasetReader):
                 article, sample['image_index'])
 
             self._process_copy_tokens(copy_infos, article)
+            proper_infos = self._get_context_names(article)
 
-            yield self.article_to_instance(article, named_entities, face_embeds, image, sample['image_index'], image_path, copy_infos)
+            yield self.article_to_instance(article, named_entities, face_embeds, image, sample['image_index'], image_path, copy_infos, proper_infos)
 
-    def article_to_instance(self, article, named_entities, face_embeds, image, image_index, image_path, copy_infos) -> Instance:
+    def article_to_instance(self, article, named_entities, face_embeds, image, image_index, image_path, copy_infos, proper_infos) -> Instance:
         context = article['context'].strip()
 
         caption = article['images'][image_index]
@@ -147,10 +148,10 @@ class GoodNewsCopyMatchedReader(DatasetReader):
             name_field = stub_field.empty_field()
 
         fields = {
-            'context': CopyTextField(context_tokens, self._token_indexers, copy_infos, 'context'),
+            'context': CopyTextField(context_tokens, self._token_indexers, copy_infos, proper_infos, 'context'),
             'names': ListTextField(name_field),
             'image': ImageField(image, self.preprocess),
-            'caption': CopyTextField(caption_tokens, self._token_indexers, copy_infos, 'caption'),
+            'caption': CopyTextField(caption_tokens, self._token_indexers, copy_infos, None, 'caption'),
             'face_embeds': ArrayField(face_embeds, padding_value=np.nan),
         }
 
@@ -201,6 +202,22 @@ class GoodNewsCopyMatchedReader(DatasetReader):
                     })
                 else:
                     copy_infos[pos['text']]['caption'].append(
+                        (pos['start'], pos['end']))
+
+        return copy_infos
+
+    def _get_context_names(self, article):
+        copy_infos = {}
+
+        context_pos = article['context_parts_of_speech']
+        for pos in context_pos:
+            if pos['pos'] == 'PROPN':
+                if pos['text'] not in copy_infos:
+                    copy_infos[pos['text']] = OrderedDict({
+                        'context': [(pos['start'], pos['end'])]
+                    })
+                else:
+                    copy_infos[pos['text']]['context'].append(
                         (pos['start'], pos['end']))
 
         return copy_infos

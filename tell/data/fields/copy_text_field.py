@@ -14,9 +14,11 @@ class CopyTextField(TextField):
                  tokens: List[Token],
                  token_indexers: Dict[str, TokenIndexer],
                  copy_infos: Dict[str, List[Tuple[int, int]]],
+                 proper_infos,
                  key: str) -> None:
         super().__init__(tokens, token_indexers)
         self.copy_infos = copy_infos
+        self.proper_infos = proper_infos
         self.key = key
 
     @overrides
@@ -26,7 +28,7 @@ class CopyTextField(TextField):
         token_index_to_indexer_name: Dict[str, str] = {}
         for indexer_name, indexer in self._token_indexers.items():
             token_indices = indexer.tokens_to_indices(
-                self.tokens, vocab, indexer_name, self.copy_infos, self.key)
+                self.tokens, vocab, indexer_name, self.copy_infos, self.proper_infos, self.key)
             token_arrays.update(token_indices)
             indexer_name_to_indexed_token[indexer_name] = list(
                 token_indices.keys())

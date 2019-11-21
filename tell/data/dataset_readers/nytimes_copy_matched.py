@@ -181,11 +181,13 @@ class NYTimesCopyMatchedReader(DatasetReader):
                 paragraphs = paragraphs + before + after
                 pos_pars = pos_pars + before_pos + after_pos
                 self._process_copy_tokens(copy_infos, paragraphs, pos_pars)
+                proper_infos = self._get_context_names(
+                    paragraphs, pos_pars)
                 named_entities = sorted(named_entities)
 
-                yield self.article_to_instance(copy_infos, paragraphs, named_entities, image, caption, image_path, article['web_url'], pos, face_embeds)
+                yield self.article_to_instance(copy_infos, proper_infos, paragraphs, named_entities, image, caption, image_path, article['web_url'], pos, face_embeds)
 
-    def article_to_instance(self, copy_infos, paragraphs, named_entities, image, caption, image_path, web_url, pos, face_embeds) -> Instance:
+    def article_to_instance(self, copy_infos, proper_infos, paragraphs, named_entities, image, caption, image_path, web_url, pos, face_embeds) -> Instance:
         context = '\n'.join(paragraphs).strip()
 
         context_tokens = self._tokenizer.tokenize(context)
@@ -201,10 +203,10 @@ class NYTimesCopyMatchedReader(DatasetReader):
             name_field = stub_field.empty_field()
 
         fields = {
-            'context': CopyTextField(context_tokens, self._token_indexers, copy_infos, 'context'),
+            'context': CopyTextField(context_tokens, self._token_indexers, copy_infos, proper_infos, 'context'),
             'names': ListTextField(name_field),
             'image': ImageField(image, self.preprocess),
-            'caption': CopyTextField(caption_tokens, self._token_indexers, copy_infos, 'caption'),
+            'caption': CopyTextField(caption_tokens, self._token_indexers, copy_infos, None, 'caption'),
             'face_embeds': ArrayField(face_embeds, padding_value=np.nan),
         }
 
@@ -266,6 +268,23 @@ class NYTimesCopyMatchedReader(DatasetReader):
                 else:
                     copy_infos[pos['text']]['caption'].append(
                         (pos['start'], pos['end']))
+
+        return copy_infos
+
+    def _get_context_names(self, paragraphs, pos_pars):
+        offset = 0
+        copy_infos = {}
+        for par, pos_par in zip(paragraphs, pos_pars):
+            for pos in pos_par:
+                if pos['pos'] == 'PROPN':
+                    if pos['text'] not in copy_infos:
+                        copy_infos[pos['text']] = OrderedDict({
+                            'context': [(pos['start'] + offset, pos['end'] + offset)],
+                        })
+                    else:
+                        copy_infos[pos['text']]['context'].append(
+                            (pos['start'] + offset, pos['end'] + offset))
+            offset += len(par) + 1
 
         return copy_infos
 

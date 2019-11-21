@@ -69,22 +69,29 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
                           vocabulary: Vocabulary,
                           index_name: str,
                           copy_infos: Dict[str, List[Tuple[int, int]]] = None,
+                          proper_infos=None,
                           key: str = None) -> Dict[str, List[int]]:
         if not self._added_to_vocabulary:
             self._add_encoding_to_vocabulary(vocabulary)
             self._added_to_vocabulary = True
 
         text = ' '.join([token.text for token in tokens])
-        indices, copy_masks = self.encode(text, copy_infos, key)
+        indices, copy_masks, proper_masks = self.encode(
+            text, copy_infos, proper_infos, key)
 
-        return {
+        output = {
             index_name: indices,
             f'{index_name}_copy_masks': copy_masks,
         }
 
-    def encode(self, sentence, copy_infos, key):
-        bpe_tokens, copy_masks = self._byte_pair_encode(
-            sentence, copy_infos, key)
+        if proper_masks is not None:
+            output[f'{index_name}_proper_masks'] = proper_masks
+
+        return output
+
+    def encode(self, sentence, copy_infos, proper_infos, key):
+        bpe_tokens, copy_masks, proper_masks = self._byte_pair_encode(
+            sentence, copy_infos, proper_infos, key)
         sentence = ' '.join(map(str, bpe_tokens))
         words = tokenize_line(sentence)
         assert len(words) == len(copy_masks)
@@ -95,14 +102,18 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
         words = ['<s>'] + words + ['</s>']
         copy_masks = [0] + copy_masks + [0]
 
+        if proper_masks is not None:
+            proper_masks = proper_masks[:self._max_len - 2]
+            proper_masks = [0] + proper_masks + [0]
+
         token_ids = []
         for word in words:
             idx = self.source_dictionary.indices[word]
             token_ids.append(idx)
 
-        return token_ids, copy_masks
+        return token_ids, copy_masks, proper_masks
 
-    def _byte_pair_encode(self, text, copy_infos, key):
+    def _byte_pair_encode(self, text, copy_infos, proper_infos, key):
         bpe_tokens = []
         bpe_copy_masks = []
 
@@ -111,6 +122,12 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
 
         copy_masks = self.get_copy_mask(raw_tokens, copy_infos, key)
         # Same length as raw_tokens
+
+        if proper_infos is not None:
+            proper_masks = self.get_copy_mask(
+                raw_tokens, proper_infos, key)
+        else:
+            proper_masks = None
 
         for raw_token, entity_mask in zip(raw_tokens, copy_masks):
             # e.g. raw_token == " Tomas"
@@ -132,7 +149,29 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
             else:
                 bpe_copy_masks.extend([1] * len(token_ids))
 
-        return bpe_tokens, bpe_copy_masks
+        if proper_masks is not None:
+            bpe_proper_masks = []
+            for raw_token, entity_mask in zip(raw_tokens, proper_masks):
+                # e.g. raw_token == " Tomas"
+
+                # I guess this step is used so that we can distinguish between
+                # the space separator and the space character.
+                token = ''.join(self.bpe.byte_encoder[b]
+                                for b in raw_token.encode('utf-8'))
+                # e.g. token == "ĠTomas"
+
+                token_ids = [self.bpe.encoder[bpe_token]
+                             for bpe_token in self.bpe.bpe(token).split(' ')]
+                # e.g. token_ids == [6669, 959]
+
+                if entity_mask == 0:
+                    bpe_proper_masks.extend([0] * len(token_ids))
+                else:
+                    bpe_proper_masks.extend([1] * len(token_ids))
+        else:
+            bpe_proper_masks = None
+
+        return bpe_tokens, bpe_copy_masks, bpe_proper_masks
 
     def get_copy_mask(self, tokens, copy_infos, key):
         # We first compute the start and end points for each token.
@@ -179,7 +218,7 @@ class RobertaNamesMatchedTokenIndexer(TokenIndexer[int]):
                          padding_lengths: Dict[str, int]) -> Dict[str, torch.Tensor]:  # pylint: disable=unused-argument
         padded_dict: Dict[str, torch.Tensor] = {}
         for key, val in tokens.items():
-            if 'copy_masks' in key:
+            if 'copy_masks' in key or 'proper_masks' in key:
                 def default_value(): return -1
             else:
                 def default_value(): return self._padding_value

@@ -467,7 +467,7 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
         full_active_idx = active_idx
         gen_len = 100
 
-        context_copy_masks = context[f'{self.index}_copy_masks']
+        context_copy_masks = context[f'{self.index}_proper_masks']
         # context_copy_masks.shape == [batch_size, source_len]
 
         if self.weigh_bert:
@@ -573,7 +573,7 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
             copy_attn = copy_attn.squeeze(1)
             # copy_attn.shape == [batch_size, source_len]
 
-            irrelevant_mask = context_copy_masks[full_active_idx] != 1
+            irrelevant_mask = context_copy_masks[full_active_idx] < 1
             copy_attn[irrelevant_mask] = 0
             # copy_attn.shape == [batch_size, source_len]
 
