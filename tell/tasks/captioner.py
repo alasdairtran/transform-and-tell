@@ -2,8 +2,10 @@ import base64
 import io
 import logging
 import re
+from collections import OrderedDict
 
 import numpy as np
+import spacy
 import torch
 from allennlp.common.util import prepare_environment
 from allennlp.data.fields import ArrayField, MetadataField, TextField
@@ -20,7 +22,7 @@ from torchvision.transforms import (CenterCrop, Compose, Normalize, Resize,
                                     ToTensor)
 
 from tell.commands.train import yaml_to_params
-from tell.data.fields import ImageField
+from tell.data.fields import CopyTextField, ImageField
 from tell.facenet import MTCNN, InceptionResnetV1
 
 from .base import Worker
@@ -48,18 +50,19 @@ class CaptioningWorker(Worker):
         self.token_indexers = None
         self.mtcnn = None
         self.resnet = None
+        self.nlp = None
 
     def initialize(self):
         # We need to initialize the model inside self.run and not self.__init__
         # to ensure that the model loads in the correct thread.
-        config_path = '/home/alasdair/projects/transform-and-tell/expt/nytimes/8_transformer_copying/config.yaml'
+        config_path = '/home/alasdair/projects/transform-and-tell/expt/nytimes/7_transformer_faces/config.yaml'
         logger.info(f'Loading config from {config_path}')
         config = yaml_to_params(config_path, overrides='')
         prepare_environment(config)
         vocab = Vocabulary.from_params(config.pop('vocabulary'))
         model = Model.from_params(vocab=vocab, params=config.pop('model'))
 
-        model_path = '/home/alasdair/projects/transform-and-tell/expt/nytimes/8_transformer_copying/serialization/best.th'
+        model_path = '/home/alasdair/projects/transform-and-tell/expt/nytimes/7_transformer_faces/serialization/best.th'
         logger.info(f'Loading best model from {model_path}')
         best_model_state = torch.load(model_path)
         model.load_state_dict(best_model_state)
@@ -96,6 +99,9 @@ class CaptioningWorker(Worker):
         self.token_indexers = {k: TokenIndexer.from_params(p)
                                for k, p in indexer_params.items()}
 
+        # logger.info('Loading spacy')
+        # self.nlp = spacy.load("en_core_web_lg")
+
     def generate_captions(self, articles):
         instances = [self.prepare_instance(a) for a in articles]
         iterator = self.data_iterator(instances, num_epochs=1, shuffle=False)
@@ -125,7 +131,10 @@ class CaptioningWorker(Worker):
 
         context_tokens = self.tokenizer.tokenize(context)
 
+        # proper_infos = self._get_context_names(context)
+
         fields = {
+            # 'context': CopyTextField(context_tokens, self.token_indexers, proper_infos, proper_infos, 'context'),
             'context': TextField(context_tokens, self.token_indexers),
             'image': ImageField(sample['image'], self.preprocess),
             'face_embeds': ArrayField(sample['face_embeds'], padding_value=np.nan),
@@ -140,6 +149,32 @@ class CaptioningWorker(Worker):
         fields['metadata'] = MetadataField(metadata)
 
         return Instance(fields)
+
+    # def _get_context_names(self, text):
+    #     copy_infos = {}
+
+    #     doc = self.nlp(text)
+    #     parts_of_speech = []
+    #     for tok in doc:
+    #         pos = {
+    #             'start': tok.idx,
+    #             'end': tok.idx + len(tok.text),  # exclude right endpoint
+    #             'text': tok.text,
+    #             'pos': tok.pos_,
+    #         }
+    #         parts_of_speech.append(pos)
+
+    #     for pos in parts_of_speech:
+    #         if pos['pos'] == 'PROPN':
+    #             if pos['text'] not in copy_infos:
+    #                 copy_infos[pos['text']] = OrderedDict({
+    #                     'context': [(pos['start'], pos['end'])]
+    #                 })
+    #             else:
+    #                 copy_infos[pos['text']]['context'].append(
+    #                     (pos['start'], pos['end']))
+
+    #     return copy_infos
 
     def prepare_sample(self, article):
         paragraphs = []
