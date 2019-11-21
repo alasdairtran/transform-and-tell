@@ -345,11 +345,13 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
     def generate(self,  # type: ignore
                  context: Dict[str, torch.LongTensor],
                  image: torch.Tensor,
-                 caption: Dict[str, torch.LongTensor],
+                 face_embeds,
                  metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
+        B = image.shape[0]
+        caption = {self.index: context[self.index].new_zeros(B, 2)}
         caption_ids, _, contexts, X_sections_hiddens, article_padding_mask = self._forward(
-            context, image, caption)
+            context, image, caption, face_embeds)
 
         log_probs, copy_probs, should_copy_mask, gen_ids = self._generate(
             caption_ids, contexts, X_sections_hiddens, article_padding_mask, context)
@@ -363,11 +365,8 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
                         for i, x in enumerate(gen_ids)]
 
         output_dict = {
-            'generated_indices': gen_ids,
-            'generated_texts': gen_texts,
+            'generations': gen_texts,
             'copied_texts': copied_texts,
-            'captions': [m['caption'] for m in metadata],
-            'web_url': [m['web_url'] for m in metadata],
         }
 
         return output_dict

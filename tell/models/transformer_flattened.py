@@ -226,9 +226,10 @@ class TransformerFlattenedModel(Model):
     def generate(self,  # type: ignore
                  context: Dict[str, torch.LongTensor],
                  image: torch.Tensor,
-                 caption: Dict[str, torch.LongTensor],
                  metadata: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
 
+        B = image.shape[0]
+        caption = {self.index: context[self.index].new_zeros(B, 2)}
         caption_ids, _, contexts = self._forward(
             context, image, caption)
 
@@ -239,10 +240,7 @@ class TransformerFlattenedModel(Model):
             x[x != self.padding_idx]) for x in gen_ids]
 
         output_dict = {
-            'generated_indices': gen_ids,
-            'generated_texts': gen_texts,
-            'captions': [m['caption'] for m in metadata],
-            'web_url': [m['web_url'] for m in metadata],
+            'generations': gen_texts,
         }
 
         return output_dict
