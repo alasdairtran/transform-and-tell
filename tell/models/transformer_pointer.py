@@ -155,7 +155,7 @@ class TransformerPointerModel(LoadStateDictWithPrefix, Model):
 
         loss = entity_loss + copy_loss
 
-        if self.training and not loss.requires_grad:
+        if (self.training and not loss.requires_grad) or torch.isnan(loss):
             loss = None
 
         if not torch.isnan(gen_loss):
