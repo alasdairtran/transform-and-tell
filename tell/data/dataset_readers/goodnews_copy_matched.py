@@ -210,8 +210,9 @@ class GoodNewsCopyMatchedReader(DatasetReader):
         copy_infos = {}
 
         context_pos = article['context_parts_of_speech']
+        context_ners = article['context_ner']
         for pos in context_pos:
-            if pos['pos'] == 'PROPN':
+            if pos['pos'] == 'PROPN' and self.is_in_ner(pos['text'], context_ners):
                 if pos['text'] not in copy_infos:
                     copy_infos[pos['text']] = OrderedDict({
                         'context': [(pos['start'], pos['end'])]

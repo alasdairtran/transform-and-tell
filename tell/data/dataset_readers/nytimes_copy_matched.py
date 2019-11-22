@@ -109,13 +109,15 @@ class NYTimesCopyMatchedReader(DatasetReader):
                     title = article['headline']['main'].strip()
                 paragraphs = []
                 pos_pars = []
+                ner_pars = []
                 named_entities = set()
                 n_words = 0
                 if title:
                     paragraphs.append(title)
                     pos_pars.append(article['headline']['parts_of_speech'])
-                    named_entities.union(
-                        self._get_named_entities(article['headline']))
+                    ners = self._get_named_entities(article['headline'])
+                    ner_pars.append(ners)
+                    named_entities.union(ners)
                     n_words += len(self.to_token_ids(title))
 
                 caption = sections[pos]['text'].strip()
@@ -133,15 +135,19 @@ class NYTimesCopyMatchedReader(DatasetReader):
 
                 before = []
                 before_pos = []
+                before_ners = []
                 after = []
                 after_pos = []
+                after_ners = []
                 i = pos - 1
                 j = pos + 1
                 for k, section in enumerate(sections):
                     if section['type'] == 'paragraph':
                         paragraphs.append(section['text'])
                         pos_pars.append(section['parts_of_speech'])
-                        named_entities |= self._get_named_entities(section)
+                        ners = self._get_named_entities(section)
+                        ner_pars.append(ners)
+                        named_entities |= ners
                         break
 
                 while True:
@@ -149,7 +155,9 @@ class NYTimesCopyMatchedReader(DatasetReader):
                         text = sections[i]['text']
                         before.insert(0, text)
                         before_pos.insert(0, sections[i]['parts_of_speech'])
-                        named_entities |= self._get_named_entities(sections[i])
+                        ners = self._get_named_entities(sections[i])
+                        before_ners.append(ners)
+                        named_entities |= ners
                         n_words += len(self.to_token_ids(text))
                     i -= 1
 
@@ -157,7 +165,9 @@ class NYTimesCopyMatchedReader(DatasetReader):
                         text = sections[j]['text']
                         after.append(text)
                         after_pos.append(sections[j]['parts_of_speech'])
-                        named_entities |= self._get_named_entities(sections[j])
+                        ners = self._get_named_entities(sections[j])
+                        after_ners.append(ners)
+                        named_entities |= ners
                         n_words += len(self.to_token_ids(text))
                     j += 1
 
@@ -180,9 +190,10 @@ class NYTimesCopyMatchedReader(DatasetReader):
 
                 paragraphs = paragraphs + before + after
                 pos_pars = pos_pars + before_pos + after_pos
+                ner_pars = ner_pars + before_ners + after_ners
                 self._process_copy_tokens(copy_infos, paragraphs, pos_pars)
                 proper_infos = self._get_context_names(
-                    paragraphs, pos_pars)
+                    paragraphs, pos_pars, ner_pars)
                 named_entities = sorted(named_entities)
 
                 yield self.article_to_instance(copy_infos, proper_infos, paragraphs, named_entities, image, caption, image_path, article['web_url'], pos, face_embeds)
@@ -271,12 +282,12 @@ class NYTimesCopyMatchedReader(DatasetReader):
 
         return copy_infos
 
-    def _get_context_names(self, paragraphs, pos_pars):
+    def _get_context_names(self, paragraphs, pos_pars, ner_pars):
         offset = 0
         copy_infos = {}
-        for par, pos_par in zip(paragraphs, pos_pars):
+        for par, pos_par, ner_par in zip(paragraphs, pos_pars, ner_pars):
             for pos in pos_par:
-                if pos['pos'] == 'PROPN':
+                if pos['pos'] == 'PROPN' and self.isin_set(pos['text'], ner_par):
                     if pos['text'] not in copy_infos:
                         copy_infos[pos['text']] = OrderedDict({
                             'context': [(pos['start'] + offset, pos['end'] + offset)],
@@ -306,4 +317,10 @@ class NYTimesCopyMatchedReader(DatasetReader):
             for ner in ners:
                 if text in ner['text']:
                     return True
+        return False
+
+    def isin_set(self, text, test_set):
+        for ner in test_set:
+            if text in ner:
+                return True
         return False
