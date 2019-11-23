@@ -337,7 +337,8 @@ class TransformerPointer2Model(LoadStateDictWithPrefix, Model):
             copy_lprobs_i = copy_lprobs[relevant_mask]
             # copy_lprobs_i.shape == [batch_size * n_entity_tokens, reduced_vocab_size]
 
-            copy_loss += self.copy_loss(copy_lprobs_i, new_caption_targets_i)
+            if copy_lprobs_i.shape[0] > 0:
+                copy_loss += self.copy_loss(copy_lprobs_i, new_caption_targets_i)
 
         return entity_loss, copy_loss
 
