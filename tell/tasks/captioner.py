@@ -215,7 +215,8 @@ class CaptioningWorker(Worker):
             if n_words >= 510 or (i <= k and j >= len(sections)):
                 break
 
-        image_data = base64.b64decode(sections[pos]['image_data'])
+        image_data = base64.b64decode(
+            sections[pos]['image_data'].encode('utf-8'))
         image = Image.open(io.BytesIO(image_data))
         image = image.convert('RGB')
         face_embeds = self.get_faces(image)

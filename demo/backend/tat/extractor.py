@@ -12,7 +12,7 @@ class ExtractError(Exception):
     pass
 
 
-def extract_article(url, selected_pos):
+def get_urls(url):
     response = urlopen(url, timeout=5)
     raw_html = response.read().decode('utf-8')
     try:
@@ -23,30 +23,35 @@ def extract_article(url, selected_pos):
     if not parsed_sections:
         raise ExtractError(f'No article text is found. Pick another URL.')
 
-    image_positions = []
-    for i, section in enumerate(parsed_sections):
+    image_urls = []
+    for section in parsed_sections:
         if section['type'] == 'caption':
-            image_positions.append(i)
             img_response = requests.get(section['url'], stream=True)
-            section['image_data'] = base64.b64encode(img_response.content)
+            section['image_data'] = str(base64.b64encode(img_response.content),
+                                        'utf-8')
+            image_urls.append(section['url'])
 
-    if not image_positions:
-        raise ExtractError(
-            f'No image is found in the article. Pick another URL.')
+    if not image_urls:
+        raise ExtractError(f'No image is found in the article. '
+                           f'Pick another URL.')
 
-    try:
-        pos = image_positions[selected_pos - 1]
-    except IndexError:
-        raise ExtractError(
-            f'The article only has {len(image_positions)} image(s) but you '
-            f'select the image at position {selected_pos}. '
-            f'Pick a position less than {len(image_positions) + 1}.')
+    output = {
+        'sections': parsed_sections,
+        'title': title,
+        'image_urls': image_urls,
+    }
+    return output
 
-    true_caption = parsed_sections[pos]['text']
-    image_url = parsed_sections[pos]['url']
+
+def extract_article(sections, title, selected_pos):
+    positions = [i for i, s in enumerate(sections) if s['type'] == 'caption']
+    pos = positions[selected_pos]
+
+    true_caption = sections[pos]['text']
+    image_url = sections[pos]['url']
 
     article = {
-        'sections': parsed_sections,
+        'sections': sections,
         'image_position': pos,
         'title': title,
         'true_caption': true_caption,
@@ -56,6 +61,10 @@ def extract_article(url, selected_pos):
 
 
 def extract_text(html):
+    # Before November 2019, we could just use BeautifulSoup to extract all
+    # the image captions in the article. But since November 2019, it seems
+    # that The New York Times starts to use more Javascript to insert images
+    # into the page, so we can only extract the top image from now on.
     soup = bs4.BeautifulSoup(html, 'html.parser')
 
     title = soup.find('h1').text.strip()
@@ -101,15 +110,18 @@ def extract_text_new(soup):
             if part.parent.attrs.get('itemid', 0):
                 caption = part.find('span', {'class': 'e13ogyst0'})
                 if caption:
-                    url = resolve_url(part.parent.attrs['itemid'])
-                    sections.append({
-                        'type': 'caption',
-                        'order': i,
-                        'text': caption.text.strip(),
-                        'url': url,
-                        'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
-                    })
-                    i += 1
+                    caption_text = caption.text.strip()
+                else:
+                    caption_text = ''
+                url = resolve_url(part.parent.attrs['itemid'])
+                sections.append({
+                    'type': 'caption',
+                    'order': i,
+                    'text': caption_text,
+                    'url': url,
+                    'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
+                })
+                i += 1
 
     return sections
 
@@ -133,15 +145,18 @@ def extract_text_old(soup):
             if part.parent.attrs.get('itemid', 0):
                 caption = part.find('span', {'class': 'caption-text'})
                 if caption:
-                    url = resolve_url(part.parent.attrs['itemid'])
-                    sections.append({
-                        'type': 'caption',
-                        'order': i,
-                        'text': caption.text.strip(),
-                        'url': url,
-                        'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
-                    })
-                    i += 1
+                    caption_text = caption.text.strip()
+                else:
+                    caption_text = ''
+                url = resolve_url(part.parent.attrs['itemid'])
+                sections.append({
+                    'type': 'caption',
+                    'order': i,
+                    'text': caption_text,
+                    'url': url,
+                    'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
+                })
+                i += 1
 
     return sections
 

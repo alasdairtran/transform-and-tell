@@ -1,46 +1,90 @@
-import React, { Component } from "react";
-import axios from "axios";
+import React, { Component } from 'react';
+import axios from 'axios';
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      articleURL: "",
-      imagePosition: 1,
+      articleURL: '',
+      imagePosition: 0,
       isLoaded: false,
       isLoading: false,
-      title: "",
-      imageURL: "",
-      start: "",
-      before: "",
-      after: "",
-      trueCaption: "",
-      generatedCaption: "",
+      isScraped: false,
+      isScraping: false,
+      article: null,
+      title: '',
+      sections: [],
+      imageURL: '',
+      imageURLs: [],
+      start: '',
+      before: '',
+      after: '',
+      trueCaption: '',
+      generatedCaption: '',
       hasError: false,
-      errorMessage: ""
+      errorMessage: '',
     };
   }
 
   componentDidMount() {
-    document.body.classList.add("bg-light");
+    document.body.classList.add('bg-light');
   }
+
+  scrapeArticle = e => {
+    e.preventDefault();
+    this.setState({
+      isScraped: false,
+      isScraping: true,
+      isLoaded: false,
+      hasError: false,
+      imagePosition: 0,
+    });
+    const query = {
+      url: this.state.articleURL,
+    };
+    axios
+      .post('/api/scrape/', query)
+      .then(res => {
+        if (res.data.error) {
+          this.setState({
+            isScraping: false,
+            hasError: true,
+            isScraped: false,
+            errorMessage: res.data.error,
+          });
+        } else {
+          this.setState({
+            isScraped: true,
+            isScraping: false,
+            imageURLs: res.data.image_urls,
+            sections: res.data.sections,
+            title: res.data.title,
+          });
+        }
+      })
+      .catch(function(error) {
+        console.log(error);
+      });
+  };
 
   fetchCaption = e => {
     e.preventDefault();
     this.setState({ isLoaded: false, isLoading: true, hasError: false });
+
     const query = {
-      url: this.state.articleURL,
-      pos: this.state.imagePosition
+      sections: this.state.sections,
+      title: this.state.title,
+      pos: this.state.imagePosition,
     };
     axios
-      .post("/api/caption/", query)
+      .post('/api/caption/', query)
       .then(res => {
         if (res.data.error) {
           this.setState({
             isLoading: false,
             hasError: true,
             isLoaded: false,
-            errorMessage: res.data.error
+            errorMessage: res.data.error,
           });
         } else {
           this.setState({
@@ -52,7 +96,7 @@ class App extends Component {
             before: res.data.before,
             after: res.data.after,
             trueCaption: res.data.true_caption,
-            generatedCaption: res.data.generated_caption
+            generatedCaption: res.data.generated_caption,
           });
         }
       })
@@ -62,20 +106,29 @@ class App extends Component {
   };
 
   handleURLChange = e => {
-    this.setState({ articleURL: e.target.value });
+    this.setState({
+      articleURL: e.target.value,
+      isScraped: false,
+      isLoaded: false,
+    });
   };
 
   selectArticle = e => {
-    this.setState({ articleURL: e.target.getAttribute("url") });
+    this.setState({
+      articleURL: e.target.getAttribute('url'),
+      isScraped: false,
+      isLoaded: false,
+    });
   };
 
-  handleImagePositionChange = e => {
-    console.log(e.target.value);
-    this.setState({ imagePosition: e.target.value });
+  handleImagePositionChange = (index, e) => {
+    console.log(e);
+    console.log(index);
+    this.setState({ imagePosition: index, isLoaded: false });
   };
 
   splitNewLines = text =>
-    text.split("\n").map((item, key, arr) => (
+    text.split('\n').map((item, key, arr) => (
       <span key={key}>
         {item}
         {arr.length - 1 === key ? (
@@ -90,36 +143,63 @@ class App extends Component {
     ));
 
   render() {
+    const examples = [
+      {
+        title:
+          "'Turn Off the Sunshine': Why Shade Is a Mark of Privilege in Los Angeles",
+        url:
+          'https://www.nytimes.com/2019/12/01/us/los-angeles-shade-climate-change.html',
+      },
+      {
+        title: 'Ready, Set, Ski! In China, Snow Sports are the Next Big Thing',
+        url:
+          'https://www.nytimes.com/2019/11/27/travel/Skiing-in-China-Olympics.html',
+      },
+      {
+        title: 'Muhammad Ali in a Broadway Musical? It Happened',
+        url:
+          'https://www.nytimes.com/2019/11/28/theater/muhammad-ali-broadway-buck-white.html',
+      },
+      {
+        title:
+          'New Strawberry-Flavored H.I.V. Drugs for Babies Are Offered at $1 a Day',
+        url:
+          'https://www.nytimes.com/2019/11/29/health/AIDS-drugs-children.html',
+      },
+      {
+        title:
+          'Dr. Janette Sherman, 89, Early Force in Environmental Science, Dies',
+        url:
+          'https://www.nytimes.com/2019/11/29/health/dr-janette-sherman-dead.html',
+      },
+    ];
+
     return (
       <div className="container">
         <div className="py-5">
           <h2 className="text-center">Transform and Tell</h2>
           <p className="lead text-center">
-            Demo accompanying the paper{" "}
+            Demo accompanying the paper{' '}
             <em>Transform and Tell: Entity-Aware News Image Captioning</em>.
           </p>
-          <p>
-            Click on one of the following examples that was used in the paper:
-          </p>
+          <p>Click on one of the following examples</p>
           <div className="list-group">
-            <button
-              type="button"
-              className="list-group-item list-group-item-action"
-              onClick={this.selectArticle}
-              url="https://www.nytimes.com/2019/08/07/t-magazine/theresa-chromati-artist.html"
-            >
-              An Artist Making a Powerful Statement — by Creating Work About
-              Herself
-            </button>
-            <button
-              type="button"
-              className="list-group-item list-group-item-action"
-              onClick={this.selectArticle}
-              url="https://www.nytimes.com/2019/06/11/sports/womens-world-cup-usa-soccer.html"
-            >
-              What a 13-0 U.S. Win Over Thailand Looked Like at the Women’s
-              World Cup
-            </button>
+            {examples.map((example, index) => (
+              <button
+                key={index}
+                type="button"
+                className={
+                  'list-group-item list-group-item-action' +
+                  (this.state.articleURL === example.url
+                    ? ' list-group-item-secondary'
+                    : '')
+                }
+                onClick={this.selectArticle}
+                url={example.url}
+              >
+                {example.title}
+              </button>
+            ))}
           </div>
           <br />
           <form>
@@ -137,39 +217,59 @@ class App extends Component {
                 onChange={this.handleURLChange}
               />
             </div>
-            <div className="form-group">
-              <label for="imagePosition">
-                Choose an image position (e.g. choose 1 if we want to write a
-                caption for the top image):
-              </label>
-              <select
-                className="form-control"
-                id="imagePosition"
-                onChange={this.handleImagePositionChange}
-              >
-                <option>1</option>
-                <option>2</option>
-                <option>3</option>
-                <option>4</option>
-                <option>5</option>
-              </select>
-            </div>
             <button
               type="submit"
               className="btn btn-lg btn-primary"
-              onClick={this.fetchCaption}
-              disabled={this.state.isLoading}
+              onClick={this.scrapeArticle}
+              disabled={this.state.isScraping}
             >
-              {this.state.isLoading ? "Running model..." : "Generate Caption"}
+              {this.state.isScraping ? 'Scraping Article...' : 'Scrape Article'}
             </button>
+
+            {this.state.isScraped && (
+              <div className="my-2">
+                <p>Choose an image to caption:</p>
+                <div className="row">
+                  {this.state.imageURLs.map((url, index) => (
+                    <div key={index} className="col-md-2 mb-2">
+                      <img
+                        className={
+                          'img-thumbnail' +
+                          (this.state.imagePosition === index
+                            ? ' border border-primary'
+                            : '')
+                        }
+                        src={url}
+                        key={index}
+                        alt=""
+                        onClick={this.handleImagePositionChange.bind(
+                          this,
+                          index
+                        )}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-lg btn-primary"
+                  onClick={this.fetchCaption}
+                  disabled={this.state.isLoading}
+                >
+                  {this.state.isLoading
+                    ? 'Running Model...'
+                    : 'Generate Caption'}
+                </button>
+              </div>
+            )}
           </form>
         </div>
+
         {this.state.hasError && (
           <div class="alert alert-danger" role="alert">
             {this.state.errorMessage}
           </div>
         )}
-
         {this.state.isLoaded && (
           <div className="row">
             <div className="col-md-6 mb-4 alert alert-secondary">
@@ -184,7 +284,6 @@ class App extends Component {
               </div>
               <div className="mb-3">{this.splitNewLines(this.state.after)}</div>
             </div>
-
             <div className="col-md-6 mb-4">
               {/* <h4 className="mb-3">Ground-truth caption</h4>
               <div className="mb-3">{this.state.trueCaption}</div> */}
