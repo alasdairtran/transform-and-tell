@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -10,9 +11,23 @@ from .extractor import ExtractError, extract_article, get_urls
 client = CaptioningClient(ip='localhost', port=5558, port_out=5559)
 
 
+def visitor_ip_address(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
 @csrf_exempt
 def get_image_urls(request):
     query = json.loads(request.body)
+
+    with open('queries.log', 'a') as f:
+        f.write(f"{datetime.now()} {visitor_ip_address(request)} "
+                f"{query['url'].strip()}\n")
 
     if not query['url'].strip():
         return JsonResponse({'error': 'The URL cannot be empty.'})
