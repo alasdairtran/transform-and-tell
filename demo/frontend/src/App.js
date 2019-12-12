@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 
 class App extends Component {
   constructor(props) {
@@ -23,6 +25,7 @@ class App extends Component {
       generatedCaption: '',
       hasError: false,
       errorMessage: '',
+      showModal: false,
     };
   }
 
@@ -121,6 +124,14 @@ class App extends Component {
     });
   };
 
+  showModal = e => {
+    this.setState({ showModal: true });
+  };
+
+  handleClose = e => {
+    this.setState({ showModal: false });
+  };
+
   handleImagePositionChange = (index, e) => {
     console.log(e);
     console.log(index);
@@ -176,13 +187,54 @@ class App extends Component {
 
     return (
       <div className="container">
+        <Modal show={this.state.showModal} onHide={this.handleClose}>
+          <Modal.Header closeButton>
+            <Modal.Title>Abstract</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            We propose an end-to-end model for generating image captions in news
+            articles. News images present two interesting challenges: being
+            aware of real-world knowledge, especially about named entities; and
+            generating linguistically rich captions including rare words, often
+            the names of people and places. We address the first challenge by
+            associating words in the caption with faces in the image and names
+            in surrounding article text, via a multi-modal, multi-head attention
+            mechanism. We tackle the second challenge with a state-of-the-art
+            transformer language model, along with a copying mechanism and
+            byte-pair-encoding that generates captions as a sequence of word
+            parts. We introduce the NYTimes800k dataset, which is 70% larger
+            than GoodNews, has higher article qualities and includes the
+            contextual cue of image location within an article. Our model
+            achieves CIDEr scores of 61 on GoodNews and 65 on NYTimes800k
+            datasets, significantly outperforming the state-of-the-art CIDEr of
+            13 on GoodNews. We also show successive performance gains from
+            language models, word representation, intelligent copying
+            mechanisms, face embeddings, and other improvements in neural
+            network representations.
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.handleClose}>
+              Close
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
         <div className="py-5">
           <h2 className="text-center">Transform and Tell</h2>
           <p className="lead text-center">
             Demo accompanying the paper{' '}
             <em>Transform and Tell: Entity-Aware News Image Captioning</em>.
           </p>
-          <p>Click on one of the following examples</p>
+          <p>
+            Transform and Tell is a captioning model that takes a news image and
+            generate a caption for it using information from the article, with a
+            special focus on faces and names. To see the abstract, click{' '}
+            <a href="#abstractModal" onClick={this.showModal}>
+              here
+            </a>
+            . To see it in action, click on one of the following examples:
+          </p>
+
           <div className="list-group">
             {examples.map((example, index) => (
               <button
@@ -266,7 +318,7 @@ class App extends Component {
         </div>
 
         {this.state.hasError && (
-          <div class="alert alert-danger" role="alert">
+          <div className="alert alert-danger" role="alert">
             {this.state.errorMessage}
           </div>
         )}
