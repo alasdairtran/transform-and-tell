@@ -7,6 +7,14 @@ News captioning system
 ```sh
 # Install package and dependencies
 python setup.py develop
+
+# Our pretrained model only works with a specific version of fairseq
+cd $TORCH_HOME/hub
+git clone git@github.com:pytorch/fairseq.git
+rm -rf pytorch_fairseq_master
+mv fairseq pytorch_fairseq_master
+cd pytorch_fairseq_master
+git checkout 32335404f09
 ```
 
 ## Getting Data
