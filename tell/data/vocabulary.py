@@ -5,7 +5,7 @@ from allennlp.data import Vocabulary
 from allennlp.data import instance as adi  # pylint: disable=unused-import
 from allennlp.data.vocabulary import (DEFAULT_NON_PADDED_NAMESPACES,
                                       _NamespaceDependentDefaultDict)
-from pytorch_pretrained_bert.tokenization import load_vocab
+from transformers.tokenization_bert import load_vocab
 
 
 class _RobertaTokenToIndexDefaultDict(_NamespaceDependentDefaultDict):

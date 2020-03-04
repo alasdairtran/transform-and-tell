@@ -7,7 +7,6 @@ from allennlp.data.token_indexers.token_indexer import TokenIndexer
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.vocabulary import Vocabulary
 from overrides import overrides
-from pytorch_transformers.tokenization_roberta import RobertaTokenizer
 from spacy.tokens import Doc
 
 SPACE_NORMALIZER = re.compile(r"\s+")
@@ -29,25 +28,6 @@ def tokenize_line(line):
     line = SPACE_NORMALIZER.sub(" ", line)
     line = line.strip()
     return line.split()
-
-
-class RobertaTokenizer2(RobertaTokenizer):
-    @overrides
-    def convert_tokens_to_ids(self, tokens):
-        """Converts a single token, or a sequence of tokens, (str/unicode) in a single integer id
-        (resp. a sequence of ids), using the vocabulary.
-
-        We manually cut off long sequences at 512 pieces.
-        """
-        if isinstance(tokens, str):
-            return self._convert_token_to_id_with_added_voc(tokens)
-
-        ids = []
-        for token in tokens:
-            ids.append(self._convert_token_to_id_with_added_voc(token))
-        if len(ids) > self.max_len:
-            ids = ids[:self.max_len]
-        return ids
 
 
 @TokenIndexer.register("roberta")
