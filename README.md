@@ -5,6 +5,8 @@ News captioning system
 ## Requirements
 
 ```sh
+conda env create -f conda.yaml
+
 # Install package and dependencies
 python setup.py develop
 
