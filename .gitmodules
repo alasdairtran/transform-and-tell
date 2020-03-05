@@ -1,3 +1,6 @@
 [submodule "paper"]
 	path = paper
 	url = https://git.overleaf.com/5d9be07ecc11910001e0a64a
+[submodule "libs/apex"]
+	path = libs/apex
+	url = https://github.com/NVIDIA/apex
