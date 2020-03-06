@@ -3,6 +3,7 @@
 The key change is that we remove the average pooling and fully connected layer.
 """
 
+import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
@@ -88,7 +89,7 @@ class ResNetFeatureExtractor(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, pool=False):
         # x.shape == [B, 3, 224, 224]
         x = self.conv1(x)
         # x.shape == [B, 64, 112, 112]
@@ -105,6 +106,13 @@ class ResNetFeatureExtractor(nn.Module):
         # x.shape == [B, 1024, 14, 14]
         x = self.layer4(x)
         # x.shape == [B, 2048, 7, 7]
+
+        if pool:
+            x = self.avgpool(x)
+            # x.shape == [B, 2048, 1, 1]
+
+            x = torch.flatten(x, 1)
+            # x.shape == [B, 2048]
 
         return x
 
