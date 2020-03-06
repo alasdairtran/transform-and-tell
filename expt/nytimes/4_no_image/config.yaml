@@ -1,5 +1,5 @@
 dataset_reader:
-  type: nytimes_position
+  type: nytimes
   tokenizer:
     type: word
     word_splitter: just_spaces_keep_newlines
@@ -83,7 +83,7 @@ model:
   attention_dim: 1024
   namespace: bpe
   index: roberta
-  weigh_bert: true
+  weigh_bert: false
   padding_value: 1
   # initializer:
   #   - - ^(attention|article_attention|init|f).*weight
