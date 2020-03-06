@@ -6,17 +6,12 @@ News captioning system
 
 ```sh
 conda env create -f conda.yaml
-
-# Install package and dependencies
-python setup.py develop
-
-# Our pretrained model only works with a specific version of fairseq
-cd $TORCH_HOME/hub
-git clone git@github.com:pytorch/fairseq.git
-rm -rf pytorch_fairseq_master
-mv fairseq pytorch_fairseq_master
-cd pytorch_fairseq_master
-git checkout 32335404f09
+conda activate tell
+cd libs/apex
+git submodule init && git submodule update .
+pip install -v --no-cache-dir --global-option="--pyprof" --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+cd ../.. && python setup.py develop
+spacy download en_core_web_lg
 ```
 
 ## Getting Data
@@ -79,8 +74,8 @@ python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes
 
 ```sh
 # Back up database
-mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-11-19
+mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2020-03-05
 
 # Restore database
-mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2019-11-19
+mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2020-03-05
 ```
