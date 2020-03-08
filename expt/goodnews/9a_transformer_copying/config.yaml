@@ -23,7 +23,7 @@ vocabulary:
   directory_path: ./expt/vocabulary
 model:
   type: transformer_pointer
-  model_path: ./expt/goodnews/6_transformer_faces/serialization/best.th
+  model_path: ./expt/goodnews/8_transformer_faces/serialization/best.th
   decoder:
     type: dynamic_conv_decoder_faces_parallel
     embedder:
