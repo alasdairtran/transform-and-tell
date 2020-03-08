@@ -118,7 +118,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
             yield self.article_to_instance(article, named_entities, face_embeds, image, sample['image_index'], image_path)
 
     def article_to_instance(self, article, named_entities, face_embeds, image, image_index, image_path) -> Instance:
-        context = article['context'].strip()
+        context = ' '.join(article['context'].strip().split(' ')[:500])
 
         caption = article['images'][image_index]
         caption = caption.strip()

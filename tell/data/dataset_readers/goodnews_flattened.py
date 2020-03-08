@@ -95,7 +95,7 @@ class FlattenedGoodNewsReader(DatasetReader):
             yield self.article_to_instance(article, image, sample['image_index'], image_path)
 
     def article_to_instance(self, article, image, image_index, image_path) -> Instance:
-        context = article['context'].strip()
+        context = ' '.join(article['context'].strip().split(' ')[:500])
 
         caption = article['images'][image_index]
         caption = caption.strip()
