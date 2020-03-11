@@ -46,6 +46,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
                  mongo_port: int = 27017,
                  eval_limit: int = 5120,
                  use_caption_names: bool = True,
+                 use_objects: bool = False,
                  n_faces: int = None,
                  lazy: bool = True) -> None:
         super().__init__(lazy)
@@ -60,6 +61,7 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
             Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.eval_limit = eval_limit
         self.use_caption_names = use_caption_names
+        self.use_objects = use_objects
         self.n_faces = n_faces
         random.seed(1234)
         self.rs = np.random.RandomState(1234)
@@ -115,9 +117,24 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
                 # Keep only the top faces (sorted by size)
                 face_embeds = np.array(face_embeds[:n_persons])
 
-            yield self.article_to_instance(article, named_entities, face_embeds, image, sample['image_index'], image_path)
+            obj_feats = None
+            if self.use_objects:
+                obj = self.db.objects.find_one({'_id': sample['_id']})
+                if obj is not None:
+                    obj_feats = obj['object_features']
+                    if len(obj_feats) == 0:
+                        obj_feats = np.array([[]])
+                    else:
+                        obj_feats = np.array(obj_feats)
+                else:
+                    obj_feats = np.array([[]])
 
-    def article_to_instance(self, article, named_entities, face_embeds, image, image_index, image_path) -> Instance:
+            yield self.article_to_instance(article, named_entities, face_embeds,
+                                           image, sample['image_index'],
+                                           image_path, obj_feats)
+
+    def article_to_instance(self, article, named_entities, face_embeds, image,
+                            image_index, image_path, obj_feats) -> Instance:
         context = ' '.join(article['context'].strip().split(' ')[:500])
 
         caption = article['images'][image_index]
@@ -143,6 +160,9 @@ class GoodNewsFaceNERMatchedReader(DatasetReader):
             'caption': TextField(caption_tokens, self._token_indexers),
             'face_embeds': ArrayField(face_embeds, padding_value=np.nan),
         }
+
+        if obj_feats is not None:
+            fields['obj_embeds'] = ArrayField(obj_feats, padding_value=np.nan)
 
         metadata = {'context': context,
                     'caption': caption,

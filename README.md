@@ -30,6 +30,18 @@ python scripts/process_images.py -i data/nytimes/images -o data/nytimes/images_p
 python scripts/annotate_nytimes.py
 python scripts/detect_facenet_nytimes.py
 
+# Object detection for goodnews (takes 19 hours)
+CUDA_VISIBLE_DEVICES=0 python scripts/annotate_yolo3.py \
+    --source data/goodnews/images \
+    --output data/goodnews/objects \
+    --dataset goodnews
+
+# Object detection for nytimes (takes 19 hours)
+CUDA_VISIBLE_DEVICES=0 python scripts/annotate_yolo3.py \
+    --source data/nytimes/images \
+    --output data/nytimes/objects \
+    --dataset nytimes
+
 # To reproduce the numbers in Good News, we need to have the same dataset as
 # the original paper.
 mkdir data/goodnews
