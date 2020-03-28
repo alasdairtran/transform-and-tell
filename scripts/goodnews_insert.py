@@ -338,7 +338,7 @@ if __name__ == '__main__':
     # Input paths
     parser.add_argument('--output', type=str, default='./data/goodnews/original_results/with article/vis_show_attend_tell_full_wavg.json',
                         help='path to model to evaluate')
-    parser.add_argument('--eval_file', type=str, default='./expt/goodnews/4a_transformer_sorted/serialization/generations.jsonl',
+    parser.add_argument('--eval_file', type=str, default='./expt/goodnews/8_transformer_faces/serialization/generations.jsonl',
                         help='Reference generation file, used to find common test examples.')
     parser.add_argument('--insertion_method', type=list, default=['ctx', 'rand', 'att'],
                         help='rand: random insertion, ctx: context/word2vec/glove insertion, att: attention insertion')
