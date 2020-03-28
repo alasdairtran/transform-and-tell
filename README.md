@@ -7,6 +7,7 @@ News captioning system
 ```sh
 conda env create -f conda.yaml
 conda activate tell
+python -m ipykernel install --user --name tell --display-name "tell"
 cd libs/apex
 git submodule init && git submodule update .
 pip install -v --no-cache-dir --global-option="--pyprof" --global-option="--cpp_ext" --global-option="--cuda_ext" ./
