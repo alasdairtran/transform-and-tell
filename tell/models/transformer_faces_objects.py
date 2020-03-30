@@ -100,7 +100,8 @@ class TransformerFacesObjectModel(Model):
                 face_embeds: torch.Tensor,
                 obj_embeds: torch.Tensor,
                 metadata: List[Dict[str, Any]],
-                names: Dict[str, torch.LongTensor] = None) -> Dict[str, torch.Tensor]:
+                names: Dict[str, torch.LongTensor] = None,
+                attn_idx=None) -> Dict[str, torch.Tensor]:
 
         caption_ids, target_ids, contexts = self._forward(
             context, image, caption, face_embeds, obj_embeds)
@@ -119,7 +120,7 @@ class TransformerFacesObjectModel(Model):
 
         # During evaluation, we will generate a caption and compute BLEU, etc.
         if not self.training and self.evaluate_mode:
-            _, gen_ids = self._generate(caption_ids, contexts)
+            _, gen_ids, attns = self._generate(caption_ids, contexts, attn_idx)
             # We ignore <s> and <pad>
             gen_texts = [self.roberta.decode(x[x > 1]) for x in gen_ids.cpu()]
             captions = [m['caption'] for m in metadata]
@@ -127,6 +128,8 @@ class TransformerFacesObjectModel(Model):
             output_dict['captions'] = captions
             output_dict['generations'] = gen_texts
             output_dict['metadata'] = metadata
+            output_dict['attns'] = attns
+            output_dict['gen_ids'] = gen_ids.cpu().detach().numpy()
 
             # Remove punctuation
             gen_texts = [re.sub(r'[^\w\s]', '', t) for t in gen_texts]
@@ -177,7 +180,7 @@ class TransformerFacesObjectModel(Model):
         caption_ids, _, contexts = self._forward(
             context, image, caption, face_embeds, obj_embeds)
 
-        _, gen_ids = self._generate(caption_ids, contexts)
+        _, gen_ids, _ = self._generate(caption_ids, contexts)
 
         gen_ids = gen_ids.cpu()
         gen_texts = [self.roberta.decode(
@@ -277,7 +280,7 @@ class TransformerFacesObjectModel(Model):
 
         return caption_ids, target_ids, contexts
 
-    def _generate(self, caption_ids, contexts):
+    def _generate(self, caption_ids, contexts, attn_idx=None):
         incremental_state: Dict[str, Any] = {}
         seed_input = caption_ids[:, 0:1]
         log_prob_list = []
@@ -287,6 +290,7 @@ class TransformerFacesObjectModel(Model):
         full_active_idx = active_idx
         gen_len = 100
         B = caption_ids.shape[0]
+        attns = None
 
         for i in range(gen_len):
             if i == 0:
@@ -314,6 +318,9 @@ class TransformerFacesObjectModel(Model):
                 prev_target,
                 contexts_i,
                 incremental_state=incremental_state)
+
+            if attn_idx is not None and i == attn_idx:
+                attns = decoder_out[1]['attn']
 
             # We're only interested in the current final word
             decoder_out = (decoder_out[0][:, -1:], None)
@@ -369,7 +376,7 @@ class TransformerFacesObjectModel(Model):
         token_ids = torch.cat(index_path_list, dim=-1)
         # token_ids.shape == [batch_size * beam_size, generate_len]
 
-        return log_probs, token_ids
+        return log_probs, token_ids, attns
 
     @overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:

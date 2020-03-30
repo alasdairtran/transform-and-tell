@@ -139,7 +139,7 @@ class DynamicConvFacesObjectsDecoder(Decoder):
 
         # B x T x C -> T x B x C
         X = X.transpose(0, 1)
-        attn = None
+        attns = []
 
         inner_states = [X]
 
@@ -152,6 +152,7 @@ class DynamicConvFacesObjectsDecoder(Decoder):
                     incremental_state,
                 )
                 inner_states.append(X)
+            attns.append(attn)
 
         if self.normalize:
             X = self.layer_norm(X)
@@ -170,7 +171,7 @@ class DynamicConvFacesObjectsDecoder(Decoder):
             else:
                 X = F.linear(X, self.embed_out)
 
-        return X, {'attn': attn, 'inner_states': inner_states}
+        return X, {'attn': attns, 'inner_states': inner_states}
 
     def max_positions(self):
         """Maximum output length supported by the decoder."""
@@ -546,7 +547,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X = residual + X
         X = self.maybe_layer_norm(self.conv_layer_norm, X, after=True)
 
-        attn = None
+        attns = {}
         X_contexts = []
 
         # Image attention
@@ -566,6 +567,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_image = self.maybe_layer_norm(
             self.context_attn_lns['image'], X_image, after=True)
         X_contexts.append(X_image)
+        attns['image'] = attn.cpu().detach().numpy()
 
         # Article attention
         residual = X
@@ -585,6 +587,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_article = self.maybe_layer_norm(
             self.context_attn_lns['article'], X_article, after=True)
         X_contexts.append(X_article)
+        attns['article'] = attn.cpu().detach().numpy()
 
         # Face attention
         residual = X
@@ -604,6 +607,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_faces = self.maybe_layer_norm(
             self.context_attn_lns['faces'], X_faces, after=True)
         X_contexts.append(X_faces)
+        attns['faces'] = attn.cpu().detach().numpy()
 
         # Object attention
         residual = X
@@ -623,6 +627,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X_objs = self.maybe_layer_norm(
             self.context_attn_lns['obj'], X_objs, after=True)
         X_contexts.append(X_objs)
+        attns['obj'] = attn.cpu().detach().numpy()
 
         X_context = torch.cat(X_contexts, dim=-1)
         X = self.context_fc(X_context)
@@ -635,7 +640,7 @@ class DynamicConvDecoderLayer(DecoderLayer):
         X = F.dropout(X, p=self.dropout, training=self.training)
         X = residual + X
         X = self.maybe_layer_norm(self.final_layer_norm, X, after=True)
-        return X, attn
+        return X, attns
 
     def maybe_layer_norm(self, layer_norm, X, before=False, after=False):
         assert before ^ after
