@@ -1,0 +1,26 @@
+# ~/.tmuxinator/tell.yml
+
+name: tell
+root: ~/projects/transform-and-tell
+
+# Specifies (by name or index) which window will be selected on project startup. If not set, the first window is used.
+startup_window: main
+
+# Specifies (by index) which pane of the specified window will be selected on project startup. If not set, the first pane is used.
+startup_pane: 1
+
+windows:
+  - main:
+      layout: tiled
+      panes:
+        - conda activate tell
+        - conda activate tell
+        - conda activate tell
+        - conda activate tell
+  - logs:
+      layout: tiled
+      panes:
+        - conda activate tell
+        - conda activate tell
+        - conda activate tell
+        - conda activate tell
