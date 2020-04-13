@@ -107,7 +107,7 @@ class CaptioningWorker(Worker):
         iterator = self.data_iterator(instances, num_epochs=1, shuffle=False)
         generated_captions = []
         for batch in iterator:
-            batch = move_to_device(batch, self.device)
+            # batch = move_to_device(batch, self.device)
             with torch.no_grad():
                 output_dict = self.model.generate(**batch)
             generated_captions += output_dict['generations']
