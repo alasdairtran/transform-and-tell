@@ -51,6 +51,7 @@ class CaptioningWorker(Worker):
         self.mtcnn = None
         self.resnet = None
         self.nlp = None
+        self.device = torch.device('cpu')
 
     def initialize(self):
         # We need to initialize the model inside self.run and not self.__init__
@@ -64,10 +65,9 @@ class CaptioningWorker(Worker):
 
         model_path = '/home/ubuntu/projects/transform-and-tell/expt/nytimes/8_transformer_faces/serialization/best.th'
         logger.info(f'Loading best model from {model_path}')
-        best_model_state = torch.load(model_path)
+        best_model_state = torch.load(model_path, map_location=self.device)
         model.load_state_dict(best_model_state)
 
-        self.device = 0
         model.eval().to(self.device)
         self.model = model
 
@@ -77,7 +77,7 @@ class CaptioningWorker(Worker):
         self.indices = roberta.task.source_dictionary.indices
 
         logger.info('Loading face detection model.')
-        self.mtcnn = MTCNN(keep_all=True, device='cuda')
+        self.mtcnn = MTCNN(keep_all=True, device='cpu')
         self.resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
         self.preprocess = Compose([
