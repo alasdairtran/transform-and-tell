@@ -33,7 +33,7 @@ class App extends Component {
     document.body.classList.add('bg-light');
   }
 
-  scrapeArticle = e => {
+  scrapeArticle = (e) => {
     e.preventDefault();
     this.setState({
       isScraped: false,
@@ -47,7 +47,7 @@ class App extends Component {
     };
     axios
       .post('/api/scrape/', query)
-      .then(res => {
+      .then((res) => {
         if (res.data.error) {
           this.setState({
             isScraping: false,
@@ -65,12 +65,12 @@ class App extends Component {
           });
         }
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.log(error);
       });
   };
 
-  fetchCaption = e => {
+  fetchCaption = (e) => {
     e.preventDefault();
     this.setState({ isLoaded: false, isLoading: true, hasError: false });
 
@@ -81,7 +81,7 @@ class App extends Component {
     };
     axios
       .post('/api/caption/', query)
-      .then(res => {
+      .then((res) => {
         if (res.data.error) {
           this.setState({
             isLoading: false,
@@ -103,12 +103,12 @@ class App extends Component {
           });
         }
       })
-      .catch(function(error) {
+      .catch(function (error) {
         console.log(error);
       });
   };
 
-  handleURLChange = e => {
+  handleURLChange = (e) => {
     this.setState({
       articleURL: e.target.value,
       isScraped: false,
@@ -116,7 +116,7 @@ class App extends Component {
     });
   };
 
-  selectArticle = e => {
+  selectArticle = (e) => {
     this.setState({
       articleURL: e.target.getAttribute('url'),
       isScraped: false,
@@ -124,11 +124,11 @@ class App extends Component {
     });
   };
 
-  showModal = e => {
+  showModal = (e) => {
     this.setState({ showModal: true });
   };
 
-  handleClose = e => {
+  handleClose = (e) => {
     this.setState({ showModal: false });
   };
 
@@ -138,7 +138,7 @@ class App extends Component {
     this.setState({ imagePosition: index, isLoaded: false });
   };
 
-  splitNewLines = text =>
+  splitNewLines = (text) =>
     text.split('\n').map((item, key, arr) => (
       <span key={key}>
         {item}
@@ -192,25 +192,23 @@ class App extends Component {
             <Modal.Title>Abstract</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            We propose an end-to-end model for generating image captions in news
-            articles. News images present two interesting challenges: being
-            aware of real-world knowledge, especially about named entities; and
-            generating linguistically rich captions including rare words, often
-            the names of people and places. We address the first challenge by
-            associating words in the caption with faces in the image and names
-            in surrounding article text, via a multi-modal, multi-head attention
-            mechanism. We tackle the second challenge with a state-of-the-art
-            transformer language model, along with a copying mechanism and
-            byte-pair-encoding that generates captions as a sequence of word
-            parts. We introduce the NYTimes800k dataset, which is 70% larger
-            than GoodNews, has higher article qualities and includes the
-            contextual cue of image location within an article. Our model
-            achieves CIDEr scores of 61 on GoodNews and 65 on NYTimes800k
-            datasets, significantly outperforming the state-of-the-art CIDEr of
-            13 on GoodNews. We also show successive performance gains from
-            language models, word representation, intelligent copying
-            mechanisms, face embeddings, and other improvements in neural
-            network representations.
+            We propose an end-to-end model which generates captions for images
+            embedded in news articles. News images present two key challenges:
+            they rely on real-world knowledge, especially about named entities;
+            and they typically have linguistically rich captions that include
+            uncommon words. We address the first challenge by associating words
+            in the caption with faces and objects in the image, via a
+            multi-modal, multi-head attention mechanism. We tackle the second
+            challenge with a state-of-the-art transformer language model that
+            uses byte-pair-encoding to generate captions as a sequence of word
+            parts. On the GoodNews dataset, our model outperforms the previous
+            state of the art by a factor of four in CIDEr score (13 to 54). This
+            performance gain comes from a unique combination of language models,
+            word representation, image embeddings, face embeddings, object
+            embeddings, and improvements in neural network design. We also
+            introduce the NYTimes800k dataset which is 70\% larger than
+            GoodNews, has higher article quality, and includes the locations of
+            images within articles as an additional contextual cue.
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={this.handleClose}>
