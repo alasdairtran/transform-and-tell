@@ -1,6 +1,6 @@
-# Transform and Tell
+# Transform and Tell: Entity-Aware News Image Captioning
 
-News captioning system
+![Teaser](figures/teaser.png)
 
 ## Requirements
 
@@ -100,7 +100,8 @@ curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 sudo apt update && sudo apt full-upgrade -y
 
-sudo apt install -y htop vim zsh tmux ruby-full gcc-7 g++-7 gfortran-7 cmake yarn
+sudo apt install -y htop vim zsh tmux ruby-full gcc-7 g++-7 gfortran-7 cmake \
+    yarn certbot nginx python-certbot-nginx
 
 # Update current user's password
 sudo passwd ubuntu
@@ -131,6 +132,7 @@ cp /home/ubuntu/projects/transform-and-tell/tmuxinator.yml ~/.config/tmuxinator/
 # Install the ultimate .vimrc
 git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
 sh ~/.vim_runtime/install_awesome_vimrc.sh
+# Restore my_configs.vim so that we can paste properly
 
 # Generate key to access GitHub
 ssh-keygen -t rsa -b 4096 -C "alasdair.tran@anu.edu.au" -f ~/.ssh/tell_rsa
@@ -158,4 +160,22 @@ mkdir projects && cd projects
 git clone git@github.com:alasdairtran/transform-and-tell.git
 cd transform-and-tell
 conda env create
+
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 'Nginx Full'
+sudo ufw enable
+
+sudo certbot certonly --nginx -d transform-and-tell.ml \
+    -d www.transform-and-tell.ml \
+    -d api.transform-and-tell.ml \
+    -d admin.transform-and-tell.ml
+
+sudo rm -rfv ~/lib/nginx /etc/nginx/sites-enabled/default
+# Restore /etc/nginx/nginx.conf and /etc/nginx/conf.d/transform-and-tell.conf
+
+# Verify the syntax of our configuration edits.
+sudo nginx -t
+# Reload Nginx to load the new configuration.
+sudo systemctl restart nginx
 ```
