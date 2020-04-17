@@ -2,20 +2,54 @@
 
 ![Teaser](figures/teaser.png)
 
+This repository contains the code to reproduce the results in our CVPR 2020
+paper "Transform and Tell: Entity-Aware News Image Captioning". We propose an
+end-to-end model which generates captions for images embedded in news articles.
+News images present two key challenges: they rely on real-world knowledge,
+especially about named entities; and they typically have linguistically rich
+captions that include uncommon words. We address the first challenge by
+associating words in the caption with faces and objects in the image, via a
+multi-modal, multi-head attention mechanism. We tackle the second challenge
+with a state-of-the-art transformer language model that uses byte-pair-encoding
+to generate captions as a sequence of word parts.
+
+On the GoodNews dataset, our model outperforms the previous state of the art by
+a factor of four in CIDEr score (13 to 54). This performance gain comes from a
+unique combination of language models, word representation, image embeddings,
+face embeddings, object embeddings, and improvements in neural network design.
+We also introduce the NYTimes800k dataset which is 70% larger than GoodNews,
+has higher article quality, and includes the locations of images within
+articles as an additional contextual cue.
+
 ## Requirements
 
 ```sh
+# Install Anaconda for Python and then create a dedicated environment.
+# This will make it easier to reproduce our experimental numbers.
 conda env create -f conda.yaml
 conda activate tell
+
+# This step is only needed if you want to use the Jupyter notebook
 python -m ipykernel install --user --name tell --display-name "tell"
+
+# We also pin the apex version, which is used for mixed precision training
 cd libs/apex
 git submodule init && git submodule update .
 pip install -v --no-cache-dir --global-option="--pyprof" --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+
+# Install our package
 cd ../.. && python setup.py develop
+
+# Spacy is used to calcuate some of the evaluation metrics
 spacy download en_core_web_lg
 ```
 
 ## Getting Data
+
+You can either collect the NYTimes800k dataset from scratch yourself (it will
+take a few days), or to please send an email to `first.last@anu.edu.au` (where
+`first` is `alasdair` and `last` is `tran`) to request the MongoDB dump that
+contains the dataset.
 
 ```sh
 # Start local MongoDB server on port 27017
@@ -91,91 +125,4 @@ mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2020-
 
 # Restore database
 mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2020-03-05
-```
-
-## Setting Up the Server
-
-```sh
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-sudo apt update && sudo apt full-upgrade -y
-
-sudo apt install -y htop vim zsh tmux ruby-full gcc-7 g++-7 gfortran-7 cmake \
-    yarn certbot nginx python-certbot-nginx
-
-# Update current user's password
-sudo passwd ubuntu
-
-# Switch to zsh
-git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
-chsh -s $(which zsh)
-# Log out and log in again, now as zsh. When prompted, select "Quit and do
-# nothing" since we want prezto to create its own zsh configuration.
-setopt EXTENDED_GLOB
-for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
-  ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
-done
-
-sudo gem install tmuxinator
-# Get tmux plugin manager
-wget https://raw.githubusercontent.com/tmuxinator/tmuxinator/master/completion/tmuxinator.zsh -P ~/.bin
-cd ~; git clone https://github.com/gpakosz/.tmux.git
-ln -s -f .tmux/.tmux.conf
-cp .tmux/.tmux.conf.local .
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-# Restore ~/.tmux.conf.local and ~/.tmux/yank.sh from backup
-chmod +x ~/.tmux/yank.sh
-mkdir ~/.config/tmuxinator
-cp /home/ubuntu/projects/transform-and-tell/tmuxinator.yml ~/.config/tmuxinator/tell.yml
-# Inside a tmux session, run ` + I to reload the tmux config.
-
-# Install the ultimate .vimrc
-git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
-sh ~/.vim_runtime/install_awesome_vimrc.sh
-# Restore my_configs.vim so that we can paste properly
-
-# Generate key to access GitHub
-ssh-keygen -t rsa -b 4096 -C "alasdair.tran@anu.edu.au" -f ~/.ssh/tell_rsa
-# Add public key to GitHub
-
-echo "Host *
-    IdentityFile ~/.ssh/tell_rsa" > ~/.ssh/config
-
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 10
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 10
-sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-7 10
-sudo update-alternatives --set gcc /usr/bin/gcc-7
-sudo update-alternatives --set g++ /usr/bin/g++-7
-sudo update-alternatives --set gfortran /usr/bin/gfortran-7
-
-# Install Anaconda
-wget https://repo.anaconda.com/archive/Anaconda3-2020.02-Linux-x86_64.sh
-zsh Anaconda3-2020.02-Linux-x86_64.sh
-rm -rfv Anaconda3-2020.02-Linux-x86_64.sh
-source ~/.zshrc
-conda update -y conda
-conda update -y anaconda
-
-mkdir projects && cd projects
-git clone git@github.com:alasdairtran/transform-and-tell.git
-cd transform-and-tell
-conda env create
-
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow 'Nginx Full'
-sudo ufw enable
-
-sudo certbot certonly --nginx -d transform-and-tell.ml \
-    -d www.transform-and-tell.ml \
-    -d api.transform-and-tell.ml \
-    -d admin.transform-and-tell.ml
-
-sudo rm -rfv ~/lib/nginx /etc/nginx/sites-enabled/default
-# Restore /etc/nginx/nginx.conf and /etc/nginx/conf.d/transform-and-tell.conf
-
-# Verify the syntax of our configuration edits.
-sudo nginx -t
-# Reload Nginx to load the new configuration.
-sudo systemctl restart nginx
 ```
