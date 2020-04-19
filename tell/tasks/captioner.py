@@ -59,14 +59,14 @@ class CaptioningWorker(Worker):
     def initialize(self):
         # We need to initialize the model inside self.run and not self.__init__
         # to ensure that the model loads in the correct thread.
-        config_path = '/home/ubuntu/projects/transform-and-tell/expt/nytimes/8_transformer_faces/config.yaml'
+        config_path = 'expt/nytimes/8_transformer_faces/config.yaml'
         logger.info(f'Loading config from {config_path}')
         config = yaml_to_params(config_path, overrides='')
         prepare_environment(config)
         vocab = Vocabulary.from_params(config.pop('vocabulary'))
         model = Model.from_params(vocab=vocab, params=config.pop('model'))
 
-        model_path = '/home/ubuntu/projects/transform-and-tell/expt/nytimes/8_transformer_faces/serialization/best.th'
+        model_path = 'expt/nytimes/8_transformer_faces/serialization/best.th'
         logger.info(f'Loading best model from {model_path}')
         best_model_state = torch.load(model_path, map_location=self.device)
         model.load_state_dict(best_model_state)
