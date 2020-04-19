@@ -1,4 +1,3 @@
-
 # Setting Up the Demo Server
 
 ```sh
@@ -7,7 +6,7 @@ echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/source
 sudo apt update && sudo apt full-upgrade -y
 
 sudo apt install -y htop vim zsh tmux ruby-full gcc-7 g++-7 gfortran-7 cmake \
-    yarn certbot nginx python-certbot-nginx
+    yarn certbot nginx python-certbot-nginx autossh
 
 # Update current user's password
 sudo passwd ubuntu
@@ -21,6 +20,7 @@ setopt EXTENDED_GLOB
 for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
   ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
 done
+# Log out and log in again.
 
 sudo gem install tmuxinator
 # Get tmux plugin manager
@@ -29,16 +29,18 @@ cd ~; git clone https://github.com/gpakosz/.tmux.git
 ln -s -f .tmux/.tmux.conf
 cp .tmux/.tmux.conf.local .
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-# Restore ~/.tmux.conf.local and ~/.tmux/yank.sh from backup
-chmod +x ~/.tmux/yank.sh
-mkdir ~/.config/tmuxinator
-cp /home/ubuntu/projects/transform-and-tell/tmuxinator.yml ~/.config/tmuxinator/tell.yml
-# Inside a tmux session, run ` + I to reload the tmux config.
-
 # Install the ultimate .vimrc
 git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
 sh ~/.vim_runtime/install_awesome_vimrc.sh
+
+# Restore ~/.tmux.conf.local and ~/.tmux/yank.sh from backup
 # Restore my_configs.vim so that we can paste properly
+rsync -rlptzhe ssh --info=progress2 .vim_runtime/my_configs.vim tell:~/.vim_runtime/
+rsync -rlptzhe ssh --info=progress2 .tmux.conf.local tell:~/
+rsync -rlptzhe ssh --info=progress2 .tmux/yank.sh tell:~/.tmux/
+chmod +x ~/.tmux/yank.sh
+mkdir ~/.config/tmuxinator
+# Restore ssh config
 
 # Generate key to access GitHub. Update the email accordingly.
 ssh-keygen -t rsa -b 4096 -C "first.last@anu.edu.au" -f ~/.ssh/tell_rsa
@@ -70,6 +72,7 @@ conda env create
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow 'Nginx Full'
+sudo ufw allow ssh comment "SSH"
 sudo ufw enable
 
 sudo certbot certonly --nginx -d transform-and-tell.ml \
@@ -77,11 +80,28 @@ sudo certbot certonly --nginx -d transform-and-tell.ml \
     -d api.transform-and-tell.ml \
     -d admin.transform-and-tell.ml
 
+# Restore nginx configs
+rsync -rlptzhe ssh --info=progress2 nginx tell:~/
+ssh tell
+sudo mv nginx/nginx.conf /etc/nginx/nginx.conf
+sudo mv nginx/transform-and-tell.conf /etc/nginx/conf.d/transform-and-tell.conf
 sudo rm -rfv ~/lib/nginx /etc/nginx/sites-enabled/default
-# Restore /etc/nginx/nginx.conf and /etc/nginx/conf.d/transform-and-tell.conf
-
 # Verify the syntax of our configuration edits.
 sudo nginx -t
 # Reload Nginx to load the new configuration.
 sudo systemctl restart nginx
+
+cp /home/ubuntu/projects/transform-and-tell/tmuxinator.yml ~/.config/tmuxinator/tell.yml
+# Inside a tmux session, run ` + I to reload the tmux config.
+
+conda activate tell
+python setup.py develop
+cd demo/frontend
+yarn
+yarn start
+
+# Restore model weight
+rsync -rlptzhe ssh --info=progress2 best.th tell:~/projects/transform-and-tell/expt/nytimes/8_transformer_faces/serialization/
+cd demo/backend
+CUDA_VISIBLE_DEVICES=2 python -m tell.server caption
 ```
