@@ -51,7 +51,10 @@ class CaptioningWorker(Worker):
         self.mtcnn = None
         self.resnet = None
         self.nlp = None
-        self.device = torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda:0')
+        else:
+            self.device = torch.device('cpu')
 
     def initialize(self):
         # We need to initialize the model inside self.run and not self.__init__
@@ -77,7 +80,7 @@ class CaptioningWorker(Worker):
         self.indices = roberta.task.source_dictionary.indices
 
         logger.info('Loading face detection model.')
-        self.mtcnn = MTCNN(keep_all=True, device='cpu')
+        self.mtcnn = MTCNN(keep_all=True, device=self.device)
         self.resnet = InceptionResnetV1(pretrained='vggface2').eval()
 
         self.preprocess = Compose([
@@ -107,7 +110,8 @@ class CaptioningWorker(Worker):
         iterator = self.data_iterator(instances, num_epochs=1, shuffle=False)
         generated_captions = []
         for batch in iterator:
-            # batch = move_to_device(batch, self.device)
+            if self.device.type == 'cuda':
+                batch = move_to_device(batch, self.device)
             with torch.no_grad():
                 output_dict = self.model.generate(**batch)
             generated_captions += output_dict['generations']

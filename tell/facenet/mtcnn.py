@@ -205,7 +205,7 @@ class MTCNN(nn.Module):
         self.rnet = RNet()
         self.onet = ONet()
 
-        self.device = torch.device('cpu')
+        self.device = device
         if device is not None:
             self.device = device
             self.to(device)
