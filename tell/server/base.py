@@ -1,17 +1,16 @@
-import multiprocessing
 import random
 import sys
 import threading
 import time
 from collections import defaultdict
 from datetime import datetime
-from multiprocessing import Process
 from typing import Dict
 
 import numpy as np
 import zmq
 import zmq.decorators as zmqd
 from termcolor import colored
+from torch.multiprocessing import Event, Process, set_start_method
 from zmq.utils import jsonapi
 
 from tell.tasks import WorkerRegistry
@@ -20,6 +19,12 @@ from .utils import ServerCmd, auto_bind, set_logger
 from .zmq_decor import multi_socket
 
 __version__ = '0.0.1'
+
+# See https://stackoverflow.com/a/48938860
+try:
+    set_start_method('spawn')
+except RuntimeError:
+    pass
 
 
 class NLPServer(threading.Thread):
@@ -190,10 +195,10 @@ class Sink(Process):
     def __init__(self, port_out, front_sink_addr, verbose=False):
         super().__init__()
         self.port = port_out
-        self.exit_flag = multiprocessing.Event()
+        self.exit_flag = Event()
         self.logger = set_logger(colored('SINK', 'green'), verbose)
         self.front_sink_addr = front_sink_addr
-        self.is_ready = multiprocessing.Event()
+        self.is_ready = Event()
         self.verbose = verbose
 
     def close(self):

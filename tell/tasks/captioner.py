@@ -65,13 +65,13 @@ class CaptioningWorker(Worker):
         prepare_environment(config)
         vocab = Vocabulary.from_params(config.pop('vocabulary'))
         model = Model.from_params(vocab=vocab, params=config.pop('model'))
+        model = model.eval().to(self.device)
 
         model_path = 'expt/nytimes/8_transformer_faces/serialization/best.th'
         logger.info(f'Loading best model from {model_path}')
         best_model_state = torch.load(model_path, map_location=self.device)
         model.load_state_dict(best_model_state)
 
-        model.eval().to(self.device)
         self.model = model
 
         logger.info('Loading roberta model.')
@@ -111,7 +111,7 @@ class CaptioningWorker(Worker):
         generated_captions = []
         for batch in iterator:
             if self.device.type == 'cuda':
-                batch = move_to_device(batch, self.device)
+                batch = move_to_device(batch, self.device.index)
             with torch.no_grad():
                 output_dict = self.model.generate(**batch)
             generated_captions += output_dict['generations']
