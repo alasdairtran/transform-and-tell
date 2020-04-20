@@ -27,6 +27,18 @@ demo, you can provide the URL to a New York Times article. The server will then
 scrape the web page, extract the article and image, and feed them into our
 model to generate a caption.
 
+Please cite with the following BibTeX:
+
+```raw
+@InProceedings{Tran2020Tell,
+  author = {Tran, Alasdair and Mathews, Alexander and Xie, Lexing},
+  title = {{Transform and Tell: Entity-Aware News Image Captioning}},
+  booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  month = {June},
+  year = {2020}
+}
+```
+
 ## Requirements
 
 ```sh
