@@ -124,13 +124,37 @@ python scripts/get_unknown_caption_names.py
 ## Training and Evaluation
 
 ```sh
-# To train the full model without copying
-CUDA_VISIBLE_DEVICES=0 tell train expt/nytimes/7_transformer_faces/config.yaml -f
-CUDA_VISIBLE_DEVICES=0 tell evaluate expt/nytimes/7_transformer_faces/config.yaml -m expt/nytimes/7_transformer_faces/serialization/best.th
-python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes/7_transformer_faces/serialization/generations.jsonl
+# Train the full model on NYTimes800k. This takes around 4 days on a Titan V GPU.
+CUDA_VISIBLE_DEVICES=0 tell train expt/nytimes/9_transformer_objects/config.yaml -f
 
-# To train the copying module
-CUDA_VISIBLE_DEVICES=0 tell train expt/nytimes/8_transformer_copy/config.yaml -f
-CUDA_VISIBLE_DEVICES=0 tell evaluate expt/nytimes/8_transformer_copy/config.yaml -m expt/nytimes/8_transformer_copy/serialization/best.th
-python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes/8_transformer_copy/serialization/generations.jsonl
+# Use the trained model to generate captions on the NYTimes800k test set
+CUDA_VISIBLE_DEVICES=0 tell evaluate expt/nytimes/9_transformer_objects/config.yaml -m expt/nytimes/9_transformer_objects/serialization/best.th
+
+# Compute the evaluation metrics on the test set
+python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes/9_transformer_objects/serialization/generations.jsonl
+
+# There are also other model variants which are ablation studies. Check
+# our paper for more details.
 ```
+
+## Acknowledgement
+
+* The training and evaluation workflow is based on the
+  [AllenNLP](https://github.com/allenai/allennlp) framework.
+
+* The Dynamic Convolution architecture is built upon Facebook's
+  [fairseq](https://github.com/pytorch/fairseq/blob/master/examples/pay_less_attention_paper/README.md)
+  library.
+
+* The ZeroMQ implementation of the demo backend server is based on
+  [bert-as-service](https://github.com/hanxiao/bert-as-service).
+
+* The front-end of the demo server is created with
+  [create-react-app](https://github.com/facebook/create-react-app)
+
+* ResNet code is adapted from the [Pytorch
+  implementation](https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py).
+
+* We use Ultralytics' [YOLOv3 implementation](https://github.com/ultralytics/yolov3).
+
+* FaceNet and MTCNN implementations come from [here](https://github.com/timesler/facenet-pytorch).
