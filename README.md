@@ -3,15 +3,16 @@
 ![Teaser](figures/teaser.png)
 
 This repository contains the code to reproduce the results in our CVPR 2020
-paper "Transform and Tell: Entity-Aware News Image Captioning". We propose an
-end-to-end model which generates captions for images embedded in news articles.
-News images present two key challenges: they rely on real-world knowledge,
-especially about named entities; and they typically have linguistically rich
-captions that include uncommon words. We address the first challenge by
-associating words in the caption with faces and objects in the image, via a
-multi-modal, multi-head attention mechanism. We tackle the second challenge
-with a state-of-the-art transformer language model that uses byte-pair-encoding
-to generate captions as a sequence of word parts.
+paper [Transform and Tell: Entity-Aware News Image
+Captioning](https://arxiv.org/abs/2004.08070). We propose an end-to-end model
+which generates captions for images embedded in news articles. News images
+present two key challenges: they rely on real-world knowledge, especially about
+named entities; and they typically have linguistically rich captions that
+include uncommon words. We address the first challenge by associating words in
+the caption with faces and objects in the image, via a multi-modal, multi-head
+attention mechanism. We tackle the second challenge with a state-of-the-art
+transformer language model that uses byte-pair-encoding to generate captions as
+a sequence of word parts.
 
 On the GoodNews dataset, our model outperforms the previous state of the art by
 a factor of four in CIDEr score (13 to 54). This performance gain comes from a
@@ -20,6 +21,11 @@ face embeddings, object embeddings, and improvements in neural network design.
 We also introduce the NYTimes800k dataset which is 70% larger than GoodNews,
 has higher article quality, and includes the locations of images within
 articles as an additional contextual cue.
+
+A live demo can be accessed [here](https://transform-and-tell.ml/).  In the
+demo, you can provide the URL to a New York Times article. The server will then
+scrape the web page, extract the article and image, and feed them into our
+model to generate a caption.
 
 ## Requirements
 
