@@ -135,6 +135,7 @@ CORS_ORIGIN_ALLOW_ALL = False
 
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',  # for local development
+    'http://localhost:5000',  # for production server
     'https://transform-and-tell.ml',
     'https://www.transform-and-tell.ml'
 )
