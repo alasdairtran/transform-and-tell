@@ -206,9 +206,9 @@ class App extends Component {
             performance gain comes from a unique combination of language models,
             word representation, image embeddings, face embeddings, object
             embeddings, and improvements in neural network design. We also
-            introduce the NYTimes800k dataset which is 70\% larger than
-            GoodNews, has higher article quality, and includes the locations of
-            images within articles as an additional contextual cue.
+            introduce the NYTimes800k dataset which is 70% larger than GoodNews,
+            has higher article quality, and includes the locations of images
+            within articles as an additional contextual cue.
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={this.handleClose}>
@@ -221,7 +221,10 @@ class App extends Component {
           <h2 className="text-center">Transform and Tell</h2>
           <p className="lead text-center">
             Demo accompanying the paper{' '}
-            <em>Transform and Tell: Entity-Aware News Image Captioning</em>.
+            <a href="https://arxiv.org/abs/2004.08070">
+              Transform and Tell: Entity-Aware News Image Captioning
+            </a>
+            .
           </p>
           <p>
             Transform and Tell is a captioning model that takes a news image and
