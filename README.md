@@ -65,7 +65,7 @@ spacy download en_core_web_lg
 ## Getting Data
 
 You can either collect the NYTimes800k dataset from scratch yourself (it will
-take a few days), or to please send an email to `first.last@anu.edu.au` (where
+take a few days), or please send an email to `first.last@anu.edu.au` (where
 `first` is `alasdair` and `last` is `tran`) to request the MongoDB dump that
 contains the dataset.
 
@@ -133,14 +133,4 @@ python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes
 CUDA_VISIBLE_DEVICES=0 tell train expt/nytimes/8_transformer_copy/config.yaml -f
 CUDA_VISIBLE_DEVICES=0 tell evaluate expt/nytimes/8_transformer_copy/config.yaml -m expt/nytimes/8_transformer_copy/serialization/best.th
 python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes/8_transformer_copy/serialization/generations.jsonl
-```
-
-## Maintenance
-
-```sh
-# Back up database
-mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2020-03-05
-
-# Restore database
-mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2020-03-05
 ```

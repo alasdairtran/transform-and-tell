@@ -32,8 +32,8 @@ python manage.py runserver
 
 ```sh
 # Back up database
-mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2019-10-26
+mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2020-03-05
 
 # Restore database
-mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2019-10-26
+mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2020-03-05
 ```
