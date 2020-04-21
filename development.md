@@ -32,8 +32,13 @@ python manage.py runserver
 
 ```sh
 # Back up database
-mongodump --host=localhost --port=27017 --gzip --archive=data/mongobackups/2020-03-05
+mongodump --db nytimes --host=localhost --port=27017 --gzip --archive=data/mongobackups/nytimes-2020-04-21
+mongodump --db goodnews --host=localhost --port=27017 --gzip --archive=data/mongobackups/goodnews-2020-04-21
 
 # Restore database
-mongorestore --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/2020-03-05
+mongorestore --db nytimes --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/nytimes-2020-04-21
+mongodump --db goodnews --host=localhost --port=27017 --gzip --archive=data/mongobackups/goodnews-2020-04-21
+
+# Archive scraped images
+tar -zcf images_processed.tar.gz images_processed
 ```
