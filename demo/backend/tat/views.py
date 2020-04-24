@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 
 from django.http import JsonResponse
@@ -9,6 +10,7 @@ from tell.client import CaptioningClient
 from .extractor import ExtractError, extract_article, get_urls
 
 client = CaptioningClient(ip='localhost', port=5558, port_out=5559)
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 def visitor_ip_address(request):
@@ -24,18 +26,16 @@ def visitor_ip_address(request):
 @csrf_exempt
 def get_image_urls(request):
     query = json.loads(request.body)
+    url = query['url'].strip()
+    logger.info(f"{visitor_ip_address(request)} requests {url}")
 
-    with open('queries.log', 'a') as f:
-        f.write(f"{datetime.now()} {visitor_ip_address(request)} "
-                f"{query['url'].strip()}\n")
-
-    if not query['url'].strip():
+    if not url:
         return JsonResponse({'error': 'The URL cannot be empty.'})
-    if 'nytimes.com' not in query['url']:
+    if 'nytimes.com' not in url:
         return JsonResponse({'error': 'The URL must come from nytimes.com'})
 
     try:
-        output = get_urls(query['url'])
+        output = get_urls(url)
     except ExtractError as e:
         return JsonResponse({'error': str(e)})
     except Exception:
@@ -48,10 +48,10 @@ def get_image_urls(request):
 def post_caption(request):
     query = json.loads(request.body)
 
-    print(query.keys())
-
     article = extract_article(query['sections'], query['title'], query['pos'])
     output = client.parse([article])[0]
+
+    logger.info(f"Caption for {query['pos']}: {output['caption']}")
 
     data = {
         'title': article['title'],
