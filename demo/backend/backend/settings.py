@@ -156,6 +156,7 @@ LOGGING = {
         'tat.views': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
         }
     },
 }
