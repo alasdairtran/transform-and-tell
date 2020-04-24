@@ -139,3 +139,23 @@ CORS_ORIGIN_WHITELIST = (
     'https://transform-and-tell.ml',
     'https://www.transform-and-tell.ml'
 )
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'tat.views': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        }
+    },
+}
