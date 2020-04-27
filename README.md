@@ -22,7 +22,7 @@ We also introduce the NYTimes800k dataset which is 70% larger than GoodNews,
 has higher article quality, and includes the locations of images within
 articles as an additional contextual cue.
 
-A live demo can be accessed [here](https://transform-and-tell.ml/).  In the
+A live demo can be accessed [here](https://transform-and-tell.ml/). In the
 demo, you can provide the URL to a New York Times article. The server will then
 scrape the web page, extract the article and image, and feed them into our
 model to generate a caption.
@@ -64,70 +64,48 @@ spacy download en_core_web_lg
 
 ## Getting Data
 
-You can either collect the NYTimes800k dataset from scratch yourself (it will
-take a few days), or please send an email to `first.last@anu.edu.au` (where
-`first` is `alasdair` and `last` is `tran`) to request the MongoDB dump that
-contains the dataset.
+The quickest way to get the data is to send an email to `first.last@anu.edu.au`
+(where `first` is `alasdair` and `last` is `tran`) to request the MongoDB dump
+that contains the dataset. Alternatively, see [here](docs/getting_data.md) for
+instructions on how to get the data from scratch, which will take a few days.
+
+Once we have obtained the data from the authors, which consists of two
+directories `expt` and `data`, you can simply put them at the root of this
+repo.
 
 ```sh
-# Start local MongoDB server on port 27017
+# First, let's start an empty local MongoDB server on port 27017. Below
+# we set the cache size to 10GB of RAM. Change it depending on your system.
 mkdir data/mongodb
 mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10
 
-# Get article URLs from New York Times. Register for an API at
-# https://developer.nytimes.com/apis
-python scripts/get_urls.py API_KEY
-# Construct the NYTimes800k dataset
-python scripts/get_articles_nytimes.py
-python scripts/process_images.py -i data/nytimes/images -o data/nytimes/images_processed # takes 6h
-python scripts/annotate_nytimes.py
-python scripts/detect_facenet_nytimes.py
+# Next let's restore the NYTimes200k and GoodNews datasets
+mongorestore --db nytimes --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/nytimes-2020-04-21
+mongorestore --db goodnews --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/goodnews-2020-04-21
 
-# Object detection for goodnews (takes 19 hours)
-CUDA_VISIBLE_DEVICES=0 python scripts/annotate_yolo3.py \
-    --source data/goodnews/images \
-    --output data/goodnews/objects \
-    --dataset goodnews
+# Next we unarchive the image directories. For each dataset, you can see two
+# directories: `images` and `images_processed`. The files in `images` are
+# the orignal files scraped from the New York Times. You only need this
+# if you want to recompute the face and object embeddings. Otherwise, all
+# the experiments will use the images in `images_processed`, which have
+# already been cropped and resized.
+tar -zcf data/nytimes/images_processed.tar.gz data/nytimes/images_processed
+tar -zcf data/goodnews/images_processed.tar.gz data/goodnews/images_processed
 
-# Object detection for nytimes (takes 19 hours)
-CUDA_VISIBLE_DEVICES=0 python scripts/annotate_yolo3.py \
-    --source data/nytimes/images \
-    --output data/nytimes/objects \
-    --dataset nytimes
-
-# To reproduce the numbers in Good News, we need to have the same dataset as
-# the original paper.
-mkdir data/goodnews
-wget 'https://drive.google.com/uc?export=download&id=1rl-3DgMRNV8g0AptwKRoYonNkYfT26sf' -O data/goodnews/img_splits.json
-wget 'https://drive.google.com/uc?export=download&id=18078qCfdjOHuu75SjBLGNUSiIeq6zxJ-' -O data/goodnews/image_urls.json
-URL="https://docs.google.com/uc?export=download&id=1rswGdNNfl4HoP9trslP0RUrcmSbg1_RD"
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate $URL -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1rswGdNNfl4HoP9trslP0RUrcmSbg1_RD" -O
-data/goodnews/article_caption.json && rm -rf /tmp/cookies.txt
-python scripts/get_articles_goodnews.py
-python scripts/process_images.py -i data/goodnews/images -o data/goodnews/images_processed
-python scripts/annotate_goodnews.py
-python scripts/detect_facenet_goodnews.py
-# To reproduce the original results, first request the output template captions
-# from the authors and put the files in data/goodnews/original_results. Then
-# run this command to generate the caption file in our format. In our recollected
-# Good News dataset, we're missing 162 image-caption pairs in the test set.
-python scripts/goodnews_insert.py --output ./data/goodnews/original_results/with\ article/vis_show_attend_tell_full_TBB.json
-python scripts/goodnews_insert.py --output ./data/goodnews/original_results/with\ article/vis_show_attend_tell_full_avg.json
-python scripts/goodnews_insert.py --output ./data/goodnews/original_results/with\ article/vis_show_attend_tell_full_wavg.json
-
-# Compute basic statistics on the data
-python scripts/compute_name_statistics.py
-python scripts/compute_data_statistics.py
-python scripts/get_unknown_caption_names.py
+# We are now ready to train the models!
 ```
 
 ## Training and Evaluation
 
 ```sh
 # Train the full model on NYTimes800k. This takes around 4 days on a Titan V GPU.
+# The training will populate the directory expt/nytimes/9_transformer_objects/serialization
 CUDA_VISIBLE_DEVICES=0 tell train expt/nytimes/9_transformer_objects/config.yaml -f
 
-# Use the trained model to generate captions on the NYTimes800k test set
+# Once training is finished, the best model weights are stored in
+#   expt/nytimes/9_transformer_objects/serialization/best.th
+# We can use this to generate captions on the NYTimes800k test set. This
+# takes about one hour.
 CUDA_VISIBLE_DEVICES=0 tell evaluate expt/nytimes/9_transformer_objects/config.yaml -m expt/nytimes/9_transformer_objects/serialization/best.th
 
 # Compute the evaluation metrics on the test set
@@ -139,22 +117,22 @@ python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes
 
 ## Acknowledgement
 
-* The training and evaluation workflow is based on the
+- The training and evaluation workflow is based on the
   [AllenNLP](https://github.com/allenai/allennlp) framework.
 
-* The Dynamic Convolution architecture is built upon Facebook's
+- The Dynamic Convolution architecture is built upon Facebook's
   [fairseq](https://github.com/pytorch/fairseq/blob/master/examples/pay_less_attention_paper/README.md)
   library.
 
-* The ZeroMQ implementation of the demo backend server is based on
+- The ZeroMQ implementation of the demo backend server is based on
   [bert-as-service](https://github.com/hanxiao/bert-as-service).
 
-* The front-end of the demo server is created with
+- The front-end of the demo server is created with
   [create-react-app](https://github.com/facebook/create-react-app)
 
-* ResNet code is adapted from the [Pytorch
+- ResNet code is adapted from the [Pytorch
   implementation](https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py).
 
-* We use Ultralytics' [YOLOv3 implementation](https://github.com/ultralytics/yolov3).
+- We use Ultralytics' [YOLOv3 implementation](https://github.com/ultralytics/yolov3).
 
-* FaceNet and MTCNN implementations come from [here](https://github.com/timesler/facenet-pytorch).
+- FaceNet and MTCNN implementations come from [here](https://github.com/timesler/facenet-pytorch).

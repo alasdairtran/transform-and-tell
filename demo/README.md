@@ -1,4 +1,20 @@
-# Setting Up the Demo Server
+# Setting Up Demo
+
+You probably don't need to read this unless you want to set up the demo
+on your own machine. These instructions contain some stuff that is specific
+to our server.
+
+## Intializing the Demo Project
+
+```sh
+yarn create react-app tatdemo
+django-admin startproject backend
+
+cd backend
+python manage.py startapp tat
+python manage.py migrate
+python manage.py runserver
+```
 
 ```sh
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
