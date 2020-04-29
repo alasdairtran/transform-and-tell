@@ -110,10 +110,22 @@ CUDA_VISIBLE_DEVICES=0 tell evaluate expt/nytimes/9_transformer_objects/config.y
 
 # Compute the evaluation metrics on the test set
 python scripts/compute_metrics.py -c data/nytimes/name_counters.pkl expt/nytimes/9_transformer_objects/serialization/generations.jsonl
-
-# There are also other model variants which are ablation studies. Check
-# our paper for more details.
 ```
+
+There are also other model variants which are ablation studies. Check
+our paper for more details, but here's a summary:
+
+| Experiment                       | Word Embedding | Language Model | Image Attention | Weighted RoBERTa | Location-Aware | Face Attention | Object Attention |
+| -------------------------------- | :------------: | -------------: | --------------: | ---------------: | -------------: | -------------: | ---------------: |
+| `1_lstm_glove`                   |     GloVe      |           LSTM |               🗸 |                  |                |                |                  |
+| `2_transformer_glove`            |     GloVe      |    Transformer |               🗸 |                  |                |                |                  |
+| `3_lstm_roberta`                 |    RoBERTa     |           LSTM |               🗸 |                  |                |                |                  |
+| `4_no_image`                     |    RoBERTa     |    Transformer |                 |                  |                |                |                  |
+| `5_transformer_roberta`          |    RoBERTa     |    Transformer |               🗸 |                  |                |                |                  |
+| `6_transformer_weighted_roberta` |    RoBERTa     |    Transformer |               🗸 |                🗸 |                |                |                  |
+| `7_trasnformer_location_aware`   |    RoBERTa     |    Transformer |               🗸 |                🗸 |              🗸 |                |                  |
+| `8_transformer_faces`            |    RoBERTa     |    Transformer |               🗸 |                🗸 |              🗸 |              🗸 |                  |
+| `9_transformer_objects`          |    RoBERTa     |    Transformer |               🗸 |                🗸 |              🗸 |              🗸 |                🗸 |
 
 ## Acknowledgement
 
