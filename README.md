@@ -108,7 +108,7 @@ from pymongo import MongoClient
 client = MongoClient(host='localhost', port=27017)
 
 # All of our NYTimes800k articles sit in the database `nytimes`
-db = self.client.nytimes
+db = client.nytimes
 
 # Here we select a random article in the training set.
 article = db.articles.find_one({'split': 'train'})
