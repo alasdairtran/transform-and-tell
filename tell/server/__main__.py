@@ -45,7 +45,7 @@ def main():
     args = validate(args)
     if args['ptvsd']:
         address = ('0.0.0.0', args['ptvsd'])
-        ptvsd.enable_attach(address, redirect_output=True)
+        ptvsd.enable_attach(address)
         ptvsd.wait_for_attach()
     elif args['pudb']:
         pudb.set_trace()
