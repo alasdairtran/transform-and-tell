@@ -4,3 +4,4 @@
 [submodule "libs/apex"]
 	path = libs/apex
 	url = https://github.com/NVIDIA/apex
+	ignore = untracked
