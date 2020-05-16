@@ -14,6 +14,7 @@ import os
 import socket
 import time
 from datetime import datetime
+from posixpath import normpath
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import urlopen
@@ -25,7 +26,6 @@ import requests
 from docopt import docopt
 from joblib import Parallel, delayed
 from langdetect import detect
-from posixpath import normpath
 from pymongo import MongoClient
 from schema import And, Or, Schema, Use
 from tqdm import tqdm

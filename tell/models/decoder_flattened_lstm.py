@@ -67,19 +67,6 @@ class AttentionLayer(nn.Module):
 
 @Decoder.register('lstm_decoder_flattened')
 class LSTMDecoder(Decoder):
-    """
-    DynamicConv decoder consisting of *args.decoder_layers* layers. Each layer
-    is a :class:`DynamicConvDecoderLayer`.
-
-    Args:
-        args (argparse.Namespace): parsed command-line arguments
-        dictionary (~fairseq.data.Dictionary): decoding dictionary
-        embed_tokens (torch.nn.Embedding): output embedding
-        no_encoder_attn (bool, optional): whether to attend to encoder outputs.
-            Default: ``False``
-        left_pad (bool, optional): whether the input is left-padded. Default:
-            ``False``
-    """
 
     def __init__(self, vocab, embedder: TextFieldEmbedder, num_layers,
                  hidden_size, dropout, share_decoder_input_output_embed,
@@ -149,23 +136,6 @@ class LSTMDecoder(Decoder):
 
     def forward(self, prev_target, contexts, incremental_state=None,
                 use_layers=None, **kwargs):
-        """
-        Args:
-            prev_target (LongTensor): previous decoder outputs of shape
-                `(batch, tgt_len)`, for input feeding/teacher forcing
-            encoder_out (Tensor, optional): output from the encoder, used for
-                encoder-side attention
-            incremental_state (dict): dictionary used for storing state during
-                :ref:`Incremental decoding`
-
-        Returns:
-            tuple:
-                - the last decoder layer's output of shape `(batch, tgt_len,
-                  vocab)`
-                - the last decoder layer's attention weights of shape `(batch,
-                  tgt_len, src_len)`
-        """
-
         # embed tokens and positions
         X = self.embedder(prev_target, incremental_state=incremental_state)
         X = F.dropout(X, p=self.dropout, training=self.training)

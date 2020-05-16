@@ -20,37 +20,6 @@ from .resnet import resnet152
 
 @Model.register("transformer_faces_objects")
 class TransformerFacesObjectModel(Model):
-    """
-    An AllenNLP Model that runs pretrained BERT,
-    takes the pooled output, and adds a Linear layer on top.
-    If you want an easy way to use BERT for classification, this is it.
-    Note that this is a somewhat non-AllenNLP-ish model architecture,
-    in that it essentially requires you to use the "bert-pretrained"
-    token indexer, rather than configuring whatever indexing scheme you like.
-
-    See `allennlp/tests/fixtures/bert/bert_for_classification.jsonnet`
-    for an example of what your config might look like.
-
-    Parameters
-    ----------
-    vocab : ``Vocabulary``
-    bert_model : ``Union[str, BertModel]``
-        The BERT model to be wrapped. If a string is provided, we will call
-        ``BertModel.from_pretrained(bert_model)`` and use the result.
-    num_labels : ``int``, optional (default: None)
-        How many output classes to predict. If not provided, we'll use the
-        vocab_size for the ``label_namespace``.
-    index : ``str``, optional (default: "bert")
-        The index of the token indexer that generates the BERT indices.
-    label_namespace : ``str``, optional (default : "labels")
-        Used to determine the number of classes if ``num_labels`` is not supplied.
-    trainable : ``bool``, optional (default : True)
-        If True, the weights of the pretrained BERT model will be updated during training.
-        Otherwise, they will be frozen and only the final linear layer will be trained.
-    initializer : ``InitializerApplicator``, optional
-        If provided, will be used to initialize the final linear layer *only*.
-    """
-
     def __init__(self,
                  vocab: Vocabulary,
                  decoder: Decoder,
