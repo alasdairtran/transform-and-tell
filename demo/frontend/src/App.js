@@ -28,10 +28,21 @@ class App extends Component {
       errorMessage: '',
       showModal: false,
     };
+    this.buttonRef = React.createRef();
   }
 
   componentDidMount() {
     document.body.classList.add('bg-light');
+  }
+
+  componentDidUpdate() {
+    if (this.state.isScraped) {
+      this.buttonRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center',
+      });
+    }
   }
 
   scrapeArticle = (e) => {
@@ -138,21 +149,6 @@ class App extends Component {
     console.log(index);
     this.setState({ imagePosition: index, isLoaded: false });
   };
-
-  splitNewLines = (text) =>
-    text.split('\n').map((item, key, arr) => (
-      <span key={key}>
-        {item}
-        {arr.length - 1 === key ? (
-          <div />
-        ) : (
-          <div>
-            <br />
-            <br />
-          </div>
-        )}
-      </span>
-    ));
 
   render() {
     const examples = [
@@ -311,6 +307,7 @@ class App extends Component {
                   ))}
                 </div>
                 <button
+                  ref={this.buttonRef}
                   type="submit"
                   className="btn btn-lg btn-primary"
                   onClick={this.fetchCaption}
@@ -331,31 +328,76 @@ class App extends Component {
           </div>
         )}
         {this.state.isLoaded && (
-          <div className="row">
-            <div className="col-md-6 mb-4 alert alert-secondary">
-              <h4 className="mb-3">{this.state.title}</h4>
-
-              <div className="mb-3">
-                {this.splitNewLines(this.state.start)}
-                {this.splitNewLines(this.state.before)}
-              </div>
-              <div className="mb-3">
-                <img src={this.state.imageURL} className="img-fluid" alt="" />
-              </div>
-              <div className="mb-3">{this.splitNewLines(this.state.after)}</div>
-            </div>
-            <div className="col-md-6 mb-4">
-              {/* <h4 className="mb-3">Ground-truth caption</h4>
-              <div className="mb-3">{this.state.trueCaption}</div> */}
-              <div className="alert alert-success">
-                <h4 className="mb-3">Generated caption</h4>
-                <div className="mb-3">{this.state.generatedCaption}</div>
-              </div>
-            </div>
-          </div>
+          <Generation
+            title={this.state.title}
+            start={this.state.start}
+            before={this.state.before}
+            after={this.state.after}
+            imageURL={this.state.imageURL}
+            generatedCaption={this.state.generatedCaption}
+          />
         )}
       </div>
     );
   }
 }
+
+class Generation extends Component {
+  constructor(props) {
+    super(props);
+    this.captionRef = React.createRef();
+  }
+  componentDidMount(newProps) {
+    this.captionRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center',
+    });
+  }
+
+  splitNewLines = (text) =>
+    text.split('\n').map((item, key, arr) => (
+      <span key={key}>
+        {item}
+        {arr.length - 1 === key ? (
+          <div />
+        ) : (
+          <div>
+            <br />
+            <br />
+          </div>
+        )}
+      </span>
+    ));
+
+  render() {
+    return (
+      <div className="row">
+        <div className="col-md-6 mb-4 alert alert-secondary">
+          <h4 className="mb-3">{this.props.title}</h4>
+
+          <div className="mb-3">
+            {this.splitNewLines(this.props.start)}
+            {this.splitNewLines(this.props.before)}
+          </div>
+          <div className="mb-3">
+            <img src={this.props.imageURL} className="img-fluid" alt="" />
+          </div>
+          <div className="mb-3">{this.splitNewLines(this.props.after)}</div>
+        </div>
+        <div className="col-md-6 mb-4">
+          {/* <h4 className="mb-3">Ground-truth caption</h4>
+       <div className="mb-3">{this.state.trueCaption}</div> */}
+          <div className="alert alert-success">
+            <h4 className="mb-3">Generated caption</h4>
+            <div className="mb-3" ref={this.captionRef}>
+              {this.props.generatedCaption}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
 export default App;
