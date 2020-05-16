@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import axios from 'axios';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
+import ReactPlayer from 'react-player';
 
 class App extends Component {
   constructor(props) {
@@ -226,6 +227,12 @@ class App extends Component {
             </a>
             .
           </p>
+          <p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <ReactPlayer url="https://www.youtube.com/watch?v=lei1VOJbf40yarn " />
+            </div>
+          </p>
+
           <p>
             Transform and Tell is a captioning model that takes a news image and
             generate a caption for it using information from the article, with a

@@ -10,6 +10,7 @@
     "react-bootstrap": "^1.0.0-beta.16",
     "react-dom": "^16.12.0",
     "react-helmet": "^6.0.0",
+    "react-player": "^2.0.1",
     "react-scripts": "3.4.1",
     "reactstrap": "^8.1.1",
     "serve": "^11.3.0"
