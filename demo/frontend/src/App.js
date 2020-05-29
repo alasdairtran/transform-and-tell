@@ -24,6 +24,7 @@ class App extends Component {
       after: '',
       trueCaption: '',
       generatedCaption: '',
+      attns: [],
       hasError: false,
       errorMessage: '',
       showModal: false,
@@ -102,6 +103,7 @@ class App extends Component {
             errorMessage: res.data.error,
           });
         } else {
+          console.log(res.data);
           this.setState({
             isLoaded: true,
             isLoading: false,
@@ -112,6 +114,7 @@ class App extends Component {
             after: res.data.after,
             trueCaption: res.data.true_caption,
             generatedCaption: res.data.generated_caption,
+            attns: res.data.attns,
           });
         }
       })
@@ -335,6 +338,7 @@ class App extends Component {
             after={this.state.after}
             imageURL={this.state.imageURL}
             generatedCaption={this.state.generatedCaption}
+            attns={this.state.attns}
           />
         )}
       </div>
@@ -371,6 +375,7 @@ class Generation extends Component {
     ));
 
   render() {
+    console.log(this.props);
     return (
       <div className="row">
         <div className="col-md-6 mb-4 alert alert-secondary">
@@ -392,6 +397,14 @@ class Generation extends Component {
             <h4 className="mb-3">Generated caption</h4>
             <div className="mb-3" ref={this.captionRef}>
               {this.props.generatedCaption}
+              {this.props.attns.map(function (a, idx) {
+                console.log(a);
+                return (
+                  <button key={idx} type="button" className="btn btn-light">
+                    {a.tokens}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

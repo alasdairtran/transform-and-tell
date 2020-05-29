@@ -1,7 +1,7 @@
 """Train and run semantic diff models.
 
 Usage:
-    tell (train|generate|evaluate) [options] PARAM_PATH
+    tell (train|evaluate) [options] PARAM_PATH
     tell (-h | --help)
     tell (-v | --version)
 
@@ -43,7 +43,6 @@ from schema import And, Or, Schema, Use
 from tell.utils import setup_logger
 
 from .evaluate import evaluate_from_file
-from .generate import generate
 from .train import train_model_from_file
 
 logger = setup_logger()
@@ -94,9 +93,6 @@ def main():
             file_friendly_logging=args['file_friendly_logging'],
             recover=args['recover'],
             force=args['force'])
-
-    elif args['generate']:
-        generate(args['param_path'], args['model_path'], args['overrides'])
 
     elif args['evaluate']:
         evaluate_from_file(args['param_path'], args['model_path'],

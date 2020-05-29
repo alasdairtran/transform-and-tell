@@ -141,8 +141,13 @@ class CaptioningWorker(Worker):
         for batch in iterator:
             if self.device.type == 'cuda':
                 batch = move_to_device(batch, self.device.index)
-            output_dict = self.model.generate(**batch)
-            generated_captions += output_dict['generations']
+            attns_list = self.model.generate(**batch)
+            # generated_captions += output_dict['generations']
+            # attns = output_dict['attns']
+            # len(attns) == gen_len (ignoring seed)
+            # len(attns[0]) == n_layers
+            # attns[0][0]['image'].shape == [47]
+            # attns[0][0]['article'].shape == [article_len]
 
         output = []
         for i, instance in enumerate(instances):
@@ -151,7 +156,8 @@ class CaptioningWorker(Worker):
                 'start': instance['metadata']['start'],
                 'before': instance['metadata']['before'],
                 'after': instance['metadata']['after'],
-                'caption': generated_captions[i],
+                # 'caption': generated_captions[i],
+                'attns': attns_list,
             })
 
         return output
