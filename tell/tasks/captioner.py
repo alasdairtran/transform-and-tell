@@ -5,6 +5,7 @@ import os
 import random
 import re
 from collections import OrderedDict
+from io import BytesIO
 
 import cv2
 import numpy as np
@@ -151,6 +152,9 @@ class CaptioningWorker(Worker):
 
         output = []
         for i, instance in enumerate(instances):
+            buffered = BytesIO()
+            instance['metadata']['image'].save(buffered, format="JPEG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
             output.append({
                 'title': instance['metadata']['title'],
                 'start': instance['metadata']['start'],
@@ -158,6 +162,7 @@ class CaptioningWorker(Worker):
                 'after': instance['metadata']['after'],
                 # 'caption': generated_captions[i],
                 'attns': attns_list,
+                'image': img_str,
             })
 
         return output
@@ -184,6 +189,7 @@ class CaptioningWorker(Worker):
             'start': '\n'.join(sample['start']).strip(),
             'before': '\n'.join(sample['before']).strip(),
             'after': '\n'.join(sample['after']).strip(),
+            'image': CenterCrop(224)(Resize(256)(sample['image']))
         }
         fields['metadata'] = MetadataField(metadata)
 

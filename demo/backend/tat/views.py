@@ -63,5 +63,6 @@ def post_caption(request):
         'before': output['before'],
         'after': output['after'],
         'attns': output['attns'][0],
+        'image': output['image'],
     }
     return JsonResponse(data)
