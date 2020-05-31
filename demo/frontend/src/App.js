@@ -3,6 +3,7 @@ import axios from 'axios';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import ReactPlayer from 'react-player';
+import * as d3 from 'd3';
 
 class App extends Component {
   constructor(props) {
@@ -25,6 +26,7 @@ class App extends Component {
       trueCaption: '',
       generatedCaption: '',
       attns: [],
+      image: null,
       hasError: false,
       errorMessage: '',
       showModal: false,
@@ -115,6 +117,7 @@ class App extends Component {
             trueCaption: res.data.true_caption,
             generatedCaption: res.data.generated_caption,
             attns: res.data.attns,
+            image: res.data.image,
           });
         }
       })
@@ -339,6 +342,7 @@ class App extends Component {
             imageURL={this.state.imageURL}
             generatedCaption={this.state.generatedCaption}
             attns={this.state.attns}
+            image={this.state.image}
           />
         )}
       </div>
@@ -350,6 +354,10 @@ class Generation extends Component {
   constructor(props) {
     super(props);
     this.captionRef = React.createRef();
+    this.svg = null;
+    this.margin = { top: 30, right: 30, bottom: 30, left: 30 };
+    this.width = 224;
+    this.height = 224;
   }
   componentDidMount(newProps) {
     this.captionRef.current.scrollIntoView({
@@ -357,6 +365,20 @@ class Generation extends Component {
       block: 'center',
       inline: 'center',
     });
+
+    this.svg = d3
+      .select(this.refs.imageCanvas)
+      .append('svg')
+      .attr('width', this.width + this.margin.left + this.margin.right)
+      .attr('height', this.height + this.margin.top + this.margin.bottom)
+      .append('g')
+      .attr(
+        'transform',
+        'translate(' + this.margin.left + ',' + this.margin.top + ')'
+      );
+    this.svg
+      .append('svg:image')
+      .attr('xlink:href', `data:image/jpeg;base64,${this.props.image}`);
   }
 
   splitNewLines = (text) =>
@@ -374,8 +396,58 @@ class Generation extends Component {
       </span>
     ));
 
+  selectWord = (a) => {
+    const img_attn = a.attns.image;
+    const avg_img_attn = [];
+    // Let's average across all layers for now
+    // We'll ignore the last two since that's attention on nothing.
+    for (var i = 0; i < img_attn[0][0].length - 2; i++) {
+      let s = 0.0;
+      for (var j = 0; j < img_attn.length; j++) {
+        s += img_attn[j][0][i];
+      }
+      avg_img_attn.push({
+        x: i % 7,
+        y: Math.floor(i / 7),
+        value: (100 * s) / img_attn.length,
+      });
+    }
+
+    // Remove existing svg
+    d3.selectAll('rect').remove();
+
+    // set the dimensions and margins of the graph
+
+    // append the svg object to the body of the page
+
+    // Build color scale
+    var myOpacity = d3.scaleLinear().range([0.6, 0]).domain([1, 5]);
+
+    const domain = [0, 1, 2, 3, 4, 5, 6];
+    const x = d3.scaleBand().range([0, this.width]).domain(domain).padding(0);
+    const y = d3.scaleBand().range([0, this.height]).domain(domain).padding(0);
+
+    //Read the data
+    this.svg
+      .selectAll()
+      .data(avg_img_attn)
+      .enter()
+      .append('rect')
+      .attr('x', function (d) {
+        return x(d.x);
+      })
+      .attr('y', function (d) {
+        return y(d.y);
+      })
+      .attr('width', x.bandwidth())
+      .attr('height', y.bandwidth())
+      .style('fill', 'black')
+      .style('opacity', function (d) {
+        return myOpacity(d.value);
+      });
+  };
+
   render() {
-    console.log(this.props);
     return (
       <div className="row">
         <div className="col-md-6 mb-4 alert alert-secondary">
@@ -386,7 +458,7 @@ class Generation extends Component {
             {this.splitNewLines(this.props.before)}
           </div>
           <div className="mb-3">
-            <img src={this.props.imageURL} className="img-fluid" alt="" />
+            <div ref="imageCanvas" />
           </div>
           <div className="mb-3">{this.splitNewLines(this.props.after)}</div>
         </div>
@@ -396,11 +468,14 @@ class Generation extends Component {
           <div className="alert alert-success">
             <h4 className="mb-3">Generated caption</h4>
             <div className="mb-3" ref={this.captionRef}>
-              {this.props.generatedCaption}
-              {this.props.attns.map(function (a, idx) {
-                console.log(a);
+              {this.props.attns.map((a, idx) => {
                 return (
-                  <button key={idx} type="button" className="btn btn-light">
+                  <button
+                    key={idx}
+                    type="button"
+                    className="btn btn-outline-dark"
+                    onClick={this.selectWord.bind(this, a)}
+                  >
                     {a.tokens}
                   </button>
                 );
