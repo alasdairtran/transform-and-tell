@@ -406,10 +406,10 @@ class Generation extends Component {
     const avg_img_attn = [];
     // Let's average across all layers for now
     // We'll ignore the last two since that's attention on nothing.
-    for (var i = 0; i < img_attn[0][0].length - 2; i++) {
+    for (var i = 0; i < img_attn[0].length - 2; i++) {
       let s = 0.0;
       for (var j = 0; j < img_attn.length; j++) {
-        s += img_attn[j][0][i];
+        s += img_attn[j][i];
       }
       avg_img_attn.push({
         x: i % 7,

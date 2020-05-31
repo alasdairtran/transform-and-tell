@@ -161,7 +161,7 @@ class CaptioningWorker(Worker):
                 'before': instance['metadata']['before'],
                 'after': instance['metadata']['after'],
                 # 'caption': generated_captions[i],
-                'attns': attns_list,
+                'attns': attns_list[i],
                 'image': img_str,
             })
 

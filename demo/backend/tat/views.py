@@ -50,7 +50,7 @@ def post_caption(request):
 
     article = extract_article(query['sections'], query['title'], query['pos'])
     output = client.parse([article])[0]
-    output['caption'] = ''.join([a['tokens'] for a in output['attns'][0]])
+    output['caption'] = ''.join([a['tokens'] for a in output['attns']])
 
     logger.info(f"Caption for {query['pos']}: {output['caption']}")
 
@@ -62,7 +62,7 @@ def post_caption(request):
         'start': output['start'],
         'before': output['before'],
         'after': output['after'],
-        'attns': output['attns'][0],
+        'attns': output['attns'],
         'image': output['image'],
     }
     return JsonResponse(data)
