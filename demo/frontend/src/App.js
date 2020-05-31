@@ -39,7 +39,7 @@ class App extends Component {
   }
 
   componentDidUpdate() {
-    if (this.state.isScraped) {
+    if (this.state.isScraped && ~this.state.isLoaded) {
       this.buttonRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
@@ -521,10 +521,10 @@ class Generation extends Component {
 
   render() {
     return (
-      <div className="row">
+      <div className="row" ref={this.captionRef}>
         <div className="alert alert-success">
           <h4 className="mb-3">Generated caption</h4>
-          <div className="mb-3" ref={this.captionRef}>
+          <div className="mb-3">
             {this.props.attns.map((a, idx) => {
               return (
                 <button
