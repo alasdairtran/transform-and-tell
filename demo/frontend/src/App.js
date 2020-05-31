@@ -105,7 +105,6 @@ class App extends Component {
             errorMessage: res.data.error,
           });
         } else {
-          console.log(res.data);
           this.setState({
             isLoaded: true,
             isLoading: false,
@@ -151,8 +150,6 @@ class App extends Component {
   };
 
   handleImagePositionChange = (index, e) => {
-    console.log(e);
-    console.log(index);
     this.setState({ imagePosition: index, isLoaded: false });
   };
 
@@ -360,9 +357,12 @@ class Generation extends Component {
     super(props);
     this.captionRef = React.createRef();
     this.svg = null;
-    this.margin = { top: 30, right: 30, bottom: 30, left: 30 };
+    this.margin = { top: 10, right: 10, bottom: 10, left: 10 };
     this.width = 224;
     this.height = 224;
+    this.state = {
+      selectedWordIdx: null,
+    };
   }
   componentDidMount(newProps) {
     this.captionRef.current.scrollIntoView({
@@ -401,7 +401,77 @@ class Generation extends Component {
       </span>
     ));
 
-  selectWord = (a) => {
+  formatTextBlock = (words) => {
+    let myColor = d3
+      .scaleLinear()
+      .range(['#dee2e6', '#8340A0'])
+      .domain([0, 0.2]);
+
+    return words.map((item, key) => {
+      if (item.text === '\n') {
+        return key === 0 ? (
+          <span />
+        ) : (
+          <div>
+            <br />
+          </div>
+        );
+      }
+      return (
+        <span
+          key={key}
+          style={{
+            color: 'black',
+            backgroundColor:
+              this.state.selectedWordIdx !== null
+                ? myColor(item.attns.reduce((a, b) => a + b, 0))
+                : '#dee2e6',
+          }}
+        >
+          {item.text}
+        </span>
+      );
+    });
+  };
+
+  highlightArticle = () => {
+    const k =
+      this.state.selectedWordIdx !== null ? this.state.selectedWordIdx : 0;
+    const a = this.props.attns[k].attns.article;
+
+    let cursor = 0;
+    const title_words = [];
+    const article_words = [];
+    a.map((item, key) => {
+      if (item.text === '\n') {
+        cursor++;
+      }
+
+      if (cursor === 0) {
+        title_words.push(item);
+      } else {
+        article_words.push(item);
+      }
+    });
+
+    return (
+      <div>
+        <h4>{this.formatTextBlock(title_words)}</h4>
+
+        <div className="mb-3">
+          <div className="d-flex justify-content-center" ref="imageCanvas" />
+        </div>
+
+        <div className="mb-3">{this.formatTextBlock(article_words)}</div>
+      </div>
+    );
+  };
+
+  selectWord = (a, idx) => {
+    this.setState({
+      selectedWordIdx: idx,
+    });
+
     const img_attn = a.attns.image;
     const avg_img_attn = [];
     // Let's average across all layers for now
@@ -448,7 +518,7 @@ class Generation extends Component {
       .attr('height', y.bandwidth())
       .style('fill', 'black')
       .style('opacity', function (d) {
-        return myOpacity(d.value);
+        return idx === null ? 0 : myOpacity(d.value);
       });
   };
 
@@ -456,16 +526,7 @@ class Generation extends Component {
     return (
       <div className="row">
         <div className="col-md-6 mb-4 alert alert-secondary">
-          <h4 className="mb-3">{this.props.title}</h4>
-
-          <div className="mb-3">
-            {this.splitNewLines(this.props.start)}
-            {this.splitNewLines(this.props.before)}
-          </div>
-          <div className="mb-3">
-            <div ref="imageCanvas" />
-          </div>
-          <div className="mb-3">{this.splitNewLines(this.props.after)}</div>
+          <div className="mb-3">{this.highlightArticle()}</div>
         </div>
         <div className="col-md-6 mb-4">
           {/* <h4 className="mb-3">Ground-truth caption</h4>
@@ -478,14 +539,27 @@ class Generation extends Component {
                   <button
                     key={idx}
                     type="button"
-                    className="btn btn-outline-dark"
-                    onClick={this.selectWord.bind(this, a)}
+                    className={`btn ${
+                      this.state.selectedWordIdx === idx
+                        ? 'btn-dark'
+                        : 'btn-outline-dark'
+                    }`}
+                    onClick={this.selectWord.bind(this, a, idx)}
+                    onMouseOver={this.selectWord.bind(this, a, idx)}
+                    onMouseOut={this.selectWord.bind(this, a, null)}
                   >
                     {a.tokens}
                   </button>
                 );
               })}
             </div>
+            <p>
+              <i>
+                Hover over a word in the caption to see the attention scores
+                over the contexts. More attention is paid to words highlighted
+                with a darker purlple and to image regions more lightly shaded.
+              </i>
+            </p>
           </div>
         </div>
       </div>
