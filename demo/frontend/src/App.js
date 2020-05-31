@@ -402,21 +402,6 @@ class Generation extends Component {
       .attr('xlink:href', `data:image/jpeg;base64,${this.props.image}`);
   }
 
-  splitNewLines = (text) =>
-    text.split('\n').map((item, key, arr) => (
-      <span key={key}>
-        {item}
-        {arr.length - 1 === key ? (
-          <div />
-        ) : (
-          <div>
-            <br />
-            <br />
-          </div>
-        )}
-      </span>
-    ));
-
   formatTextBlock = (words) => {
     let myColor = d3.scaleLinear().range(['#fff', '#8340A0']).domain([0, 0.2]);
 
