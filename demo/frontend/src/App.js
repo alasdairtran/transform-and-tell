@@ -89,10 +89,24 @@ class App extends Component {
     e.preventDefault();
     this.setState({ isLoaded: false, isLoading: true, hasError: false });
 
+    // Remove unwated images. Can't send to server requests that are too big.
+    const sections = [];
+    let cursor = 0;
+    this.state.sections.forEach((s) => {
+      if (s.type === 'paragraph') {
+        sections.push(s);
+      } else if (cursor === this.state.imagePosition) {
+        sections.push(s);
+        cursor += 1;
+      } else {
+        cursor += 1;
+      }
+    });
+
     const query = {
-      sections: this.state.sections,
+      sections: sections,
       title: this.state.title,
-      pos: this.state.imagePosition,
+      pos: 0,
     };
     axios
       .post('/api/caption/', query)
