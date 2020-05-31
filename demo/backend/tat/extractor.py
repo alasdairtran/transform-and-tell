@@ -1,11 +1,11 @@
 import base64
 import hashlib
+from posixpath import normpath
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
 import bs4
 import requests
-from posixpath import normpath
 
 
 class ExtractError(Exception):
@@ -96,6 +96,7 @@ def extract_text_new(soup):
     params = {
         'div': {'class': 'StoryBodyCompanionColumn'},
         'figcaption': {'itemprop': 'caption description'},
+        'figure': {'class': 'e1g7ppur0'},
     }
 
     article_parts = get_tags(article_node, params)
@@ -114,6 +115,22 @@ def extract_text_new(soup):
                 else:
                     caption_text = ''
                 url = resolve_url(part.parent.attrs['itemid'])
+                sections.append({
+                    'type': 'caption',
+                    'order': i,
+                    'text': caption_text,
+                    'url': url,
+                    'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
+                })
+                i += 1
+        elif part.name == 'figure':
+            if part.attrs.get('itemid', 0):
+                caption = part.find('span', {'class': 'e13ogyst0'})
+                if caption:
+                    caption_text = caption.text.strip()
+                else:
+                    caption_text = ''
+                url = resolve_url(part.attrs['itemid'])
                 sections.append({
                     'type': 'caption',
                     'order': i,
