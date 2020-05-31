@@ -402,10 +402,7 @@ class Generation extends Component {
     ));
 
   formatTextBlock = (words) => {
-    let myColor = d3
-      .scaleLinear()
-      .range(['#dee2e6', '#8340A0'])
-      .domain([0, 0.2]);
+    let myColor = d3.scaleLinear().range(['#fff', '#8340A0']).domain([0, 0.2]);
 
     return words.map((item, key) => {
       if (item.text === '\n') {
@@ -425,7 +422,7 @@ class Generation extends Component {
             backgroundColor:
               this.state.selectedWordIdx !== null
                 ? myColor(item.attns.reduce((a, b) => a + b, 0))
-                : '#dee2e6',
+                : '#fff',
           }}
         >
           {item.text}
@@ -525,46 +522,42 @@ class Generation extends Component {
   render() {
     return (
       <div className="row">
-        <div className="col-md-6 mb-4 alert alert-secondary">
-          <div className="mb-3">{this.highlightArticle()}</div>
-        </div>
-        <div className="col-md-6 mb-4">
-          <div className="alert alert-success">
-            <h4 className="mb-3">Generated caption</h4>
-            <div className="mb-3" ref={this.captionRef}>
-              {this.props.attns.map((a, idx) => {
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`btn ${
-                      this.state.selectedWordIdx === idx
-                        ? 'btn-dark'
-                        : 'btn-outline-dark'
-                    }`}
-                    onClick={this.selectWord.bind(this, a, idx)}
-                    onMouseOver={this.selectWord.bind(this, a, idx)}
-                    onMouseOut={this.selectWord.bind(this, a, null)}
-                  >
-                    {a.tokens}
-                  </button>
-                );
-              })}
-            </div>
-            <p>
-              <i>
-                Hover over a word in the caption to see the attention scores
-                over the contexts. More attention is paid to words highlighted
-                with a darker purlple and to image regions more lightly shaded.
-              </i>
-            </p>
-            <hr />
-            <p>
-              <strong>Ground-truth caption: </strong>
-              {this.props.trueCaption}
-            </p>
+        <div className="alert alert-success">
+          <h4 className="mb-3">Generated caption</h4>
+          <div className="mb-3" ref={this.captionRef}>
+            {this.props.attns.map((a, idx) => {
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  className={`btn ${
+                    this.state.selectedWordIdx === idx
+                      ? 'btn-dark'
+                      : 'btn-outline-dark'
+                  }`}
+                  onClick={this.selectWord.bind(this, a, idx)}
+                  onMouseOver={this.selectWord.bind(this, a, idx)}
+                  onMouseOut={this.selectWord.bind(this, a, null)}
+                >
+                  {a.tokens}
+                </button>
+              );
+            })}
           </div>
+          <p>
+            <i>
+              Hover over a word in the caption to see the attention scores over
+              the contexts. More attention is paid to words highlighted with a
+              darker purlple and to image regions more lightly shaded.
+            </i>
+          </p>
+          <hr />
+          <p>
+            <strong>Ground-truth caption: </strong>
+            {this.props.trueCaption}
+          </p>
         </div>
+        <div className="mb-3">{this.highlightArticle()}</div>
       </div>
     );
   }
