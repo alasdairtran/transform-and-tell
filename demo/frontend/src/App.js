@@ -221,13 +221,18 @@ class App extends Component {
         </Modal>
 
         <div className="py-5">
-          <h2 className="text-center">Transform and Tell</h2>
+          <h2 className="text-center">
+            Transform and Tell: Entity-Aware News Image Captioning
+          </h2>
           <p className="lead text-center">
-            Demo accompanying the paper{' '}
-            <a href="https://arxiv.org/abs/2004.08070">
-              Transform and Tell: Entity-Aware News Image Captioning
+            <a href="https://arxiv.org/abs/2004.08070">Paper</a>&nbsp;|&nbsp;
+            <a href="https://github.com/alasdairtran/transform-and-tell">
+              GitHub
             </a>
-            .
+            &nbsp;|&nbsp;
+            <a href="http://cm.cecs.anu.edu.au/post/transform_and_tell/">
+              Blog
+            </a>
           </p>
           <p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -421,7 +426,7 @@ class Generation extends Component {
     // append the svg object to the body of the page
 
     // Build color scale
-    var myOpacity = d3.scaleLinear().range([0.6, 0]).domain([1, 5]);
+    var myOpacity = d3.scaleLinear().range([0.6, 0]).domain([1, 4]);
 
     const domain = [0, 1, 2, 3, 4, 5, 6];
     const x = d3.scaleBand().range([0, this.width]).domain(domain).padding(0);
