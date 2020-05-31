@@ -296,11 +296,13 @@ class App extends Component {
                   {this.state.imageURLs.map((url, index) => (
                     <div key={index} className="col-md-2 mb-2">
                       <img
-                        className={
-                          'img-thumbnail' +
-                          (this.state.imagePosition === index
-                            ? ' border border-primary'
-                            : '')
+                        className={'img-thumbnail'}
+                        style={
+                          this.state.imagePosition === index
+                            ? {
+                                border: '5px solid black',
+                              }
+                            : {}
                         }
                         src={url}
                         key={index}
