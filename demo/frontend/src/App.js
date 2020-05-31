@@ -342,6 +342,7 @@ class App extends Component {
             after={this.state.after}
             imageURL={this.state.imageURL}
             generatedCaption={this.state.generatedCaption}
+            trueCaption={this.state.trueCaption}
             attns={this.state.attns}
             image={this.state.image}
           />
@@ -528,8 +529,6 @@ class Generation extends Component {
           <div className="mb-3">{this.highlightArticle()}</div>
         </div>
         <div className="col-md-6 mb-4">
-          {/* <h4 className="mb-3">Ground-truth caption</h4>
-       <div className="mb-3">{this.state.trueCaption}</div> */}
           <div className="alert alert-success">
             <h4 className="mb-3">Generated caption</h4>
             <div className="mb-3" ref={this.captionRef}>
@@ -558,6 +557,11 @@ class Generation extends Component {
                 over the contexts. More attention is paid to words highlighted
                 with a darker purlple and to image regions more lightly shaded.
               </i>
+            </p>
+            <hr />
+            <p>
+              <strong>Ground-truth caption: </strong>
+              {this.props.trueCaption}
             </p>
           </div>
         </div>
