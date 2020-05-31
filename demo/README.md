@@ -113,8 +113,8 @@ cp /home/ubuntu/projects/transform-and-tell/tmuxinator.yml ~/.config/tmuxinator/
 conda activate tell
 python setup.py develop
 cd demo/frontend
-yarn build
-yarn serve -s build
+yarn
+rm -rf build && yarn build && yarn serve -s build
 
 # Restore model weight
 rsync -rlptzhe ssh --info=progress2 best.th tell:~/projects/transform-and-tell/expt/nytimes/8_transformer_faces/serialization/
