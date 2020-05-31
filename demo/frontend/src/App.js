@@ -456,10 +456,9 @@ class Generation extends Component {
         <h4>{this.formatTextBlock(title_words)}</h4>
 
         <div className="mb-3">
-          <div className="d-flex justify-content-center" ref="imageCanvas" />
+          <div style={{ float: 'left' }} ref="imageCanvas" />{' '}
+          {this.formatTextBlock(article_words)}
         </div>
-
-        <div className="mb-3">{this.formatTextBlock(article_words)}</div>
       </div>
     );
   };
@@ -547,8 +546,8 @@ class Generation extends Component {
           <p>
             <i>
               Hover over a word in the caption to see the attention scores over
-              the contexts. More attention is paid to words highlighted with a
-              darker purlple and to image regions more lightly shaded.
+              the contexts below. More attention is paid to words highlighted
+              with a darker purlple and to image regions more lightly shaded.
             </i>
           </p>
           <hr />
