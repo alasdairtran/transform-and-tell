@@ -231,11 +231,10 @@ class App extends Component {
               Blog
             </a>
           </p>
-          <p>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <ReactPlayer url="https://www.youtube.com/watch?v=lei1VOJbf40yarn " />
-            </div>
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <ReactPlayer url="https://www.youtube.com/watch?v=lei1VOJbf40yarn " />
+          </div>
+          <br />
 
           <p>
             Transform and Tell is a captioning model that takes a news image and
@@ -410,9 +409,9 @@ class Generation extends Component {
     return words.map((item, key) => {
       if (item.text === '\n') {
         return key === 0 ? (
-          <span />
+          <span key={key} />
         ) : (
-          <div>
+          <div key={key}>
             <br />
           </div>
         );
@@ -442,7 +441,7 @@ class Generation extends Component {
     let cursor = 0;
     const title_words = [];
     const article_words = [];
-    a.map((item, key) => {
+    a.forEach((item, key) => {
       if (item.text === '\n') {
         cursor++;
       }
