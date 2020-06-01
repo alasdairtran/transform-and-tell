@@ -236,6 +236,13 @@ class App extends Component {
             Transform and Tell: Entity-Aware News Image Captioning
           </h2>
           <p className="lead text-center">
+            <p>
+              <i>Alasdair Tran, Alexander Mathews, Lexing Xie</i>
+            </p>
+            <a href="#abstractModal" onClick={this.showModal}>
+              Abstract
+            </a>
+            &nbsp;|&nbsp;
             <a href="https://arxiv.org/abs/2004.08070">Paper</a>&nbsp;|&nbsp;
             <a href="https://github.com/alasdairtran/transform-and-tell">
               GitHub
@@ -253,11 +260,8 @@ class App extends Component {
           <p>
             Transform and Tell is a captioning model that takes a news image and
             generate a caption for it using information from the article, with a
-            special focus on faces and names. To see the abstract, click{' '}
-            <a href="#abstractModal" onClick={this.showModal}>
-              here
-            </a>
-            . To see it in action, click on one of the following examples:
+            special focus on faces and names. To see it in action, click on one
+            of the following examples:
           </p>
 
           <div className="list-group">
