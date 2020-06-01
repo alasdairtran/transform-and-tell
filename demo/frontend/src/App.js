@@ -170,6 +170,17 @@ class App extends Component {
   render() {
     const examples = [
       {
+        title: 'Two Crises Convulse a Nation: A Pandemic and Police Violence',
+        url:
+          'https://www.nytimes.com/2020/05/31/us/george-floyd-protests-coronavirus.html',
+      },
+      {
+        title:
+          'Testing Is Key to Beating Coronavirus, Right? Japan Has Other Ideas',
+        url:
+          'https://www.nytimes.com/2020/05/29/world/asia/japan-coronavirus.html',
+      },
+      {
         title:
           "'Turn Off the Sunshine': Why Shade Is a Mark of Privilege in Los Angeles",
         url:
@@ -181,21 +192,10 @@ class App extends Component {
           'https://www.nytimes.com/2019/11/27/travel/Skiing-in-China-Olympics.html',
       },
       {
-        title: 'Muhammad Ali in a Broadway Musical? It Happened',
-        url:
-          'https://www.nytimes.com/2019/11/28/theater/muhammad-ali-broadway-buck-white.html',
-      },
-      {
         title:
           'New Strawberry-Flavored H.I.V. Drugs for Babies Are Offered at $1 a Day',
         url:
           'https://www.nytimes.com/2019/11/29/health/AIDS-drugs-children.html',
-      },
-      {
-        title:
-          'Dr. Janette Sherman, 89, Early Force in Environmental Science, Dies',
-        url:
-          'https://www.nytimes.com/2019/11/29/health/dr-janette-sherman-dead.html',
       },
     ];
 
