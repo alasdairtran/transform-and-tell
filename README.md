@@ -167,15 +167,15 @@ our paper for more details, but here's a summary:
 
 | Experiment                       | Word Embedding | Language Model | Image Attention | Weighted RoBERTa | Location-Aware | Face Attention | Object Attention |
 | -------------------------------- | :------------: | -------------: | --------------: | ---------------: | -------------: | -------------: | ---------------: |
-| `1_lstm_glove`                   |     GloVe      |           LSTM |               🗸 |                  |                |                |                  |
-| `2_transformer_glove`            |     GloVe      |    Transformer |               🗸 |                  |                |                |                  |
-| `3_lstm_roberta`                 |    RoBERTa     |           LSTM |               🗸 |                  |                |                |                  |
+| `1_lstm_glove`                   |     GloVe      |           LSTM |               ✔ |                  |                |                |                  |
+| `2_transformer_glove`            |     GloVe      |    Transformer |               ✔ |                  |                |                |                  |
+| `3_lstm_roberta`                 |    RoBERTa     |           LSTM |               ✔ |                  |                |                |                  |
 | `4_no_image`                     |    RoBERTa     |    Transformer |                 |                  |                |                |                  |
-| `5_transformer_roberta`          |    RoBERTa     |    Transformer |               🗸 |                  |                |                |                  |
-| `6_transformer_weighted_roberta` |    RoBERTa     |    Transformer |               🗸 |                🗸 |                |                |                  |
-| `7_trasnformer_location_aware`   |    RoBERTa     |    Transformer |               🗸 |                🗸 |              🗸 |                |                  |
-| `8_transformer_faces`            |    RoBERTa     |    Transformer |               🗸 |                🗸 |              🗸 |              🗸 |                  |
-| `9_transformer_objects`          |    RoBERTa     |    Transformer |               🗸 |                🗸 |              🗸 |              🗸 |                🗸 |
+| `5_transformer_roberta`          |    RoBERTa     |    Transformer |               ✔ |                  |                |                |                  |
+| `6_transformer_weighted_roberta` |    RoBERTa     |    Transformer |               ✔ |                ✔ |                |                |                  |
+| `7_trasnformer_location_aware`   |    RoBERTa     |    Transformer |               ✔ |                ✔ |              ✔ |                |                  |
+| `8_transformer_faces`            |    RoBERTa     |    Transformer |               ✔ |                ✔ |              ✔ |              ✔ |                  |
+| `9_transformer_objects`          |    RoBERTa     |    Transformer |               ✔ |                ✔ |              ✔ |              ✔ |                ✔ |
 
 ## Acknowledgement
 
