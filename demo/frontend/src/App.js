@@ -407,7 +407,10 @@ class Generation extends Component {
   }
 
   formatTextBlock = (words) => {
-    let myColor = d3.scaleLinear().range(['#fff', '#8340A0']).domain([0, 0.2]);
+    let myColor = d3
+      .scaleLinear()
+      .range(['#f7f7f7', '#8340A0'])
+      .domain([0, 0.2]);
 
     return words.map((item, key) => {
       if (item.text === '\n') {
@@ -427,7 +430,7 @@ class Generation extends Component {
             backgroundColor:
               this.state.selectedWordIdx !== null
                 ? myColor(item.attns.reduce((a, b) => a + b, 0))
-                : '#fff',
+                : '#f7f7f7',
           }}
         >
           {item.text}
