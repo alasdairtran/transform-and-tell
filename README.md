@@ -30,10 +30,10 @@ model to generate a caption.
 Please cite with the following BibTeX:
 
 ```raw
-@InProceedings{Tran2020Tell,
+@InProceedings{Tran_2020_CVPR,
   author = {Tran, Alasdair and Mathews, Alexander and Xie, Lexing},
-  title = {{Transform and Tell: Entity-Aware News Image Captioning}},
-  booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  title = {Transform and Tell: Entity-Aware News Image Captioning},
+  booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
   month = {June},
   year = {2020}
 }
