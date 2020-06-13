@@ -1,5 +1,5 @@
 [submodule "paper"]
-	path = paper
+	path = cvpr2020
 	url = https://git.overleaf.com/5d9be07ecc11910001e0a64a
 [submodule "libs/apex"]
 	path = libs/apex
