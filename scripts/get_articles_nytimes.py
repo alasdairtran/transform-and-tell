@@ -69,12 +69,14 @@ def extract_text_new(soup):
     params = {
         'div': {'class': 'StoryBodyCompanionColumn'},
         'figcaption': {'itemprop': 'caption description'},
+        'figure': {'class': 'e1g7ppur0'},
     }
 
     article_parts = get_tags(article_node, params)
     i = 0
 
     for part in article_parts:
+        has_caption = False
         if part.name == 'div':
             paragraphs = part.find_all(['p', 'h2'])
             for p in paragraphs:
@@ -82,16 +84,24 @@ def extract_text_new(soup):
         elif part.name == 'figcaption':
             if part.parent.attrs.get('itemid', 0):
                 caption = part.find('span', {'class': 'e13ogyst0'})
-                if caption:
-                    url = resolve_url(part.parent.attrs['itemid'])
-                    sections.append({
-                        'type': 'caption',
-                        'order': i,
-                        'text': caption.text.strip(),
-                        'url': url,
-                        'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
-                    })
-                    i += 1
+                raw_url = part.parent.attrs['itemid']
+                has_caption = True
+        elif part.name == 'figure':
+            if part.attrs.get('itemid', 0):
+                caption = part.find('span', {'class': 'e13ogyst0'})
+                raw_url = part.attrs['itemid']
+                has_caption = True
+
+        if has_caption and caption:
+            url = resolve_url(raw_url)
+            sections.append({
+                'type': 'caption',
+                'order': i,
+                'text': caption.text.strip(),
+                'url': url,
+                'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
+            })
+            i += 1
 
     return sections
 
