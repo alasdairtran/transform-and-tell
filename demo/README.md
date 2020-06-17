@@ -13,7 +13,7 @@ django-admin startproject backend
 cd backend
 python manage.py startapp tat
 python manage.py migrate
-python manage.py runserver
+SECRET_KEY='' DJANGO_DEBUG='False' python manage.py runserver
 ```
 
 ```sh
