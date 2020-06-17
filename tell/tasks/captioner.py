@@ -37,7 +37,6 @@ from tell.yolov3.utils.utils import (load_classes, non_max_suppression,
 from .base import Worker
 
 logger = logging.getLogger(__name__)
-
 SPACE_NORMALIZER = re.compile(r"\s+")
 
 
@@ -65,7 +64,10 @@ class CaptioningWorker(Worker):
         self.colors = None
         self.nlp = None
         if torch.cuda.is_available():
-            self.device = torch.device('cuda:0')
+            n_devices = torch.cuda.device_count()
+            d = worker_id % n_devices
+            os.environ['CUDA_VISIBLE_DEVICES'] = str(d)
+            self.device = torch.device(f'cuda:0')
         else:
             self.device = torch.device('cpu')
 
