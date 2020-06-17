@@ -33,6 +33,7 @@ dependencies:
       - git+git://github.com/salaniz/pycocoevalcap.git@a6b79b0fbd0f4f293634831e4e09405de2abc955
       - pymongo==3.10.1
       - pyzmq==19.0.0
+      - gunicorn==20.0.4
       - schema==0.7.1
       - spacy==2.1.9
       - stop-words==2018.7.23

@@ -120,4 +120,7 @@ rm -rf build && yarn build && yarn serve -s build
 rsync -rlptzhe ssh --info=progress2 best.th tell:~/projects/transform-and-tell/expt/nytimes/8_transformer_faces/serialization/
 cd demo/backend
 CUDA_VISIBLE_DEVICES=2 python -m tell.server caption
+
+# Run django backend
+gunicorn backend.wsgi
 ```
