@@ -44,7 +44,7 @@ Please cite with the following BibTeX:
 ```sh
 # Install Anaconda for Python and then create a dedicated environment.
 # This will make it easier to reproduce our experimental numbers.
-conda env create -f conda.yaml
+conda env create -f environment.yml
 conda activate tell
 
 # This step is only needed if you want to use the Jupyter notebook
