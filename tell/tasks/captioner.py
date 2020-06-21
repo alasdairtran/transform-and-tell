@@ -38,6 +38,7 @@ from .base import Worker
 
 logger = logging.getLogger(__name__)
 SPACE_NORMALIZER = re.compile(r"\s+")
+ENV = os.environ.copy()
 
 
 def tokenize_line(line):
@@ -66,7 +67,11 @@ class CaptioningWorker(Worker):
         if torch.cuda.is_available():
             n_devices = torch.cuda.device_count()
             d = worker_id % n_devices
-            os.environ['CUDA_VISIBLE_DEVICES'] = str(d)
+            if 'CUDA_VISIBLE_DEVICES' in os.environ:
+                devs = ENV['CUDA_VISIBLE_DEVICES'].split(',')
+                os.environ['CUDA_VISIBLE_DEVICES'] = devs[d]
+            else:
+                os.environ['CUDA_VISIBLE_DEVICES'] = str(d)
             self.device = torch.device(f'cuda:0')
         else:
             self.device = torch.device('cpu')
