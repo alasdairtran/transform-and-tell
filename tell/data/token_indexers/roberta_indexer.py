@@ -43,7 +43,7 @@ class RobertaTokenIndexer(TokenIndexer[int]):
                  padding_value: int = 1,
                  max_len: int = 512) -> None:
         super().__init__(token_min_padding_length)
-        roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
+        roberta = torch.hub.load('pytorch/fairseq:2f7e3f3323', 'roberta.base')
         self.source_dictionary = roberta.task.source_dictionary
         self.bpe = roberta.bpe.bpe
         self.bpe_legacy = roberta.bpe

@@ -52,7 +52,8 @@ class TransformerPointer2Model(LoadStateDictWithPrefix, Model):
         self.index = index
         self.namespace = namespace
         self.resnet = resnet152()
-        self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
+        self.roberta = torch.hub.load(
+            'pytorch/fairseq:2f7e3f3323', 'roberta.large')
         self.use_context = use_context
         self.padding_idx = padding_value
         self.evaluate_mode = evaluate_mode
@@ -307,7 +308,8 @@ class TransformerPointer2Model(LoadStateDictWithPrefix, Model):
             # copy_lprobs_i.shape == [batch_size * n_entity_tokens, reduced_vocab_size]
 
             if copy_lprobs_i.shape[0] > 0:
-                copy_loss += self.copy_loss(copy_lprobs_i, new_caption_targets_i)
+                copy_loss += self.copy_loss(copy_lprobs_i,
+                                            new_caption_targets_i)
 
         return entity_loss, copy_loss
 

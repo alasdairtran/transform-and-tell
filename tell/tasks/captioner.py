@@ -95,7 +95,7 @@ class CaptioningWorker(Worker):
         self.model = model
 
         logger.info('Loading roberta model.')
-        roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
+        roberta = torch.hub.load('pytorch/fairseq:2f7e3f3323', 'roberta.base')
         self.bpe = roberta.bpe
         self.indices = roberta.task.source_dictionary.indices
 

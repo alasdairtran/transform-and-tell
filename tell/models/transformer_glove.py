@@ -44,7 +44,8 @@ class TransformerGloveModel(Model):
         self.index = index
         self.namespace = namespace
         self.resnet = resnet152()
-        self.roberta = torch.hub.load('pytorch/fairseq', 'roberta.large')
+        self.roberta = torch.hub.load(
+            'pytorch/fairseq:2f7e3f3323', 'roberta.large')
         self.use_context = use_context
         self.padding_idx = padding_value
         self.evaluate_mode = evaluate_mode

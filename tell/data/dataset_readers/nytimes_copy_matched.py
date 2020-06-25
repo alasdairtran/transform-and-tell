@@ -72,7 +72,7 @@ class NYTimesCopyMatchedReader(DatasetReader):
         random.seed(1234)
         self.rs = np.random.RandomState(1234)
 
-        roberta = torch.hub.load('pytorch/fairseq', 'roberta.base')
+        roberta = torch.hub.load('pytorch/fairseq:2f7e3f3323', 'roberta.base')
         self.bpe = roberta.bpe
         self.indices = roberta.task.source_dictionary.indices
 
