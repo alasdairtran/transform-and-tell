@@ -12,6 +12,7 @@ dependencies:
   - mypy=0.750
   - numpy=1.17.2
   - pip=20.0.2
+  - pillow=7.1.2
   - pytorch=1.4.0
   - python=3.7.4
   - pyyaml=5.1.2
