@@ -60,6 +60,9 @@ cd ../.. && python setup.py develop
 
 # Spacy is used to calcuate some of the evaluation metrics
 spacy download en_core_web_lg
+
+# We use nltk to tokenize the generated text to compute linguistic metrics
+python -m nltk.downloader punkt
 ```
 
 ## Getting Data
