@@ -92,8 +92,8 @@ mongorestore --db goodnews --host=localhost --port=27017 --drop --gzip --archive
 # if you want to recompute the face and object embeddings. Otherwise, all
 # the experiments will use the images in `images_processed`, which have
 # already been cropped and resized.
-tar -zcf data/nytimes/images_processed.tar.gz data/nytimes/images_processed
-tar -zcf data/goodnews/images_processed.tar.gz data/goodnews/images_processed
+tar -zxf data/nytimes/images_processed.tar.gz -C data/nytimes/
+tar -zxf data/goodnews/images_processed.tar.gz -C data/goodnews/
 
 # We are now ready to train the models!
 ```
