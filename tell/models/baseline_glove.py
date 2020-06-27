@@ -32,6 +32,7 @@ class BaselineGloveModel(Model):
                  use_context: bool = True,
                  sampling_topk: int = 1,
                  sampling_temp: float = 1.0,
+                 max_caption_len: int = 50,
                  weigh_bert: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super().__init__(vocab)
@@ -48,6 +49,7 @@ class BaselineGloveModel(Model):
         self.evaluate_mode = evaluate_mode
         self.sampling_topk = sampling_topk
         self.sampling_temp = sampling_temp
+        self.max_caption_len = max_caption_len
         self.weigh_bert = weigh_bert
         if weigh_bert:
             self.bert_weight = nn.Parameter(torch.Tensor(25))
@@ -175,6 +177,11 @@ class BaselineGloveModel(Model):
         # we'll be predicting the <pad> token.
         caption_ids = caption_ids[:, :-1]
         target_ids = target_ids[:, :-1]
+
+        # Truncate very long captions to avoid OOM errors
+        caption_ids = caption_ids[:, :self.max_caption_len]
+        target_ids = target_ids[:, :self.max_caption_len]
+
         caption[self.index] = caption_ids
 
         # Embed the image

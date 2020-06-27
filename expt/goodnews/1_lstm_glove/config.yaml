@@ -68,6 +68,7 @@ model:
   namespace: bpe
   index: roberta
   weigh_bert: true
+  max_caption_len: 50 # Avoid out-of-memory error
   padding_value: 1
   # initializer:
   #   - - ^(attention|article_attention|init|f).*weight
