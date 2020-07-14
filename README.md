@@ -83,8 +83,8 @@ mkdir data/mongodb
 mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10
 
 # Next let's restore the NYTimes200k and GoodNews datasets
-mongorestore --db nytimes --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/nytimes-2020-04-21
-mongorestore --db goodnews --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/goodnews-2020-04-21
+mongorestore --db nytimes --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/nytimes-2020-04-21.gz
+mongorestore --db goodnews --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/goodnews-2020-04-21.gz
 
 # Next we unarchive the image directories. For each dataset, you can see two
 # directories: `images` and `images_processed`. The files in `images` are

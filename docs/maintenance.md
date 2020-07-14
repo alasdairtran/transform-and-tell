@@ -5,12 +5,12 @@ about this.
 
 ```sh
 # Back up database
-mongodump --db nytimes --host=localhost --port=27017 --gzip --archive=data/mongobackups/nytimes-2020-04-21
-mongodump --db goodnews --host=localhost --port=27017 --gzip --archive=data/mongobackups/goodnews-2020-04-21
+mongodump --db nytimes --host=localhost --port=27017 --gzip --archive=data/mongobackups/nytimes-2020-04-21.gz
+mongodump --db goodnews --host=localhost --port=27017 --gzip --archive=data/mongobackups/goodnews-2020-04-21.gz
 
 # Restore database
-mongorestore --db nytimes --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/nytimes-2020-04-21
-mongorestore --db goodnews --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/goodnews-2020-04-21
+mongorestore --db nytimes --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/nytimes-2020-04-21.gz
+mongorestore --db goodnews --host=localhost --port=27017 --drop --gzip --archive=data/mongobackups/goodnews-2020-04-21.gz
 
 # Archive scraped images
 tar -zcf data/nytimes/images_processed.tar.gz data/nytimes/images_processed
