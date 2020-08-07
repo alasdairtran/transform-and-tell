@@ -85,14 +85,15 @@ class CaptioningWorker(Worker):
         prepare_environment(config)
         vocab = Vocabulary.from_params(config.pop('vocabulary'))
         model = Model.from_params(vocab=vocab, params=config.pop('model'))
-        model = model.eval().to(self.device)
+        model = model.eval()
 
         model_path = 'expt/nytimes/9_transformer_objects/serialization/best.th'
         logger.info(f'Loading best model from {model_path}')
-        best_model_state = torch.load(model_path, map_location=self.device)
+        best_model_state = torch.load(
+            model_path, map_location=torch.device('cpu'))
         model.load_state_dict(best_model_state)
 
-        self.model = model
+        self.model = model.to(self.device)
 
         logger.info('Loading roberta model.')
         roberta = torch.hub.load('pytorch/fairseq:2f7e3f3323', 'roberta.base')
