@@ -2,9 +2,28 @@
 
 You probably don't need to read this unless you want to set up the demo
 on your own machine. These instructions contain some stuff that is specific
-to our server.
+to our own server.
 
-## Intializing the Demo Project
+## Quick Start
+
+```sh
+# Start the frontend
+conda activate tell
+python setup.py develop
+cd demo/frontend
+yarn
+rm -rf build && yarn build && yarn serve -s build
+
+# Restore model weight
+rsync -rlptzhe ssh --info=progress2 best.th tell:~/projects/transform-and-tell/expt/nytimes/8_transformer_faces/serialization/
+cd demo/backend
+CUDA_VISIBLE_DEVICES=2 python -m tell.server caption
+
+# Run django backend
+gunicorn backend.wsgi
+```
+
+## Intializing the Demo Project From Scratch
 
 ```sh
 yarn create react-app tatdemo
@@ -15,6 +34,8 @@ python manage.py startapp tat
 python manage.py migrate
 SECRET_KEY='' DJANGO_DEBUG='False' python manage.py runserver
 ```
+
+## Setting Up the Demo Server From Scratch
 
 ```sh
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
@@ -109,18 +130,4 @@ sudo systemctl restart nginx
 
 cp /home/ubuntu/projects/transform-and-tell/tmuxinator.yml ~/.config/tmuxinator/tell.yml
 # Inside a tmux session, run ` + I to reload the tmux config.
-
-conda activate tell
-python setup.py develop
-cd demo/frontend
-yarn
-rm -rf build && yarn build && yarn serve -s build
-
-# Restore model weight
-rsync -rlptzhe ssh --info=progress2 best.th tell:~/projects/transform-and-tell/expt/nytimes/8_transformer_faces/serialization/
-cd demo/backend
-CUDA_VISIBLE_DEVICES=2 python -m tell.server caption
-
-# Run django backend
-gunicorn backend.wsgi
 ```
