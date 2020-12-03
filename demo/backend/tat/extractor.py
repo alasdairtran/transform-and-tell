@@ -95,7 +95,8 @@ def extract_text_new(soup):
 
     params = {
         'div': {'class': 'StoryBodyCompanionColumn'},
-        'figcaption': {'itemprop': 'caption description'},
+        # 'figcaption': {'itemprop': 'caption description'},
+        'figcaption': {'class': 'ewdxa0s0'},
         'figure': {'class': 'e1g7ppur0'},
     }
 
@@ -107,22 +108,29 @@ def extract_text_new(soup):
             paragraphs = part.find_all(['p', 'h2'])
             for p in paragraphs:
                 sections.append({'type': 'paragraph', 'text': p.text.strip()})
+
         elif part.name == 'figcaption':
-            if part.parent.attrs.get('itemid', 0):
-                caption = part.find('span', {'class': 'e13ogyst0'})
-                if caption:
-                    caption_text = caption.text.strip()
-                else:
-                    caption_text = ''
-                url = resolve_url(part.parent.attrs['itemid'])
-                sections.append({
-                    'type': 'caption',
-                    'order': i,
-                    'text': caption_text,
-                    'url': url,
-                    'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
-                })
-                i += 1
+            picture = part.parent.find('picture')
+            if not picture:
+                continue
+            url = picture.find('source').attrs.get('srcset', None)
+            if not url:
+                continue
+            caption = part.find('span', {'class': 'e13ogyst0'})
+            if caption:
+                caption_text = caption.text.strip()
+            else:
+                caption_text = ''
+            url = resolve_url(url)
+            sections.append({
+                'type': 'caption',
+                'order': i,
+                'text': caption_text,
+                'url': url,
+                'hash': hashlib.sha256(url.encode('utf-8')).hexdigest(),
+            })
+            i += 1
+
         elif part.name == 'figure':
             if part.attrs.get('itemid', 0):
                 caption = part.find('span', {'class': 'e13ogyst0'})
