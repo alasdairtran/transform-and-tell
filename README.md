@@ -50,6 +50,10 @@ conda activate tell
 # This step is only needed if you want to use the Jupyter notebook
 python -m ipykernel install --user --name tell --display-name "tell"
 
+# Our Pytorch uses CUDA 10.2. Ensure that CUDA_HOME points to the right
+# CUDA version. Chagne this depending on where you installed CUDA.
+export CUDA_HOME=/usr/local/cuda-10.2
+
 # We also pin the apex version, which is used for mixed precision training
 cd libs/apex
 git submodule init && git submodule update .
@@ -77,6 +81,9 @@ directories `expt` and `data`, you can simply put them at the root of this
 repo.
 
 ```sh
+# If the data is download from our Cloudstor server, then you might need
+# to first unzip the archives using either tar or 7z.
+
 # First, let's start an empty local MongoDB server on port 27017. Below
 # we set the cache size to 10GB of RAM. Change it depending on your system.
 mkdir data/mongodb
