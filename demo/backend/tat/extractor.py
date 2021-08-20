@@ -81,8 +81,19 @@ def extract_text(html):
 
 
 def get_tags(d, params):
-    # See https://stackoverflow.com/a/57683816/3790116
-    if any((lambda x: b in x if a == 'class' else b == x)(d.attrs.get(a, [])) for a, b in params.get(d.name, {}).items()):
+    # See https://stackoverflow.com/a/57683816/379011
+    def find_match(attrs, tag, tag_names):
+        for tag_name in tag_names:
+            if (tag == 'class' and tag_name in attrs) or tag_name == attrs:
+                return True
+        return False
+
+    matches = []
+    for tag, tag_names in params.get(d.name, {}).items():
+        match = find_match(d.attrs.get(tag, []), tag, tag_names)
+        matches.append(match)
+
+    if any(matches):
         yield d
     for i in filter(lambda x: x != '\n' and not isinstance(x, bs4.element.NavigableString), d.contents):
         yield from get_tags(i, params)
@@ -94,10 +105,10 @@ def extract_text_new(soup):
     article_node = soup.find('article')
 
     params = {
-        'div': {'class': 'StoryBodyCompanionColumn'},
+        'div': {'class': ['StoryBodyCompanionColumn']},
         # 'figcaption': {'itemprop': 'caption description'},
-        'figcaption': {'class': 'ewdxa0s0'},
-        'figure': {'class': 'e1g7ppur0'},
+        'figcaption': {'class': ['ewdxa0s0', 'e18f7pbr0']},
+        'figure': {'class': ['e1g7ppur0']},
     }
 
     article_parts = get_tags(article_node, params)
