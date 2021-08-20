@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
 import axios from 'axios';
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
-import ReactPlayer from 'react-player';
 import * as d3 from 'd3';
+import React, { Component } from 'react';
+import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
+import ReactPlayer from 'react-player';
 
 class App extends Component {
   constructor(props) {
