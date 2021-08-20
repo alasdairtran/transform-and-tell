@@ -40,10 +40,11 @@ SECRET_KEY='' DJANGO_DEBUG='False' python manage.py runserver
 ```sh
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+sudo apt-key adv --refresh-keys --keyserver keyserver.ubuntu.com
 sudo apt update && sudo apt full-upgrade -y
 
 sudo apt install -y htop vim zsh tmux ruby-full gcc-7 g++-7 gfortran-7 cmake \
-    yarn certbot nginx python-certbot-nginx autossh
+    yarn certbot nginx python-certbot-nginx autossh libgl1
 
 # Update current user's password
 sudo passwd ubuntu
