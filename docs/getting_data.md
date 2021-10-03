@@ -11,7 +11,7 @@ ensure you have installed mongo first.
 ```sh
 # Start local MongoDB server on port 27017
 mkdir data/mongodb
-mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10
+mongod --bind_ip_all --dbpath data/mongodb --wiredTigerCacheSizeGB 10 --fork --logpath mongo.log
 
 # Get article URLs from New York Times. Register for an API at
 # https://developer.nytimes.com/apis
