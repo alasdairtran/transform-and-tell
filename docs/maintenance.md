@@ -17,4 +17,8 @@ tar -zcf data/nytimes/images_processed.tar.gz data/nytimes/images_processed
 tar -zcf data/nytimes/images.tar.gz data/nytimes/images
 tar -zcf data/goodnews/images_processed.tar.gz data/goodnews/images_processed
 tar -zcf data/goodnews/images.tar.gz data/goodnews/images
+
+# Upload data to Nectar Containers
+swift upload transform-and-tell expt.7z --info -S 1073741824
+swift upload transform-and-tell data --info -S 1073741824
 ```
