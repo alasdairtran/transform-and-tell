@@ -130,7 +130,8 @@ def evaluate(model: Model,
 
         for batch in generator_tqdm:
             batch_count += 1
-            batch = nn_util.move_to_device(batch, cuda_device)
+            if torch.cuda.is_available():
+                batch = nn_util.move_to_device(batch, cuda_device)
             output_dict = model(**batch)
             loss = output_dict.get("loss")
 
