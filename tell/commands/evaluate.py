@@ -28,7 +28,12 @@ from .train import yaml_to_params
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-def evaluate_from_file(archive_path, model_path, overrides=None, eval_suffix='', device=0):
+def evaluate_from_file(archive_path, model_path, overrides=None, eval_suffix=''):
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+
     if archive_path.endswith('gz'):
         archive = load_archive(archive_path, device, overrides)
         config = archive.config
@@ -54,7 +59,7 @@ def evaluate_from_file(archive_path, model_path, overrides=None, eval_suffix='',
     model = Model.from_params(vocab=vocab, params=config.pop('model'))
 
     if model_path:
-        best_model_state = torch.load(model_path)
+        best_model_state = torch.load(model_path, map_location=device)
         model.load_state_dict(best_model_state)
 
     instances = all_datasets.get('test')
@@ -84,11 +89,11 @@ def evaluate_from_file(archive_path, model_path, overrides=None, eval_suffix='',
 def evaluate(model: Model,
              instances: Iterable[Instance],
              data_iterator: DataIterator,
-             cuda_device: int,
+             cuda_device,
              serialization_dir: str,
              eval_suffix: str,
              batch_weight_key: str) -> Dict[str, Any]:
-    check_for_gpu(cuda_device)
+    # check_for_gpu(cuda_device)
     nlp = spacy.load("en_core_web_lg")
     assert not os.path.exists(os.path.join(
         serialization_dir, f'generations{eval_suffix}.jsonl'))
