@@ -2,7 +2,7 @@ import base64
 import hashlib
 from posixpath import normpath
 from urllib.parse import urlparse
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import bs4
 import requests
@@ -13,7 +13,8 @@ class ExtractError(Exception):
 
 
 def get_urls(url):
-    response = urlopen(url, timeout=5)
+    req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    response = urlopen(req, timeout=5)
     raw_html = response.read().decode('utf-8')
     try:
         parsed_sections, title = extract_text(raw_html)
