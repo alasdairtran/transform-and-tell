@@ -176,12 +176,6 @@ class App extends Component {
       },
       {
         title:
-          'Testing Is Key to Beating Coronavirus, Right? Japan Has Other Ideas',
-        url:
-          'https://www.nytimes.com/2020/05/29/world/asia/japan-coronavirus.html',
-      },
-      {
-        title:
           "'Turn Off the Sunshine': Why Shade Is a Mark of Privilege in Los Angeles",
         url:
           'https://www.nytimes.com/2019/12/01/us/los-angeles-shade-climate-change.html',
@@ -190,12 +184,6 @@ class App extends Component {
         title: 'Ready, Set, Ski! In China, Snow Sports are the Next Big Thing',
         url:
           'https://www.nytimes.com/2019/11/27/travel/Skiing-in-China-Olympics.html',
-      },
-      {
-        title:
-          'New Strawberry-Flavored H.I.V. Drugs for Babies Are Offered at $1 a Day',
-        url:
-          'https://www.nytimes.com/2019/11/29/health/AIDS-drugs-children.html',
       },
     ];
 
