@@ -170,6 +170,11 @@ class App extends Component {
   render() {
     const examples = [
       {
+        title: 'Where You Still Have to Wear a Mask in California',
+        url:
+          'https://www.nytimes.com/2022/04/27/us/mask-mandates-california.html',
+      },
+      {
         title: 'Two Crises Convulse a Nation: A Pandemic and Police Violence',
         url:
           'https://www.nytimes.com/2020/05/31/us/george-floyd-protests-coronavirus.html',
