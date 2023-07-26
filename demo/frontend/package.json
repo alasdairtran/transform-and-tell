@@ -4,7 +4,7 @@
   "private": true,
   "proxy": "https://api.transform-and-tell.ml",
   "dependencies": {
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "bootstrap": "^4.3.1",
     "d3": "^5.16.0",
     "react": "^16.12.0",
