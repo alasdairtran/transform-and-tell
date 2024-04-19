@@ -71,8 +71,8 @@ python -m nltk.downloader punkt
 
 ## Getting Data
 
-The quickest way to get the data is to send an email to `first.last@anu.edu.au`
-(where `first` is `alasdair` and `last` is `tran`) to request the MongoDB dump
+The quickest way to get the data is to send an email to `u4921817@anu.edu.au`
+to request the MongoDB dump
 that contains the dataset. Alternatively, see [here](docs/getting_data.md) for
 instructions on how to get the data from scratch, which will take a few days.
 
